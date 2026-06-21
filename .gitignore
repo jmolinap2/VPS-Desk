@@ -1,0 +1,27 @@
+# Credenciales y configuracion sensible
+.env
+.env.*
+!.env.example
+*.env.local
+
+# Logs generados en runtime
+migrator_logs.txt
+vps-desk.log
+Logs/
+*.log
+
+# Settings locales (AppData se usa en runtime, no versionar)
+# (los settings se guardan en %APPDATA%\VPSDesk\)
+
+# Backups automaticos
+Backups/
+*.bak
+*.tmp
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.user

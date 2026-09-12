@@ -9,6 +9,7 @@ using VpsDesk.Desktop.Views;
 using VpsDesk.Infrastructure.Docker;
 using VpsDesk.Infrastructure.Logs;
 using VpsDesk.Infrastructure.Monitoring;
+using VpsDesk.Infrastructure.Persistence;
 using VpsDesk.Infrastructure.Security;
 using VpsDesk.Infrastructure.Ssh;
 using VpsDesk.Infrastructure.Storage;
@@ -30,6 +31,7 @@ public partial class App : Avalonia.Application
             var bootstrap = BootstrapServerProfileLoader.Load();
             var store = new ServerProfileStore();
             var deploymentProfileStore = new DeploymentProfileStore();
+            var operationHistoryStore = new SqliteOperationHistoryStore();
             var ssh = new SshNetCommandExecutor();
             var probe = new LinuxServerProbeService(ssh);
             var containers = new DockerContainerService(ssh);
@@ -44,6 +46,7 @@ public partial class App : Avalonia.Application
 
             var viewModel = new MainWindowViewModel(probe, store, bootstrap);
             LocalizationService.Current.CultureChanged += (_, _) => viewModel.RefreshLocalization();
+            viewModel.InitializeActivity(operationHistoryStore);
             viewModel.InitializeContainers(containers);
             viewModel.InitializeDeployments(
                 preflight,
@@ -51,6 +54,7 @@ public partial class App : Avalonia.Application
                 discovery,
                 postDeployVerification,
                 deploymentProfileStore,
+                operationHistoryStore,
                 bootstrap.Profile,
                 bootstrap.RemoteRepositoryPath,
                 bootstrap.ComposeFile);

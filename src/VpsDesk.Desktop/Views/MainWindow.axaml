@@ -1,7 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+        xmlns:servers="using:VpsDesk.Domain.Servers"
         x:Class="VpsDesk.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
         Title="VPS Desk"
         Width="1440"
         Height="900"
@@ -152,7 +155,7 @@
             </StackPanel>
             <ListBox Grid.Row="1" Margin="0,16,0,12" ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServerInList}">
               <ListBox.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="servers:ServerProfile">
                   <Border Padding="10" Margin="0,2" Background="#0E131B" CornerRadius="8">
                     <StackPanel>
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
@@ -177,16 +180,16 @@
               <Grid ColumnDefinitions="*,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                 <StackPanel>
                   <TextBlock Text="Name" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorName}" Watermark="Production VPS" />
+                  <TextBox Text="{Binding EditorName}" PlaceholderText="Production VPS" />
                 </StackPanel>
                 <StackPanel Grid.Column="1">
                   <TextBlock Text="Provider" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorProvider}" Watermark="Hostinger / Generic" />
+                  <TextBox Text="{Binding EditorProvider}" PlaceholderText="Hostinger / Generic" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Margin="0,12,0,0">
                   <TextBlock Text="Host / IP" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorHost}" Watermark="203.0.113.10" />
+                  <TextBox Text="{Binding EditorHost}" PlaceholderText="203.0.113.10" />
                 </StackPanel>
                 <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,12,0,0">
                   <TextBlock Text="SSH port" Foreground="#8290A3" />
@@ -208,7 +211,7 @@
                 </StackPanel>
                 <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,12,0,0">
                   <TextBlock Text="Private key path" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorPrivateKeyPath}" Watermark="C:\Users\you\.ssh\id_ed25519" />
+                  <TextBox Text="{Binding EditorPrivateKeyPath}" PlaceholderText="C:\Users\you\.ssh\id_ed25519" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,12,0,0">

@@ -7,31 +7,31 @@
   <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
-        <TextBlock Text="Security" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="Read-only exposure and SSH posture checks. VPS Desk does not change firewall or sshd configuration from this screen." Foreground="#8290A3" FontSize="11" />
+        <TextBlock Text="{DynamicResource Security_Title}" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Security_Subtitle}" Foreground="#8290A3" FontSize="11" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <TextBlock Text="{Binding LastChecked, StringFormat=Checked {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
-        <Button Content="Run audit" Command="{Binding RunAuditCommand}" IsEnabled="{Binding !IsBusy}" />
+        <TextBlock Text="{Binding LastChecked}" Foreground="#8290A3" VerticalAlignment="Center" />
+        <Button Content="{DynamicResource Security_RunAudit}" Command="{Binding RunAuditCommand}" IsEnabled="{Binding !IsBusy}" />
       </StackPanel>
     </Grid>
 
     <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="14">
       <Border Classes="card">
         <StackPanel>
-          <TextBlock Text="PASSED" FontSize="10" Foreground="#66758A" />
+          <TextBlock Text="{DynamicResource Security_Passed}" FontSize="10" Foreground="#66758A" />
           <TextBlock Text="{Binding PassedCount}" FontSize="32" FontWeight="SemiBold" />
         </StackPanel>
       </Border>
       <Border Grid.Column="1" Classes="card">
         <StackPanel>
-          <TextBlock Text="WARNINGS" FontSize="10" Foreground="#66758A" />
+          <TextBlock Text="{DynamicResource Security_Warnings}" FontSize="10" Foreground="#66758A" />
           <TextBlock Text="{Binding WarningCount}" FontSize="32" FontWeight="SemiBold" />
         </StackPanel>
       </Border>
       <Border Grid.Column="2" Classes="card">
         <StackPanel>
-          <TextBlock Text="CRITICAL" FontSize="10" Foreground="#66758A" />
+          <TextBlock Text="{DynamicResource Security_Critical}" FontSize="10" Foreground="#66758A" />
           <TextBlock Text="{Binding CriticalCount}" FontSize="32" FontWeight="SemiBold" />
         </StackPanel>
       </Border>

@@ -6,6 +6,7 @@ public enum OperationKind
     ContainerAction,
     SecurityAudit,
     FileOperation,
+    StorageCleanup,
     Other
 }
 

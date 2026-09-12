@@ -25,4 +25,5 @@ public sealed record ServerProfile(
     string? SecretReference,
     string? ProviderLabel,
     ServerEnvironment Environment,
-    IReadOnlyCollection<string> Tags);
+    IReadOnlyCollection<string> Tags,
+    string? HostKeyFingerprintSha256 = null);

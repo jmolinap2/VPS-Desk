@@ -14,44 +14,39 @@
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
-      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
-          <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
-            <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
-            <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
-            <ComboBox Margin="0,5,0,0"
-                      ItemsSource="{Binding AvailableProjects}"
-                      SelectedItem="{Binding SelectedProjectSuggestion}"
-                      IsVisible="{Binding HasProjectSuggestions}"
-                      PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
-              <ComboBox.ItemTemplate>
-                <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
-                  <TextBlock Text="{Binding RemoteRepositoryPath}" />
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-          </StackPanel>
-          <Button Grid.Column="1"
-                  Content="{DynamicResource Deployments_SaveProfile}"
-                  Command="{Binding SaveProfileCommand}"
-                  IsEnabled="{Binding !IsBusy}"
-                  ToolTip.Tip="{DynamicResource Deployments_SaveProfileTooltip}"
-                  VerticalAlignment="Bottom" />
-          <Button Grid.Column="2"
-                  Content="{DynamicResource Deployments_Discover}"
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+        <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
+          <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
+          <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
+          <ComboBox Margin="0,5,0,0"
+                    ItemsSource="{Binding AvailableProjects}"
+                    SelectedItem="{Binding SelectedProjectSuggestion}"
+                    IsVisible="{Binding HasProjectSuggestions}"
+                    PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
+                <TextBlock Text="{Binding RemoteRepositoryPath}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+          <Button Content="{DynamicResource Deployments_Discover}"
                   Command="{Binding DiscoverRemoteOptionsCommand}"
                   IsEnabled="{Binding !IsBusy}"
-                  ToolTip.Tip="{DynamicResource Deployments_DiscoverTooltip}"
-                  VerticalAlignment="Bottom" />
-          <Button Grid.Column="3"
-                  Content="{DynamicResource Deployments_RunPreflight}"
+                  ToolTip.Tip="{DynamicResource Deployments_DiscoverTooltip}" />
+          <Button Content="{DynamicResource Deployments_RunPreflight}"
                   Command="{Binding RunPreflightCommand}"
                   IsEnabled="{Binding !IsBusy}"
-                  ToolTip.Tip="{DynamicResource Deployments_RunPreflightTooltip}"
-                  VerticalAlignment="Bottom" />
-        </Grid>
+                  ToolTip.Tip="{DynamicResource Deployments_RunPreflightTooltip}" />
+          <Button Content="{DynamicResource Deployments_SaveProfile}"
+                  Command="{Binding SaveProfileCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  ToolTip.Tip="{DynamicResource Deployments_SaveProfileTooltip}" />
+        </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
           <StackPanel ToolTip.Tip="{DynamicResource Deployments_BranchTooltip}">
             <TextBlock Text="{DynamicResource Deployments_Branch}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding Branch}" PlaceholderText="main" />
@@ -70,7 +65,7 @@
           </StackPanel>
         </Grid>
 
-        <Border Grid.Row="2" Background="#0E131B" CornerRadius="8" Padding="10">
+        <Border Grid.Row="3" Background="#0E131B" CornerRadius="8" Padding="10">
           <StackPanel Spacing="3">
             <TextBlock Text="{DynamicResource Deployments_WorkflowHelp}" Foreground="#A8B4C5" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />

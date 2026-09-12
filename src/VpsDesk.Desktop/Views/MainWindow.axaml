@@ -5,10 +5,10 @@
         x:Class="VpsDesk.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="VPS Desk"
-        Width="1440"
-        Height="900"
-        MinWidth="1180"
-        MinHeight="720">
+        Width="1080"
+        Height="820"
+        MinWidth="900"
+        MinHeight="640">
   <Grid ColumnDefinitions="224,*" RowDefinitions="64,*">
     <Border Grid.RowSpan="2" Background="#0E1219" BorderBrush="#202734" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="72,60,*">

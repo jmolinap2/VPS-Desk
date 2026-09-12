@@ -11,19 +11,27 @@ public partial class DeploymentsViewModel : ObservableObject
 {
     private readonly IDeploymentPreflightService _preflight;
     private readonly IComposeDeploymentService _deployment;
+    private readonly IDeploymentDiscoveryService _discovery;
+    private readonly IPostDeployVerificationService _postDeployVerification;
     private readonly Func<ServerProfile?> _serverAccessor;
     private readonly Func<string?> _secretAccessor;
 
     public ObservableCollection<PreflightCheckResult> Checks { get; } = new();
     public ObservableCollection<DeploymentStepResult> Steps { get; } = new();
+    public ObservableCollection<PostDeployCheckResult> PostChecks { get; } = new();
+    public ObservableCollection<string> AvailableBranches { get; } = new();
+    public ObservableCollection<string> AvailableComposeFiles { get; } = new();
 
     [ObservableProperty] private string _remoteRepositoryPath = string.Empty;
     [ObservableProperty] private string _branch = "main";
     [ObservableProperty] private string _composeFile = "docker-compose.yml";
+    [ObservableProperty] private string? _selectedBranchSuggestion;
+    [ObservableProperty] private string? _selectedComposeSuggestion;
     [ObservableProperty] private bool _requireEnvironmentFile = true;
     [ObservableProperty] private string _environmentFileName = ".env";
     [ObservableProperty] private bool _pullImages = true;
     [ObservableProperty] private bool _buildImages = true;
+    [ObservableProperty] private string _httpHealthUrls = string.Empty;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _canDeploy;
     [ObservableProperty] private bool _hasPendingDeploy;
@@ -35,30 +43,112 @@ public partial class DeploymentsViewModel : ObservableObject
     public DeploymentsViewModel(
         IDeploymentPreflightService preflight,
         IComposeDeploymentService deployment,
+        IDeploymentDiscoveryService discovery,
+        IPostDeployVerificationService postDeployVerification,
         Func<ServerProfile?> serverAccessor,
         Func<string?> secretAccessor)
     {
         _preflight = preflight;
         _deployment = deployment;
+        _discovery = discovery;
+        _postDeployVerification = postDeployVerification;
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
     }
 
-    partial void OnRemoteRepositoryPathChanged(string value) => InvalidatePreflight();
+    partial void OnRemoteRepositoryPathChanged(string value)
+    {
+        AvailableBranches.Clear();
+        AvailableComposeFiles.Clear();
+        SelectedBranchSuggestion = null;
+        SelectedComposeSuggestion = null;
+        InvalidatePreflight();
+    }
+
     partial void OnBranchChanged(string value) => InvalidatePreflight();
     partial void OnComposeFileChanged(string value) => InvalidatePreflight();
     partial void OnRequireEnvironmentFileChanged(bool value) => InvalidatePreflight();
     partial void OnEnvironmentFileNameChanged(string value) => InvalidatePreflight();
 
+    partial void OnSelectedBranchSuggestionChanged(string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && !string.Equals(Branch, value, StringComparison.Ordinal))
+        {
+            Branch = value;
+        }
+    }
+
+    partial void OnSelectedComposeSuggestionChanged(string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && !string.Equals(ComposeFile, value, StringComparison.Ordinal))
+        {
+            ComposeFile = value;
+        }
+    }
+
     public void Reset()
     {
         Checks.Clear();
         Steps.Clear();
+        PostChecks.Clear();
+        AvailableBranches.Clear();
+        AvailableComposeFiles.Clear();
+        SelectedBranchSuggestion = null;
+        SelectedComposeSuggestion = null;
         CanDeploy = false;
         DeploymentOutput = string.Empty;
         LastChecked = "Never";
         StatusMessage = "Run preflight before any deployment.";
         CancelPendingDeploy();
+    }
+
+    [RelayCommand]
+    public async Task DiscoverRemoteOptionsAsync()
+    {
+        if (IsBusy) return;
+        var server = _serverAccessor();
+        if (server == null)
+        {
+            StatusMessage = "No active server. Choose one in Servers first.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
+        {
+            StatusMessage = "Enter the remote repository path before discovering branches and Compose files.";
+            return;
+        }
+
+        IsBusy = true;
+        StatusMessage = "Discovering branches and Docker Compose files on the remote server...";
+
+        try
+        {
+            var result = await _discovery.DiscoverAsync(
+                server,
+                RemoteRepositoryPath.Trim(),
+                _secretAccessor());
+
+            AvailableBranches.Clear();
+            foreach (var branch in result.Branches) AvailableBranches.Add(branch);
+
+            AvailableComposeFiles.Clear();
+            foreach (var file in result.ComposeFiles) AvailableComposeFiles.Add(file);
+
+            SelectedBranchSuggestion = result.Branches.FirstOrDefault(x =>
+                x.Equals(Branch, StringComparison.OrdinalIgnoreCase));
+            SelectedComposeSuggestion = result.ComposeFiles.FirstOrDefault(x =>
+                x.Equals(ComposeFile, StringComparison.OrdinalIgnoreCase));
+
+            StatusMessage = $"Discovered {result.Branches.Count} branch(es) and {result.ComposeFiles.Count} Compose file(s). Manual values remain allowed.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Remote discovery failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
@@ -77,6 +167,7 @@ public partial class DeploymentsViewModel : ObservableObject
         IsBusy = true;
         CanDeploy = false;
         CancelPendingDeploy();
+        PostChecks.Clear();
         StatusMessage = "Running remote deployment preflight...";
 
         try
@@ -145,6 +236,7 @@ public partial class DeploymentsViewModel : ObservableObject
         IsBusy = true;
         CanDeploy = false;
         Steps.Clear();
+        PostChecks.Clear();
         DeploymentOutput = string.Empty;
         StatusMessage = "Deployment is running. Do not close VPS Desk until it finishes.";
         CancelPendingDeploy();
@@ -174,13 +266,34 @@ public partial class DeploymentsViewModel : ObservableObject
             }
 
             DeploymentOutput = output.ToString().TrimEnd();
-            StatusMessage = result.Succeeded
-                ? $"Deployment completed successfully in {(result.FinishedAt - result.StartedAt).TotalSeconds:F1}s. Run preflight again before another deployment."
-                : $"Deployment stopped at '{result.FailedStep?.Label ?? "unknown step"}'. Review the sanitized output.";
+
+            if (!result.Succeeded)
+            {
+                StatusMessage = $"Deployment stopped at '{result.FailedStep?.Label ?? "unknown step"}'. Review the sanitized output.";
+                return;
+            }
+
+            StatusMessage = "Deployment commands completed. Verifying the real container and HTTP state...";
+            var verification = await _postDeployVerification.VerifyAsync(
+                new PostDeployVerificationRequest(
+                    server,
+                    RemoteRepositoryPath.Trim(),
+                    ComposeFile.Trim(),
+                    ParseHealthUrls()),
+                _secretAccessor());
+
+            foreach (var check in verification.Checks) PostChecks.Add(check);
+
+            var elapsed = (result.FinishedAt - result.StartedAt).TotalSeconds;
+            StatusMessage = verification.Passed
+                ? verification.HasWarnings
+                    ? $"Deployment completed in {elapsed:F1}s. Post-deploy verification passed with warnings."
+                    : $"Deployment completed in {elapsed:F1}s and post-deploy verification passed."
+                : $"Deployment commands completed in {elapsed:F1}s, but post-deploy verification found problems. Review the checks before considering the release healthy.";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Deployment failed: {ex.Message}";
+            StatusMessage = $"Deployment failed or could not be verified: {ex.Message}";
         }
         finally
         {
@@ -190,6 +303,12 @@ public partial class DeploymentsViewModel : ObservableObject
 
     [RelayCommand]
     private void CancelDeploy() => CancelPendingDeploy();
+
+    private IReadOnlyList<string> ParseHealthUrls()
+        => HttpHealthUrls
+            .Split(['\r', '\n', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
     private void InvalidatePreflight()
     {

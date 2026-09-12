@@ -8,8 +8,8 @@
     <Border Classes="card">
       <Grid RowDefinitions="Auto,*,Auto">
         <StackPanel>
-          <TextBlock Text="Servers" FontSize="18" FontWeight="SemiBold" />
-          <TextBlock Text="Saved locally on this computer" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Servers_Title}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource Servers_SavedLocally}" Foreground="#8290A3" FontSize="11" />
         </StackPanel>
         <ListBox Grid.Row="1" Margin="0,16,0,12" ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServerInList}">
           <ListBox.ItemTemplate>
@@ -23,7 +23,7 @@
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-        <Button Grid.Row="2" Content="+ New server" Command="{Binding NewServerCommand}" />
+        <Button Grid.Row="2" Content="{DynamicResource Servers_New}" Command="{Binding NewServerCommand}" />
       </Grid>
     </Border>
 
@@ -31,56 +31,56 @@
       <ScrollViewer>
         <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
           <StackPanel>
-            <TextBlock Text="Connection profile" FontSize="18" FontWeight="SemiBold" />
-            <TextBlock Text="VPS Desk connects directly over SSH; no VPS Desk agent is installed on the server." Foreground="#8290A3" TextWrapping="Wrap" />
+            <TextBlock Text="{DynamicResource Servers_ConnectionProfile}" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Servers_AgentlessHelp}" Foreground="#8290A3" TextWrapping="Wrap" />
           </StackPanel>
 
           <Grid ColumnDefinitions="*,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
             <StackPanel>
-              <TextBlock Text="Name" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorName}" PlaceholderText="Production VPS" />
+              <TextBlock Text="{DynamicResource Servers_Name}" Foreground="#8290A3" />
+              <TextBox Text="{Binding EditorName}" PlaceholderText="{DynamicResource Servers_NamePlaceholder}" />
             </StackPanel>
             <StackPanel Grid.Column="1">
-              <TextBlock Text="Provider" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorProvider}" PlaceholderText="Hostinger / Generic" />
+              <TextBlock Text="{DynamicResource Servers_Provider}" Foreground="#8290A3" />
+              <TextBox Text="{Binding EditorProvider}" PlaceholderText="{DynamicResource Servers_ProviderPlaceholder}" />
             </StackPanel>
 
             <StackPanel Grid.Row="1" Margin="0,12,0,0">
-              <TextBlock Text="Host / IP" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_Host}" Foreground="#8290A3" />
               <TextBox Text="{Binding EditorHost}" PlaceholderText="203.0.113.10" />
             </StackPanel>
             <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,12,0,0">
-              <TextBlock Text="SSH port" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_SshPort}" Foreground="#8290A3" />
               <NumericUpDown Minimum="1" Maximum="65535" Value="{Binding EditorPort}" />
             </StackPanel>
 
             <StackPanel Grid.Row="2" Margin="0,12,0,0">
-              <TextBlock Text="Username" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_Username}" Foreground="#8290A3" />
               <TextBox Text="{Binding EditorUsername}" />
             </StackPanel>
             <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,12,0,0">
-              <TextBlock Text="Environment" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_Environment}" Foreground="#8290A3" />
               <ComboBox ItemsSource="{Binding EnvironmentOptions}" SelectedItem="{Binding EditorEnvironment}" />
             </StackPanel>
 
             <StackPanel Grid.Row="3" Margin="0,12,0,0">
-              <TextBlock Text="Authentication" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_Authentication}" Foreground="#8290A3" />
               <ComboBox ItemsSource="{Binding AuthenticationOptions}" SelectedItem="{Binding EditorAuthenticationType}" />
             </StackPanel>
             <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,12,0,0">
-              <TextBlock Text="Private key path" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_PrivateKeyPath}" Foreground="#8290A3" />
               <TextBox Text="{Binding EditorPrivateKeyPath}" PlaceholderText="C:\Users\you\.ssh\id_ed25519" />
             </StackPanel>
 
             <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,12,0,0">
-              <TextBlock Text="Password / key passphrase (session only)" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_PasswordSession}" Foreground="#8290A3" />
               <TextBox Text="{Binding EditorSecret}" PasswordChar="●" />
             </StackPanel>
 
             <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,12,0,0">
-              <TextBlock Text="SSH host fingerprint SHA256 (recommended)" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Servers_HostFingerprint}" Foreground="#8290A3" />
               <TextBox Text="{Binding EditorHostKeyFingerprint}" PlaceholderText="SHA256:..." />
-              <TextBlock Text="When supplied, VPS Desk rejects a server whose SSH host key does not match." Foreground="#66758A" FontSize="11" Margin="0,4,0,0" />
+              <TextBlock Text="{DynamicResource Servers_HostFingerprintHelp}" Foreground="#66758A" FontSize="11" Margin="0,4,0,0" />
             </StackPanel>
           </Grid>
 
@@ -89,10 +89,10 @@
           </Border>
 
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Content="Test connection" Command="{Binding TestServerCommand}" IsEnabled="{Binding !IsTestingServer}" />
-            <Button Content="Save profile" Command="{Binding SaveServerCommand}" />
-            <Button Content="Use this server" Command="{Binding ActivateServerCommand}" />
-            <Button Content="Delete" Command="{Binding DeleteServerCommand}" />
+            <Button Content="{DynamicResource Servers_TestConnection}" Command="{Binding TestServerCommand}" IsEnabled="{Binding !IsTestingServer}" />
+            <Button Content="{DynamicResource Servers_SaveProfile}" Command="{Binding SaveServerCommand}" />
+            <Button Content="{DynamicResource Servers_UseServer}" Command="{Binding ActivateServerCommand}" />
+            <Button Content="{DynamicResource Common_Delete}" Command="{Binding DeleteServerCommand}" />
           </StackPanel>
         </StackPanel>
       </ScrollViewer>

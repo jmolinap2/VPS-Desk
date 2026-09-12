@@ -15,18 +15,35 @@
 
     <Border Grid.Row="1" Classes="card">
       <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
           <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
             <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
+            <ComboBox Margin="0,5,0,0"
+                      ItemsSource="{Binding AvailableProjects}"
+                      SelectedItem="{Binding SelectedProjectSuggestion}"
+                      IsVisible="{Binding HasProjectSuggestions}"
+                      PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
+                  <TextBlock Text="{Binding RemoteRepositoryPath}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
           </StackPanel>
           <Button Grid.Column="1"
+                  Content="{DynamicResource Deployments_SaveProfile}"
+                  Command="{Binding SaveProfileCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  ToolTip.Tip="{DynamicResource Deployments_SaveProfileTooltip}"
+                  VerticalAlignment="Bottom" />
+          <Button Grid.Column="2"
                   Content="{DynamicResource Deployments_Discover}"
                   Command="{Binding DiscoverRemoteOptionsCommand}"
                   IsEnabled="{Binding !IsBusy}"
                   ToolTip.Tip="{DynamicResource Deployments_DiscoverTooltip}"
                   VerticalAlignment="Bottom" />
-          <Button Grid.Column="2"
+          <Button Grid.Column="3"
                   Content="{DynamicResource Deployments_RunPreflight}"
                   Command="{Binding RunPreflightCommand}"
                   IsEnabled="{Binding !IsBusy}"

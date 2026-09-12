@@ -7,8 +7,17 @@ public sealed record DeploymentDiscoveryResult(
     IReadOnlyList<string> Branches,
     IReadOnlyList<string> ComposeFiles);
 
+public sealed record DeploymentProjectCandidate(
+    string RemoteRepositoryPath,
+    IReadOnlyList<string> ComposeFiles);
+
 public interface IDeploymentDiscoveryService
 {
+    Task<IReadOnlyList<DeploymentProjectCandidate>> DiscoverProjectsAsync(
+        ServerProfile server,
+        string? secret,
+        CancellationToken cancellationToken = default);
+
     Task<DeploymentDiscoveryResult> DiscoverAsync(
         ServerProfile server,
         string remoteRepositoryPath,
@@ -22,6 +31,58 @@ public interface IDeploymentDiscoveryService
 /// </summary>
 public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeploymentDiscoveryService
 {
+    public async Task<IReadOnlyList<DeploymentProjectCandidate>> DiscoverProjectsAsync(
+        ServerProfile server,
+        string? secret,
+        CancellationToken cancellationToken = default)
+    {
+        // Search only conventional application roots. This avoids a costly and invasive scan of
+        // the entire VPS while covering the normal locations for Compose deployments.
+        const string command = """
+            bash -lc '
+            set -o pipefail
+            for root in /root /home /opt /srv; do
+              [ -d "$root" ] || continue
+              find "$root" -xdev -maxdepth 5 -type f \( \
+                -name "compose*.yml" -o -name "compose*.yaml" -o \
+                -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \
+              \) -printf "%h\t%f\n" 2>/dev/null
+            done | while IFS="$(printf "\t")" read -r directory compose; do
+              repository="$(git -C "$directory" rev-parse --show-toplevel 2>/dev/null)" || continue
+              [ "$repository" = "$directory" ] || continue
+              printf "%s\t%s\n" "$repository" "$compose"
+            done | sort -u
+            '
+            """;
+
+        var result = await ssh.ExecuteAsync(
+            new SshCommandRequest(server, command, TimeSpan.FromSeconds(20)),
+            secret,
+            cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(DescribeFailure(
+                result,
+                "Could not discover Docker Compose projects on the remote server."));
+        }
+
+        return SplitLines(result.StandardOutput)
+            .Select(line => line.Split('\t', 2, StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length == 2 &&
+                            !string.IsNullOrWhiteSpace(parts[0]) &&
+                            !string.IsNullOrWhiteSpace(parts[1]))
+            .GroupBy(parts => parts[0], StringComparer.Ordinal)
+            .Select(group => new DeploymentProjectCandidate(
+                group.Key,
+                group.Select(parts => parts[1])
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
+                    .ToArray()))
+            .OrderBy(candidate => candidate.RemoteRepositoryPath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public async Task<DeploymentDiscoveryResult> DiscoverAsync(
         ServerProfile server,
         string remoteRepositoryPath,

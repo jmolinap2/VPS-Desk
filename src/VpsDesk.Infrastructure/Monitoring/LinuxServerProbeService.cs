@@ -12,16 +12,14 @@ public sealed class LinuxServerProbeService(ISshCommandExecutor ssh) : IServerPr
         string? secret,
         CancellationToken cancellationToken = default)
     {
-        const string command = "bash -lc \"" +
-                               "echo DISTRO=$(source /etc/os-release 2>/dev/null; printf '%s' \"${PRETTY_NAME:-unknown}\"); " +
-                               "echo KERNEL=$(uname -sr 2>/dev/null); " +
-                               "for c in bash systemctl journalctl docker git nginx; do command -v $c >/dev/null 2>&1 && echo CAP_$c=1 || echo CAP_$c=0; done; " +
-                               "docker compose version >/dev/null 2>&1 && echo CAP_compose=1 || echo CAP_compose=0; " +
-                               "docker --version 2>/dev/null | sed 's/^/VER_docker=/'; " +
-                               "docker compose version 2>/dev/null | sed 's/^/VER_compose=/'; " +
-                               "git --version 2>/dev/null | sed 's/^/VER_git=/'; " +
-                               "nginx -v 2>&1 | sed 's/^/VER_nginx=/'; " +
-                               "systemctl --version 2>/dev/null | head -1 | sed 's/^/VER_systemd=/'\"";
+        // Todo va dentro de un unico bash -lc "..." entre comillas dobles: las comillas
+        // simples internas (awk, etc.) NO crean un contexto de quoting anidado en bash,
+        // asi que cualquier $ sin escapar se expande de una vez (y a vacio) antes de que
+        // el bash interno vea el script. Por eso cada $ que debe sobrevivir hasta la
+        // ejecucion real lleva \$ (o \" para comillas literales).
+        const string command = """
+            bash -lc "echo DISTRO=\$(source /etc/os-release 2>/dev/null; printf '%s' \"\${PRETTY_NAME:-unknown}\"); echo KERNEL=\$(uname -sr 2>/dev/null); for c in bash systemctl journalctl docker git nginx; do command -v \$c >/dev/null 2>&1 && echo CAP_\$c=1 || echo CAP_\$c=0; done; docker compose version >/dev/null 2>&1 && echo CAP_compose=1 || echo CAP_compose=0; docker --version 2>/dev/null | sed 's/^/VER_docker=/'; docker compose version 2>/dev/null | sed 's/^/VER_compose=/'; git --version 2>/dev/null | sed 's/^/VER_git=/'; nginx -v 2>&1 | sed 's/^/VER_nginx=/'; systemctl --version 2>/dev/null | head -1 | sed 's/^/VER_systemd=/'"
+            """;
 
         SshCommandResult result;
         try
@@ -77,22 +75,12 @@ public sealed class LinuxServerProbeService(ISshCommandExecutor ssh) : IServerPr
         string? secret,
         CancellationToken cancellationToken = default)
     {
-        const string command = "bash -lc \"" +
-                               "LC_ALL=C; " +
-                               "read cpu u n s i w irq sirq st g gn < /proc/stat; total1=$((u+n+s+i+w+irq+sirq+st)); idle1=$((i+w)); " +
-                               "rx1=$(awk -F'[: ]+' 'NR>2 {sum+=$3} END {print sum+0}' /proc/net/dev); " +
-                               "tx1=$(awk -F'[: ]+' 'NR>2 {sum+=$11} END {print sum+0}' /proc/net/dev); " +
-                               "sleep 1; " +
-                               "read cpu u n s i w irq sirq st g gn < /proc/stat; total2=$((u+n+s+i+w+irq+sirq+st)); idle2=$((i+w)); " +
-                               "rx2=$(awk -F'[: ]+' 'NR>2 {sum+=$3} END {print sum+0}' /proc/net/dev); " +
-                               "tx2=$(awk -F'[: ]+' 'NR>2 {sum+=$11} END {print sum+0}' /proc/net/dev); " +
-                               "dt=$((total2-total1)); didle=$((idle2-idle1)); if [ $dt -gt 0 ]; then cpu_pct=$(awk -v dt=$dt -v di=$didle 'BEGIN {printf \"%.2f\", (dt-di)*100/dt}'); else cpu_pct=0; fi; " +
-                               "echo CPU=$cpu_pct; " +
-                               "awk '{print \"LOAD1=\"$1; print \"LOAD5=\"$2; print \"LOAD15=\"$3}' /proc/loadavg; " +
-                               "awk '/MemTotal:/ {mt=$2*1024} /MemAvailable:/ {ma=$2*1024} /SwapTotal:/ {st=$2*1024} /SwapFree:/ {sf=$2*1024} END {print \"MEM_TOTAL=\"mt; print \"MEM_USED=\"mt-ma; print \"SWAP_TOTAL=\"st; print \"SWAP_USED=\"st-sf}' /proc/meminfo; " +
-                               "df -B1 --output=size,used / 2>/dev/null | tail -1 | awk '{print \"DISK_TOTAL=\"$1; print \"DISK_USED=\"$2}'; " +
-                               "echo RX_BPS=$((rx2-rx1)); echo TX_BPS=$((tx2-tx1)); " +
-                               "awk '{print \"UPTIME_SEC=\"int($1)}' /proc/uptime\"";
+        // Ver comentario en CheckCompatibilityAsync: todo $ que debe llegar intacto al
+        // bash -lc interno (aritmetica, $(...), variables de awk como $1/$2) necesita \$
+        // aqui, porque va anidado dentro de un unico nivel de comillas dobles.
+        const string command = """
+            bash -lc "LC_ALL=C; read cpu u n s i w irq sirq st g gn < /proc/stat; total1=\$((u+n+s+i+w+irq+sirq+st)); idle1=\$((i+w)); rx1=\$(awk -F'[: ]+' 'NR>2 {sum+=\$3} END {print sum+0}' /proc/net/dev); tx1=\$(awk -F'[: ]+' 'NR>2 {sum+=\$11} END {print sum+0}' /proc/net/dev); sleep 1; read cpu u n s i w irq sirq st g gn < /proc/stat; total2=\$((u+n+s+i+w+irq+sirq+st)); idle2=\$((i+w)); rx2=\$(awk -F'[: ]+' 'NR>2 {sum+=\$3} END {print sum+0}' /proc/net/dev); tx2=\$(awk -F'[: ]+' 'NR>2 {sum+=\$11} END {print sum+0}' /proc/net/dev); dt=\$((total2-total1)); didle=\$((idle2-idle1)); if [ \$dt -gt 0 ]; then cpu_pct=\$(awk -v dt=\$dt -v di=\$didle 'BEGIN {printf \"%.2f\", (dt-di)*100/dt}'); else cpu_pct=0; fi; echo CPU=\$cpu_pct; awk '{print \"LOAD1=\"\$1; print \"LOAD5=\"\$2; print \"LOAD15=\"\$3}' /proc/loadavg; awk '/MemTotal:/ {mt=\$2*1024} /MemAvailable:/ {ma=\$2*1024} /SwapTotal:/ {st=\$2*1024} /SwapFree:/ {sf=\$2*1024} END {print \"MEM_TOTAL=\"mt; print \"MEM_USED=\"mt-ma; print \"SWAP_TOTAL=\"st; print \"SWAP_USED=\"st-sf}' /proc/meminfo; df -B1 --output=size,used / 2>/dev/null | tail -1 | awk '{print \"DISK_TOTAL=\"\$1; print \"DISK_USED=\"\$2}'; echo RX_BPS=\$((rx2-rx1)); echo TX_BPS=\$((tx2-tx1)); awk '{print \"UPTIME_SEC=\"int(\$1)}' /proc/uptime"
+            """;
 
         var result = await ssh.ExecuteAsync(new SshCommandRequest(server, command, TimeSpan.FromSeconds(15)), secret, cancellationToken);
         if (!result.Succeeded)

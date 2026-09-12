@@ -78,7 +78,12 @@ La v2 puede importar una configuración inicial desde `.env` únicamente como me
 - `SSH_HOST_FINGERPRINT`
 - `SSH_PASSWORD`
 
-Los perfiles gestionados desde la UI sustituyen gradualmente esta dependencia.
+Los perfiles gestionados desde la UI sustituyen gradualmente esta dependencia. Las opciones de
+despliegue no sensibles (ruta remota, rama, archivo Compose y nombre del archivo de entorno) se
+guardan localmente por servidor después de detectarlas o al usar **Guardar perfil**. El `.env` no
+se usa como almacenamiento principal de VPS Desk ni se copian sus secretos al perfil.
+Como bootstrap, sus valores de despliegue se aplican únicamente al perfil que coincide en host,
+puerto y usuario; una vez guardado un perfil local, este tiene prioridad.
 
 ## Código heredado
 

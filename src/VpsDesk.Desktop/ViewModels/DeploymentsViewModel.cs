@@ -3,6 +3,7 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -15,18 +16,26 @@ public partial class DeploymentsViewModel : ObservableObject
     private readonly IPostDeployVerificationService _postDeployVerification;
     private readonly Func<ServerProfile?> _serverAccessor;
     private readonly Func<string?> _secretAccessor;
+    private readonly DeploymentProfileStore _profileStore;
+    private readonly ServerProfile? _bootstrapServer;
+    private readonly string? _bootstrapRemoteRepositoryPath;
+    private readonly string? _bootstrapComposeFile;
+    private bool _isLoadingProfile;
 
     public ObservableCollection<PreflightCheckResult> Checks { get; } = new();
     public ObservableCollection<DeploymentStepResult> Steps { get; } = new();
     public ObservableCollection<PostDeployCheckResult> PostChecks { get; } = new();
     public ObservableCollection<string> AvailableBranches { get; } = new();
     public ObservableCollection<string> AvailableComposeFiles { get; } = new();
+    public ObservableCollection<DeploymentProjectCandidate> AvailableProjects { get; } = new();
 
     [ObservableProperty] private string _remoteRepositoryPath = string.Empty;
     [ObservableProperty] private string _branch = "main";
     [ObservableProperty] private string _composeFile = "docker-compose.yml";
     [ObservableProperty] private string? _selectedBranchSuggestion;
     [ObservableProperty] private string? _selectedComposeSuggestion;
+    [ObservableProperty] private DeploymentProjectCandidate? _selectedProjectSuggestion;
+    [ObservableProperty] private bool _hasProjectSuggestions;
     [ObservableProperty] private bool _requireEnvironmentFile = true;
     [ObservableProperty] private string _environmentFileName = ".env";
     [ObservableProperty] private bool _pullImages = true;
@@ -47,6 +56,8 @@ public partial class DeploymentsViewModel : ObservableObject
         IPostDeployVerificationService postDeployVerification,
         Func<ServerProfile?> serverAccessor,
         Func<string?> secretAccessor,
+        DeploymentProfileStore profileStore,
+        ServerProfile? bootstrapServer,
         string? remoteRepositoryPath = null,
         string? composeFile = null)
     {
@@ -56,12 +67,15 @@ public partial class DeploymentsViewModel : ObservableObject
         _postDeployVerification = postDeployVerification;
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
-        RemoteRepositoryPath = remoteRepositoryPath?.Trim() ?? string.Empty;
-        ComposeFile = composeFile?.Trim() ?? "docker-compose.yml";
+        _profileStore = profileStore;
+        _bootstrapServer = bootstrapServer;
+        _bootstrapRemoteRepositoryPath = remoteRepositoryPath?.Trim();
+        _bootstrapComposeFile = composeFile?.Trim();
     }
 
     partial void OnRemoteRepositoryPathChanged(string value)
     {
+        if (_isLoadingProfile) return;
         AvailableBranches.Clear();
         AvailableComposeFiles.Clear();
         SelectedBranchSuggestion = null;
@@ -69,10 +83,25 @@ public partial class DeploymentsViewModel : ObservableObject
         InvalidatePreflight();
     }
 
-    partial void OnBranchChanged(string value) => InvalidatePreflight();
-    partial void OnComposeFileChanged(string value) => InvalidatePreflight();
-    partial void OnRequireEnvironmentFileChanged(bool value) => InvalidatePreflight();
-    partial void OnEnvironmentFileNameChanged(string value) => InvalidatePreflight();
+    partial void OnBranchChanged(string value)
+    {
+        if (!_isLoadingProfile) InvalidatePreflight();
+    }
+
+    partial void OnComposeFileChanged(string value)
+    {
+        if (!_isLoadingProfile) InvalidatePreflight();
+    }
+
+    partial void OnRequireEnvironmentFileChanged(bool value)
+    {
+        if (!_isLoadingProfile) InvalidatePreflight();
+    }
+
+    partial void OnEnvironmentFileNameChanged(string value)
+    {
+        if (!_isLoadingProfile) InvalidatePreflight();
+    }
 
     partial void OnSelectedBranchSuggestionChanged(string? value)
     {
@@ -90,6 +119,17 @@ public partial class DeploymentsViewModel : ObservableObject
         }
     }
 
+    partial void OnSelectedProjectSuggestionChanged(DeploymentProjectCandidate? value)
+    {
+        if (value is null || _isLoadingProfile) return;
+
+        RemoteRepositoryPath = value.RemoteRepositoryPath;
+        ComposeFile = value.ComposeFiles.FirstOrDefault(file =>
+                          file.Equals(ComposeFile, StringComparison.OrdinalIgnoreCase))
+                      ?? value.ComposeFiles.FirstOrDefault()
+                      ?? "docker-compose.yml";
+    }
+
     public void Reset()
     {
         Checks.Clear();
@@ -97,14 +137,58 @@ public partial class DeploymentsViewModel : ObservableObject
         PostChecks.Clear();
         AvailableBranches.Clear();
         AvailableComposeFiles.Clear();
+        AvailableProjects.Clear();
         SelectedBranchSuggestion = null;
         SelectedComposeSuggestion = null;
+        SelectedProjectSuggestion = null;
+        HasProjectSuggestions = false;
         CanDeploy = false;
         DeploymentOutput = string.Empty;
         LastChecked = "Never";
         StatusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
         CancelPendingDeploy();
     }
+
+    public void LoadForServer(ServerProfile? server)
+    {
+        _isLoadingProfile = true;
+        try
+        {
+            Reset();
+            var saved = server is null ? null : _profileStore.Find(server.Id);
+            var useBootstrap = saved is null && server is not null && IsBootstrapServer(server);
+
+            RemoteRepositoryPath = saved?.RemoteRepositoryPath
+                ?? (useBootstrap ? _bootstrapRemoteRepositoryPath : null)
+                ?? string.Empty;
+            Branch = saved?.Branch ?? "main";
+            ComposeFile = saved?.ComposeFile
+                ?? (useBootstrap ? _bootstrapComposeFile : null)
+                ?? "docker-compose.yml";
+            RequireEnvironmentFile = saved?.RequireEnvironmentFile ?? true;
+            EnvironmentFileName = saved?.EnvironmentFileName ?? ".env";
+            PullImages = saved?.PullImages ?? true;
+            BuildImages = saved?.BuildImages ?? true;
+            HttpHealthUrls = string.Empty;
+
+            StatusMessage = server is null
+                ? "Selecciona y activa un servidor para usar despliegues."
+                : saved is null
+                    ? "Configura este servidor una vez; VPS Desk guardará sus opciones de despliegue localmente."
+                    : $"Perfil de despliegue cargado para {server.Name}. Detecta o valida antes de desplegar.";
+        }
+        finally
+        {
+            _isLoadingProfile = false;
+        }
+    }
+
+    public void RemoveForServer(Guid serverId) => _profileStore.Remove(serverId);
+
+    public Task TryAutoDiscoverRepositoryAsync()
+        => string.IsNullOrWhiteSpace(RemoteRepositoryPath)
+            ? DiscoverRemoteOptionsAsync()
+            : Task.CompletedTask;
 
     [RelayCommand]
     public async Task DiscoverRemoteOptionsAsync()
@@ -118,7 +202,7 @@ public partial class DeploymentsViewModel : ObservableObject
         }
         if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
         {
-            StatusMessage = "Escribe la ruta del repositorio remoto y vuelve a detectar las opciones.";
+            await DiscoverProjectsAsync(server);
             return;
         }
 
@@ -143,7 +227,8 @@ public partial class DeploymentsViewModel : ObservableObject
             SelectedComposeSuggestion = result.ComposeFiles.FirstOrDefault(x =>
                 x.Equals(ComposeFile, StringComparison.OrdinalIgnoreCase));
 
-            StatusMessage = $"Detección completada: {result.Branches.Count} rama(s) y {result.ComposeFiles.Count} archivo(s) Compose. Selecciona una sugerencia si hace falta y valida los requisitos (paso 2).";
+            PersistProfile(server);
+            StatusMessage = $"Detección completada: {result.Branches.Count} rama(s) y {result.ComposeFiles.Count} archivo(s) Compose. La configuración quedó guardada para este servidor; valida los requisitos (paso 2).";
         }
         catch (Exception ex)
         {
@@ -152,6 +237,48 @@ public partial class DeploymentsViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private async Task DiscoverProjectsAsync(ServerProfile server)
+    {
+        IsBusy = true;
+        StatusMessage = "Buscando automáticamente proyectos Git con Docker Compose en el VPS...";
+
+        try
+        {
+            var projects = await _discovery.DiscoverProjectsAsync(server, _secretAccessor());
+
+            AvailableProjects.Clear();
+            foreach (var project in projects) AvailableProjects.Add(project);
+            HasProjectSuggestions = AvailableProjects.Count > 0;
+
+            if (projects.Count == 0)
+            {
+                StatusMessage = "No encontré un proyecto Compose en /root, /home, /opt ni /srv. Indica la ruta una sola vez y se guardará para este VPS.";
+                return;
+            }
+
+            if (projects.Count > 1)
+            {
+                StatusMessage = $"Encontré {projects.Count} proyectos Compose. Selecciona el proyecto correcto; la ruta se guardará para este VPS.";
+                return;
+            }
+
+            SelectedProjectSuggestion = projects[0];
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"No se pudo detectar automáticamente el proyecto: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(RemoteRepositoryPath))
+        {
+            await DiscoverRemoteOptionsAsync();
         }
     }
 
@@ -191,6 +318,10 @@ public partial class DeploymentsViewModel : ObservableObject
 
             CanDeploy = result.CanProceed;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
+            if (result.CanProceed)
+            {
+                PersistProfile(server);
+            }
             StatusMessage = result.CanProceed
                 ? "La validación pasó. El paso 3 ya está habilitado: solicita el despliegue, revisa la confirmación y ejecútalo."
                 : "La validación bloqueó el despliegue. Corrige los requisitos fallidos y repite el paso 2.";
@@ -204,6 +335,22 @@ public partial class DeploymentsViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private void SaveProfile()
+    {
+        var server = _serverAccessor();
+        if (server == null)
+        {
+            StatusMessage = "Guarda primero y activa un servidor para asociar este perfil de despliegue.";
+            return;
+        }
+
+        if (!ValidateConfiguration()) return;
+
+        PersistProfile(server);
+        StatusMessage = $"Perfil de despliegue guardado para {server.Name}. No se guardaron secretos.";
     }
 
     [RelayCommand]
@@ -355,4 +502,23 @@ public partial class DeploymentsViewModel : ObservableObject
         HasPendingDeploy = false;
         PendingDeployMessage = string.Empty;
     }
+
+    private void PersistProfile(ServerProfile server)
+    {
+        _profileStore.Upsert(new DeploymentProfile(
+            server.Id,
+            RemoteRepositoryPath.Trim(),
+            Branch.Trim(),
+            ComposeFile.Trim(),
+            RequireEnvironmentFile,
+            EnvironmentFileName.Trim(),
+            PullImages,
+            BuildImages));
+    }
+
+    private bool IsBootstrapServer(ServerProfile server)
+        => _bootstrapServer is not null
+           && string.Equals(server.Host, _bootstrapServer.Host, StringComparison.OrdinalIgnoreCase)
+           && server.Port == _bootstrapServer.Port
+           && string.Equals(server.Username, _bootstrapServer.Username, StringComparison.OrdinalIgnoreCase);
 }

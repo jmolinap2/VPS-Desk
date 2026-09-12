@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using LiveChartsCore;
-using LiveChartsCore.SkiaSharpView.Extensions;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
@@ -23,9 +21,6 @@ public partial class MainWindowViewModel : ObservableObject
 
     public IReadOnlyList<string> AuthenticationOptions { get; } = ["PrivateKey", "Password"];
     public IReadOnlyList<string> EnvironmentOptions { get; } = ["Development", "Staging", "Production"];
-
-    public IEnumerable<ISeries> CpuGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(CpuUsage));
-    public IEnumerable<ISeries> DiskGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(DiskUsage));
 
     [ObservableProperty] private string _selectedServerName = "No server selected";
     [ObservableProperty] private string _connectionStatus = "Not checked";
@@ -123,9 +118,6 @@ public partial class MainWindowViewModel : ObservableObject
             MemorySeries.Add(0);
         }
     }
-
-    partial void OnCpuUsageChanged(double value) => OnPropertyChanged(nameof(CpuGaugeSeries));
-    partial void OnDiskUsageChanged(double value) => OnPropertyChanged(nameof(DiskGaugeSeries));
 
     partial void OnSelectedPageChanged(string value)
     {
@@ -263,6 +255,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (SelectedServerInList == null) return;
         var deleting = SelectedServerInList;
         Servers.Remove(deleting);
+        _deploymentsModule?.RemoveForServer(deleting.Id);
         SelectedServerInList = null;
 
         if (_server?.Id == deleting.Id)

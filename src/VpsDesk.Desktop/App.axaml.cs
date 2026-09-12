@@ -29,6 +29,7 @@ public partial class App : Avalonia.Application
         {
             var bootstrap = BootstrapServerProfileLoader.Load();
             var store = new ServerProfileStore();
+            var deploymentProfileStore = new DeploymentProfileStore();
             var ssh = new SshNetCommandExecutor();
             var probe = new LinuxServerProbeService(ssh);
             var containers = new DockerContainerService(ssh);
@@ -49,6 +50,8 @@ public partial class App : Avalonia.Application
                 deployment,
                 discovery,
                 postDeployVerification,
+                deploymentProfileStore,
+                bootstrap.Profile,
                 bootstrap.RemoteRepositoryPath,
                 bootstrap.ComposeFile);
             viewModel.InitializeLogs(containers, logs);

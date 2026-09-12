@@ -10,10 +10,8 @@
         <Border Classes="card">
           <StackPanel Spacing="6">
             <TextBlock Text="CPU" Foreground="#8290A3" />
-            <Grid Height="112">
-              <lvc:PieChart Series="{Binding CpuGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
-              <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Grid>
+            <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuUsage}" Height="8" />
             <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
@@ -28,10 +26,8 @@
         <Border Grid.Column="2" Classes="card">
           <StackPanel Spacing="6">
             <TextBlock Text="{DynamicResource Dashboard_Disk}" Foreground="#8290A3" />
-            <Grid Height="112">
-              <lvc:PieChart Series="{Binding DiskGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
-              <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Grid>
+            <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding DiskUsage}" Height="8" />
             <TextBlock Text="{DynamicResource Dashboard_RootFilesystem}" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>

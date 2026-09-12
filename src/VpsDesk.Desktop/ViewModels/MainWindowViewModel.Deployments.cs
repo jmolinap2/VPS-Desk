@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Desktop.Services;
+using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -18,6 +20,8 @@ public partial class MainWindowViewModel
         IComposeDeploymentService deploymentService,
         IDeploymentDiscoveryService discoveryService,
         IPostDeployVerificationService postDeployVerificationService,
+        DeploymentProfileStore deploymentProfileStore,
+        ServerProfile? bootstrapServer,
         string? remoteRepositoryPath,
         string? composeFile)
     {
@@ -30,8 +34,12 @@ public partial class MainWindowViewModel
             postDeployVerificationService,
             () => _server,
             () => _activeSecret,
+            deploymentProfileStore,
+            bootstrapServer,
             remoteRepositoryPath,
             composeFile);
+
+        _deploymentsModule.LoadForServer(_server);
 
         PropertyChanged += HandleDeploymentsNavigation;
         OnPropertyChanged(nameof(DeploymentsModule));
@@ -45,10 +53,20 @@ public partial class MainWindowViewModel
         {
             OnPropertyChanged(nameof(IsDeploymentsPage));
             OnPropertyChanged(nameof(IsPendingOperationsPage));
+
+            if (SelectedPage == "Deployments")
+            {
+                _deploymentsModule?.LoadForServer(_server);
+                _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
+            }
         }
         else if (e.PropertyName == nameof(SelectedServerName))
         {
-            _deploymentsModule?.Reset();
+            _deploymentsModule?.LoadForServer(_server);
+            if (SelectedPage == "Deployments")
+            {
+                _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
+            }
         }
     }
 }

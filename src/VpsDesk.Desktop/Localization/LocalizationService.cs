@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using Avalonia;
 
 namespace VpsDesk.Desktop.Localization;
 
@@ -17,13 +16,13 @@ public sealed class LocalizationService
     public string CurrentCulture { get; private set; } = FallbackCulture;
     public IReadOnlyList<string> SupportedCultures => Supported;
 
-    public void Initialize(Application application)
+    public void Initialize(Avalonia.Application application)
     {
         var requested = ResolveRequestedCulture();
         ApplyCulture(application, requested);
     }
 
-    public void ApplyCulture(Application application, string? requestedCulture)
+    public void ApplyCulture(Avalonia.Application application, string? requestedCulture)
     {
         var culture = NormalizeCulture(requestedCulture);
         var fallback = LoadPack(FallbackCulture);

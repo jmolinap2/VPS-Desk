@@ -8,6 +8,7 @@ using VpsDesk.Desktop.Views;
 using VpsDesk.Infrastructure.Docker;
 using VpsDesk.Infrastructure.Logs;
 using VpsDesk.Infrastructure.Monitoring;
+using VpsDesk.Infrastructure.Security;
 using VpsDesk.Infrastructure.Ssh;
 using VpsDesk.Infrastructure.Storage;
 
@@ -31,6 +32,7 @@ public partial class App : Avalonia.Application
             var files = new SftpRemoteFileService();
             var preflight = new DeploymentPreflightService(ssh);
             var deployment = new ComposeDeploymentService(ssh);
+            var security = new LinuxSecurityAuditService(ssh);
 
             var viewModel = new MainWindowViewModel(probe, store, bootstrap);
             viewModel.InitializeContainers(containers);
@@ -38,6 +40,7 @@ public partial class App : Avalonia.Application
             viewModel.InitializeLogs(containers, logs);
             viewModel.InitializeStorage(storage);
             viewModel.InitializeFiles(files);
+            viewModel.InitializeSecurity(security);
 
             desktop.MainWindow = new MainWindow
             {

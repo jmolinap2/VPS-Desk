@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView.Extensions;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
@@ -21,6 +23,9 @@ public partial class MainWindowViewModel : ObservableObject
 
     public IReadOnlyList<string> AuthenticationOptions { get; } = ["PrivateKey", "Password"];
     public IReadOnlyList<string> EnvironmentOptions { get; } = ["Development", "Staging", "Production"];
+
+    public IEnumerable<ISeries> CpuGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(CpuUsage));
+    public IEnumerable<ISeries> DiskGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(DiskUsage));
 
     [ObservableProperty]
     private string _selectedServerName = "No server selected";
@@ -67,6 +72,9 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     private bool _isRefreshing;
+
+    [ObservableProperty]
+    private bool _autoRefreshEnabled;
 
     [ObservableProperty]
     private string _selectedPage = "Dashboard";
@@ -168,6 +176,9 @@ public partial class MainWindowViewModel : ObservableObject
             MemorySeries.Add(0);
         }
     }
+
+    partial void OnCpuUsageChanged(double value) => OnPropertyChanged(nameof(CpuGaugeSeries));
+    partial void OnDiskUsageChanged(double value) => OnPropertyChanged(nameof(DiskGaugeSeries));
 
     partial void OnSelectedPageChanged(string value)
     {
@@ -297,6 +308,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             _server = Servers.FirstOrDefault();
             _activeSecret = null;
+            AutoRefreshEnabled = false;
             ApplyActiveServerHeader();
         }
 
@@ -316,6 +328,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         _server = SelectedServerInList;
         _activeSecret = string.IsNullOrWhiteSpace(EditorSecret) ? null : EditorSecret;
+        AutoRefreshEnabled = false;
         _store.Save(Servers, _server.Id);
         ApplyActiveServerHeader();
         SelectedPage = "Dashboard";
@@ -354,6 +367,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             if (ssh?.Available != true)
             {
+                AutoRefreshEnabled = false;
                 StatusMessage = ssh?.Detail ?? "SSH connection failed.";
                 LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
                 return;
@@ -373,6 +387,7 @@ public partial class MainWindowViewModel : ObservableObject
             Push(CpuSeries, CpuUsage, 60);
             Push(MemorySeries, MemoryUsage, 60);
 
+            AutoRefreshEnabled = true;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
             StatusMessage = compatibility.Distribution is { Length: > 0 }
                 ? $"{compatibility.Distribution} · {compatibility.Kernel}"
@@ -380,6 +395,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            AutoRefreshEnabled = false;
             ConnectionStatus = "SSH Offline";
             StatusMessage = ex.Message;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");

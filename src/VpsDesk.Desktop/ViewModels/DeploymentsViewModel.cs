@@ -186,9 +186,7 @@ public partial class DeploymentsViewModel : ObservableObject
     public void RemoveForServer(Guid serverId) => _profileStore.Remove(serverId);
 
     public Task TryAutoDiscoverRepositoryAsync()
-        => string.IsNullOrWhiteSpace(RemoteRepositoryPath)
-            ? DiscoverRemoteOptionsAsync()
-            : Task.CompletedTask;
+        => DiscoverRemoteOptionsAsync();
 
     [RelayCommand]
     public async Task DiscoverRemoteOptionsAsync()
@@ -218,6 +216,13 @@ public partial class DeploymentsViewModel : ObservableObject
 
             AvailableBranches.Clear();
             foreach (var branch in result.Branches) AvailableBranches.Add(branch);
+
+            var configuredBranchExists = result.Branches.Any(branch =>
+                branch.Equals(Branch, StringComparison.OrdinalIgnoreCase));
+            if (!configuredBranchExists && !string.IsNullOrWhiteSpace(result.CurrentBranch))
+            {
+                Branch = result.CurrentBranch;
+            }
 
             AvailableComposeFiles.Clear();
             foreach (var file in result.ComposeFiles) AvailableComposeFiles.Add(file);

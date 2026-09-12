@@ -5,7 +5,8 @@ namespace VpsDesk.Application.Deployments;
 
 public sealed record DeploymentDiscoveryResult(
     IReadOnlyList<string> Branches,
-    IReadOnlyList<string> ComposeFiles);
+    IReadOnlyList<string> ComposeFiles,
+    string? CurrentBranch = null);
 
 public sealed record DeploymentProjectCandidate(
     string RemoteRepositoryPath,
@@ -31,6 +32,8 @@ public interface IDeploymentDiscoveryService
 /// </summary>
 public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeploymentDiscoveryService
 {
+    private const string CurrentBranchPrefix = "__VPSDESK_CURRENT_BRANCH__=";
+
     public async Task<IReadOnlyList<DeploymentProjectCandidate>> DiscoverProjectsAsync(
         ServerProfile server,
         string? secret,
@@ -99,6 +102,7 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
         var branchCommand =
             $"REPO={repo}; " +
             "git -C \"$REPO\" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 9; " +
+            "printf '__VPSDESK_CURRENT_BRANCH__=%s\\n' \"$(git -C \"$REPO\" branch --show-current)\"; " +
             "git -C \"$REPO\" for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ " +
             "| sed 's#^origin/##' | grep -v '^HEAD$' | sort -u";
 
@@ -141,9 +145,15 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
                 "Could not discover Docker Compose files in the remote repository."));
         }
 
+        var branchLines = SplitLines(branchesResult.StandardOutput);
+        var currentBranch = branchLines
+            .FirstOrDefault(line => line.StartsWith(CurrentBranchPrefix, StringComparison.Ordinal))
+            ?[CurrentBranchPrefix.Length..];
+
         return new DeploymentDiscoveryResult(
-            SplitLines(branchesResult.StandardOutput),
-            SplitLines(composeOutput));
+            branchLines.Where(line => !line.StartsWith(CurrentBranchPrefix, StringComparison.Ordinal)).ToArray(),
+            SplitLines(composeOutput),
+            string.IsNullOrWhiteSpace(currentBranch) ? null : currentBranch);
     }
 
     private static IReadOnlyList<string> SplitLines(string value)

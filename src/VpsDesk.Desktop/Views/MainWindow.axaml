@@ -64,34 +64,55 @@
         <StackPanel Margin="24" Spacing="18">
           <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
             <Border Classes="card">
-              <StackPanel Spacing="8">
+              <StackPanel Spacing="6">
                 <TextBlock Text="CPU" Foreground="#8290A3" />
-                <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
-                <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuUsage}" Height="6" />
-                <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" />
+                <Grid Height="112">
+                  <lvc:PieChart Series="{Binding CpuGaugeSeries}"
+                                InitialRotation="-90"
+                                MaxAngle="270"
+                                MinValue="0"
+                                MaxValue="100" />
+                  <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}"
+                             FontSize="28"
+                             FontWeight="SemiBold"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
               </StackPanel>
             </Border>
             <Border Grid.Column="1" Classes="card">
               <StackPanel Spacing="8">
                 <TextBlock Text="MEMORY" Foreground="#8290A3" />
-                <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
-                <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}" Height="6" />
-                <TextBlock Text="{Binding MemorySummary}" FontSize="11" Foreground="#66758A" />
+                <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
+                <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}" Height="8" />
+                <TextBlock Text="{Binding MemorySummary}" FontSize="11" Foreground="#66758A" Margin="0,8,0,0" />
               </StackPanel>
             </Border>
             <Border Grid.Column="2" Classes="card">
-              <StackPanel Spacing="8">
+              <StackPanel Spacing="6">
                 <TextBlock Text="DISK" Foreground="#8290A3" />
-                <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
-                <ProgressBar Minimum="0" Maximum="100" Value="{Binding DiskUsage}" Height="6" />
-                <TextBlock Text="Root filesystem" FontSize="11" Foreground="#66758A" />
+                <Grid Height="112">
+                  <lvc:PieChart Series="{Binding DiskGaugeSeries}"
+                                InitialRotation="-90"
+                                MaxAngle="270"
+                                MinValue="0"
+                                MaxValue="100" />
+                  <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}"
+                             FontSize="28"
+                             FontWeight="SemiBold"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Text="Root filesystem" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
               </StackPanel>
             </Border>
             <Border Grid.Column="3" Classes="card">
               <StackPanel Spacing="8">
                 <TextBlock Text="UPTIME" Foreground="#8290A3" />
-                <TextBlock Text="{Binding Uptime}" FontSize="30" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding NetworkSummary}" FontSize="11" Foreground="#66758A" Margin="0,14,0,0" />
+                <TextBlock Text="{Binding Uptime}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
+                <TextBlock Text="NETWORK" Foreground="#8290A3" FontSize="11" />
+                <TextBlock Text="{Binding NetworkSummary}" FontSize="11" Foreground="#66758A" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
           </Grid>
@@ -102,7 +123,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel>
                     <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="CPU and memory · live samples" FontSize="11" Foreground="#8290A3" />
+                    <TextBlock Text="CPU and memory · live samples · auto refresh 10s after first successful connection" FontSize="11" Foreground="#8290A3" />
                   </StackPanel>
                   <TextBlock Grid.Column="1" Text="{Binding LastChecked, StringFormat=Last check: {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
                 </Grid>

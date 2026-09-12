@@ -42,6 +42,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         cancellationToken.ThrowIfCancellationRequested();
 
         using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
+        SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
         client.Connect();
         cancellationToken.ThrowIfCancellationRequested();
 

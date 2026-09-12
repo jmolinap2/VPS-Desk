@@ -67,16 +67,8 @@
               <StackPanel Spacing="6">
                 <TextBlock Text="CPU" Foreground="#8290A3" />
                 <Grid Height="112">
-                  <lvc:PieChart Series="{Binding CpuGaugeSeries}"
-                                InitialRotation="-90"
-                                MaxAngle="270"
-                                MinValue="0"
-                                MaxValue="100" />
-                  <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}"
-                             FontSize="28"
-                             FontWeight="SemiBold"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center" />
+                  <lvc:PieChart Series="{Binding CpuGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
+                  <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Grid>
                 <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
               </StackPanel>
@@ -93,16 +85,8 @@
               <StackPanel Spacing="6">
                 <TextBlock Text="DISK" Foreground="#8290A3" />
                 <Grid Height="112">
-                  <lvc:PieChart Series="{Binding DiskGaugeSeries}"
-                                InitialRotation="-90"
-                                MaxAngle="270"
-                                MinValue="0"
-                                MaxValue="100" />
-                  <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}"
-                             FontSize="28"
-                             FontWeight="SemiBold"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center" />
+                  <lvc:PieChart Series="{Binding DiskGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
+                  <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Grid>
                 <TextBlock Text="Root filesystem" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
               </StackPanel>
@@ -198,7 +182,7 @@
                 <TextBlock Text="VPS Desk connects directly over SSH; no VPS Desk agent is installed on the server." Foreground="#8290A3" TextWrapping="Wrap" />
               </StackPanel>
 
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                 <StackPanel>
                   <TextBlock Text="Name" Foreground="#8290A3" />
                   <TextBox Text="{Binding EditorName}" PlaceholderText="Production VPS" />
@@ -239,6 +223,12 @@
                   <TextBlock Text="Password / key passphrase (session only)" Foreground="#8290A3" />
                   <TextBox Text="{Binding EditorSecret}" PasswordChar="●" />
                 </StackPanel>
+
+                <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,12,0,0">
+                  <TextBlock Text="SSH host fingerprint SHA256 (recommended)" Foreground="#8290A3" />
+                  <TextBox Text="{Binding EditorHostKeyFingerprint}" PlaceholderText="SHA256:..." />
+                  <TextBlock Text="When supplied, VPS Desk rejects a server whose SSH host key does not match." Foreground="#66758A" FontSize="11" Margin="0,4,0,0" />
+                </StackPanel>
               </Grid>
 
               <Border Background="#0E131B" CornerRadius="8" Padding="12">
@@ -246,6 +236,7 @@
               </Border>
 
               <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Test connection" Command="{Binding TestServerCommand}" IsEnabled="{Binding !IsTestingServer}" />
                 <Button Content="Save profile" Command="{Binding SaveServerCommand}" />
                 <Button Content="Use this server" Command="{Binding ActivateServerCommand}" />
                 <Button Content="Delete" Command="{Binding DeleteServerCommand}" />

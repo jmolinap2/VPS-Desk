@@ -63,7 +63,11 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
         {
             ("fetch", "Fetch Git", $"git -C {repo} fetch --prune origin", TimeSpan.FromSeconds(60)),
             ("checkout", "Checkout branch",
-                $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout -- {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
+                // `git checkout -- <name>` means "restore the path <name>", not
+                // "switch to the branch <name>". That made a valid branch such as
+                // develop fail after a successful preflight. The name is shell-quoted
+                // above; omit Git's path separator here so it is a branch argument.
+                $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
                 TimeSpan.FromSeconds(45)),
             ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90))
         };

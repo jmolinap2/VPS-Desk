@@ -10,11 +10,14 @@
         <TextBlock Text="{DynamicResource Deployments_Title}" FontSize="18" FontWeight="SemiBold" />
         <TextBlock Text="{DynamicResource Deployments_Subtitle}" Foreground="#8290A3" FontSize="11" />
       </StackPanel>
-      <TextBlock Grid.Column="1" Text="{Binding LastChecked}" Foreground="#8290A3" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="{DynamicResource Deployments_LastValidation}" Foreground="#66758A" FontSize="10" HorizontalAlignment="Right" />
+        <TextBlock Text="{Binding LastChecked}" Foreground="#8290A3" HorizontalAlignment="Right" />
+      </StackPanel>
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
         <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
           <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
           <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
@@ -32,6 +35,13 @@
         </StackPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+          <Button Content="{DynamicResource Deployments_Execute}"
+                  Command="{Binding StartDeploymentCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  Background="#0F766E"
+                  Foreground="White"
+                  FontWeight="SemiBold"
+                  ToolTip.Tip="{DynamicResource Deployments_ExecuteTooltip}" />
           <Button Content="{DynamicResource Deployments_Discover}"
                   Command="{Binding DiscoverRemoteOptionsCommand}"
                   IsEnabled="{Binding !IsBusy}"
@@ -65,7 +75,17 @@
           </StackPanel>
         </Grid>
 
-        <Border Grid.Row="3" Background="#0E131B" CornerRadius="8" Padding="10">
+        <Border Grid.Row="3" Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingDeploy}">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="{DynamicResource Deployments_Confirm}" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
+              <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Background="#0E131B" CornerRadius="8" Padding="10">
           <StackPanel Spacing="3">
             <TextBlock Text="{DynamicResource Deployments_WorkflowHelp}" Foreground="#A8B4C5" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
@@ -123,20 +143,6 @@
                 </ListBox.ItemTemplate>
               </ListBox>
             </Grid>
-          </Border>
-
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="{DynamicResource Deployments_Request}" Command="{Binding RequestDeployCommand}" IsEnabled="{Binding CanDeploy}" />
-          </StackPanel>
-
-          <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingDeploy}">
-            <StackPanel Spacing="10">
-              <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="{DynamicResource Deployments_Confirm}" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
-                <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
-              </StackPanel>
-            </StackPanel>
           </Border>
 
           <Border Classes="card">

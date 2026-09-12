@@ -289,16 +289,55 @@ public partial class DeploymentsViewModel : ObservableObject
 
     [RelayCommand]
     public async Task RunPreflightAsync()
+        => await RunPreflightCoreAsync();
+
+    /// <summary>
+    /// The primary operator action. Discovery and preflight are implementation details, not
+    /// three separate chores the operator has to understand before a deployment can start.
+    /// The actual destructive action still requires the explicit confirmation shown afterwards.
+    /// </summary>
+    [RelayCommand]
+    public async Task StartDeploymentAsync()
     {
         if (IsBusy) return;
+
+        var server = _serverAccessor();
+        if (server == null)
+        {
+            StatusMessage = "No hay un servidor activo. Selecciónalo y conéctalo primero en Servidores.";
+            return;
+        }
+
+        // The profile is normally refreshed on entering this page. If it was not, refresh it
+        // now so the execution action never depends on the user remembering a prior button.
+        if (AvailableBranches.Count == 0 || AvailableComposeFiles.Count == 0)
+        {
+            await DiscoverRemoteOptionsAsync();
+        }
+
+        if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
+        {
+            StatusMessage = "No se pudo identificar un proyecto Compose. Selecciona uno de los proyectos detectados o indica su ruta.";
+            return;
+        }
+
+        if (!await RunPreflightCoreAsync()) return;
+
+        RequestDeploy();
+        StatusMessage = "Todo está listo. Revisa el resumen y confirma la ejecución del despliegue.";
+    }
+
+    private async Task<bool> RunPreflightCoreAsync()
+    {
+        if (IsBusy) return false;
         var server = _serverAccessor();
         if (server == null)
         {
             StatusMessage = "La validación está bloqueada: no hay un servidor activo. Selecciónalo y conéctalo primero en Servidores.";
-            return;
+            return false;
         }
 
-        if (!ValidateConfiguration()) return;
+        if (!ValidateConfiguration()) return false;
 
         IsBusy = true;
         CanDeploy = false;
@@ -328,13 +367,15 @@ public partial class DeploymentsViewModel : ObservableObject
                 PersistProfile(server);
             }
             StatusMessage = result.CanProceed
-                ? "La validación pasó. El paso 3 ya está habilitado: solicita el despliegue, revisa la confirmación y ejecútalo."
-                : "La validación bloqueó el despliegue. Corrige los requisitos fallidos y repite el paso 2.";
+                ? "La validación pasó. Puedes ejecutar el despliegue."
+                : "La validación bloqueó el despliegue. Corrige los requisitos fallidos y vuelve a ejecutar.";
+            return result.CanProceed;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Preflight failed: {ex.Message}";
+            StatusMessage = $"La validación previa falló: {ex.Message}";
             CanDeploy = false;
+            return false;
         }
         finally
         {
@@ -364,15 +405,15 @@ public partial class DeploymentsViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null || !CanDeploy)
         {
-            StatusMessage = "A successful preflight is required before deployment.";
+            StatusMessage = "La validación previa debe pasar antes de desplegar.";
             return;
         }
 
         HasPendingDeploy = true;
         var productionWarning = server.Environment == ServerEnvironment.Production
-            ? " This is a Production server and containers may be recreated or restarted."
-            : " Containers may be recreated or restarted.";
-        PendingDeployMessage = $"Deploy branch '{Branch.Trim()}' from '{RemoteRepositoryPath.Trim()}' using '{ComposeFile.Trim()}'.{productionWarning}";
+            ? " Es un servidor de producción: los contenedores pueden recrearse o reiniciarse."
+            : " Los contenedores pueden recrearse o reiniciarse.";
+        PendingDeployMessage = $"Se desplegará la rama '{Branch.Trim()}' desde '{RemoteRepositoryPath.Trim()}' con '{ComposeFile.Trim()}'.{productionWarning}";
     }
 
     [RelayCommand]

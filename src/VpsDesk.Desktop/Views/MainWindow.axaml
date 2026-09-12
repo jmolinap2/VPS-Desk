@@ -16,7 +16,7 @@
         </StackPanel>
         <Border Grid.Row="1" Margin="12,4" Padding="12,8" Background="#151B25" CornerRadius="8">
           <StackPanel>
-            <TextBlock Text="{Binding SelectedServerName}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding SelectedServerName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding ConnectionStatus}" FontSize="11" Foreground="#8290A3" />
           </StackPanel>
         </Border>
@@ -46,12 +46,12 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
-            <TextBlock Text="HOSTINGER · CERTIFIED" FontSize="11" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding CompatibilityLabel}" FontSize="11" FontWeight="SemiBold" />
           </Border>
           <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
-            <TextBlock Text="SSH OFFLINE" FontSize="11" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConnectionStatus}" FontSize="11" FontWeight="SemiBold" />
           </Border>
-          <Button Content="Refresh" />
+          <Button Content="Refresh" Command="{Binding RefreshCommand}" MinWidth="92" />
         </StackPanel>
       </Grid>
     </Border>
@@ -64,7 +64,7 @@
               <TextBlock Text="CPU" Foreground="#8290A3" />
               <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuUsage}" Height="6" />
-              <TextBlock Text="Load 1 / 5 / 15" FontSize="11" Foreground="#66758A" />
+              <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" />
             </StackPanel>
           </Border>
           <Border Grid.Column="1" Classes="card">
@@ -72,7 +72,7 @@
               <TextBlock Text="MEMORY" Foreground="#8290A3" />
               <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}" Height="6" />
-              <TextBlock Text="Awaiting connection" FontSize="11" Foreground="#66758A" />
+              <TextBlock Text="{Binding MemorySummary}" FontSize="11" Foreground="#66758A" />
             </StackPanel>
           </Border>
           <Border Grid.Column="2" Classes="card">
@@ -87,7 +87,7 @@
             <StackPanel Spacing="8">
               <TextBlock Text="UPTIME" Foreground="#8290A3" />
               <TextBlock Text="{Binding Uptime}" FontSize="30" FontWeight="SemiBold" />
-              <TextBlock Text="Network RX/TX pending" FontSize="11" Foreground="#66758A" Margin="0,14,0,0" />
+              <TextBlock Text="{Binding NetworkSummary}" FontSize="11" Foreground="#66758A" Margin="0,14,0,0" />
             </StackPanel>
           </Border>
         </Grid>
@@ -98,12 +98,11 @@
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel>
                   <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" />
-                  <TextBlock Text="CPU and memory · waiting for live telemetry" FontSize="11" Foreground="#8290A3" />
+                  <TextBlock Text="CPU and memory · live SSH telemetry" FontSize="11" Foreground="#8290A3" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                  <Button Content="5m" />
-                  <Button Content="15m" />
-                  <Button Content="1h" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                  <TextBlock Text="Last check" FontSize="11" Foreground="#66758A" />
+                  <TextBlock Text="{Binding LastChecked}" FontSize="11" Foreground="#A8B4C4" />
                 </StackPanel>
               </Grid>
               <lvc:CartesianChart Grid.Row="1" Margin="0,18,0,0" LegendPosition="Top">
@@ -117,21 +116,24 @@
 
           <Border Grid.Column="1" Classes="card">
             <StackPanel Spacing="12">
-              <TextBlock Text="Services" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="Detected capabilities and services will appear here after connecting." TextWrapping="Wrap" Foreground="#8290A3" />
+              <TextBlock Text="Capabilities" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="Detected directly from the selected VPS." TextWrapping="Wrap" Foreground="#8290A3" />
               <Border Background="#0E131B" CornerRadius="8" Padding="12">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                  <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
+                  <Ellipse Width="9" Height="9" Fill="#4ED68A" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1" Text="Docker" Margin="10,0" />
-                  <TextBlock Grid.Column="2" Text="Unknown" Foreground="#8290A3" />
+                  <TextBlock Grid.Column="2" Text="{Binding DockerStatus}" Foreground="#A8B4C4" TextTrimming="CharacterEllipsis" />
                 </Grid>
               </Border>
               <Border Background="#0E131B" CornerRadius="8" Padding="12">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                  <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
+                  <Ellipse Width="9" Height="9" Fill="#4ED68A" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1" Text="Nginx" Margin="10,0" />
-                  <TextBlock Grid.Column="2" Text="Unknown" Foreground="#8290A3" />
+                  <TextBlock Grid.Column="2" Text="{Binding NginxStatus}" Foreground="#A8B4C4" TextTrimming="CharacterEllipsis" />
                 </Grid>
+              </Border>
+              <Border Background="#0E131B" CornerRadius="8" Padding="12" Margin="0,8,0,0">
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="#8290A3" />
               </Border>
             </StackPanel>
           </Border>
@@ -140,7 +142,7 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Text="Recent activity" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="No operations recorded in this new profile." Foreground="#8290A3" />
+            <TextBlock Text="Deployment and maintenance history will be connected in the next iteration." Foreground="#8290A3" />
           </StackPanel>
         </Border>
       </StackPanel>

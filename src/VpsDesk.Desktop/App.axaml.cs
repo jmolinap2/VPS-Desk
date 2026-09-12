@@ -27,11 +27,13 @@ public partial class App : Avalonia.Application
             var containers = new DockerContainerService(ssh);
             var logs = new LinuxRemoteLogService(ssh);
             var storage = new LinuxStorageService(ssh);
+            var files = new SftpRemoteFileService();
 
             var viewModel = new MainWindowViewModel(probe, store, bootstrap);
             viewModel.InitializeContainers(containers);
             viewModel.InitializeLogs(containers, logs);
             viewModel.InitializeStorage(storage);
+            viewModel.InitializeFiles(files);
 
             desktop.MainWindow = new MainWindow
             {

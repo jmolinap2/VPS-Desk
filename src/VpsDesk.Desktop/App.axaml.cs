@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Desktop.Localization;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Desktop.ViewModels;
 using VpsDesk.Desktop.Views;
@@ -16,7 +17,11 @@ namespace VpsDesk.Desktop;
 
 public partial class App : Avalonia.Application
 {
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        LocalizationService.Current.Initialize(this);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

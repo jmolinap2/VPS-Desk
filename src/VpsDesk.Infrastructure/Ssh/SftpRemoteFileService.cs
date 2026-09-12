@@ -22,6 +22,7 @@ public sealed class SftpRemoteFileService : IRemoteFileService
         {
             cancellationToken.ThrowIfCancellationRequested();
             using var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(15)));
+            SshConnectionFactory.ApplyHostKeyPolicy(client, server);
             client.Connect();
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -54,6 +55,7 @@ public sealed class SftpRemoteFileService : IRemoteFileService
         {
             cancellationToken.ThrowIfCancellationRequested();
             using var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(20)));
+            SshConnectionFactory.ApplyHostKeyPolicy(client, server);
             client.Connect();
             cancellationToken.ThrowIfCancellationRequested();
 

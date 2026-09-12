@@ -12,6 +12,8 @@ public sealed class LocalizationService
 
     public static LocalizationService Current { get; } = new();
 
+    public event EventHandler? CultureChanged;
+
     public string CurrentCulture { get; private set; } = FallbackCulture;
     public IReadOnlyList<string> SupportedCultures => Supported;
 
@@ -48,6 +50,7 @@ public sealed class LocalizationService
         var uiCulture = CultureInfo.GetCultureInfo(culture);
         CultureInfo.DefaultThreadCurrentUICulture = uiCulture;
         Thread.CurrentThread.CurrentUICulture = uiCulture;
+        CultureChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public string Get(string key)

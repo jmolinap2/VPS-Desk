@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             x:Class="VpsDesk.Desktop.Views.DashboardView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="24" Spacing="18">
+      <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
+        <Border Classes="card">
+          <StackPanel Spacing="6">
+            <TextBlock Text="CPU" Foreground="#8290A3" />
+            <Grid Height="112">
+              <lvc:PieChart Series="{Binding CpuGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
+              <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Text="MEMORY" Foreground="#8290A3" />
+            <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}" Height="8" />
+            <TextBlock Text="{Binding MemorySummary}" FontSize="11" Foreground="#66758A" Margin="0,8,0,0" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="card">
+          <StackPanel Spacing="6">
+            <TextBlock Text="DISK" Foreground="#8290A3" />
+            <Grid Height="112">
+              <lvc:PieChart Series="{Binding DiskGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
+              <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="Root filesystem" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="3" Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Text="UPTIME" Foreground="#8290A3" />
+            <TextBlock Text="{Binding Uptime}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
+            <TextBlock Text="NETWORK" Foreground="#8290A3" FontSize="11" />
+            <TextBlock Text="{Binding NetworkSummary}" FontSize="11" Foreground="#66758A" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="2*,*" ColumnSpacing="14" MinHeight="360">
+        <Border Classes="card">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="CPU and memory · live samples · auto refresh 10s after first successful connection" FontSize="11" Foreground="#8290A3" />
+              </StackPanel>
+              <TextBlock Grid.Column="1" Text="{Binding LastChecked, StringFormat=Last check: {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
+            </Grid>
+            <lvc:CartesianChart Grid.Row="1" Margin="0,18,0,0" LegendPosition="Top">
+              <lvc:CartesianChart.Series>
+                <lvc:XamlLineSeries SeriesName="CPU" Values="{Binding CpuSeries}" Fill="{x:Null}" GeometrySize="0" />
+                <lvc:XamlLineSeries SeriesName="Memory" Values="{Binding MemorySeries}" Fill="{x:Null}" GeometrySize="0" />
+              </lvc:CartesianChart.Series>
+            </lvc:CartesianChart>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Text="Services" FontSize="16" FontWeight="SemiBold" />
+            <Border Background="#0E131B" CornerRadius="8" Padding="12">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="Docker" Margin="10,0" />
+                <TextBlock Grid.Column="2" Text="{Binding DockerStatus}" Foreground="#8290A3" />
+              </Grid>
+            </Border>
+            <Border Background="#0E131B" CornerRadius="8" Padding="12">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="Nginx" Margin="10,0" />
+                <TextBlock Grid.Column="2" Text="{Binding NginxStatus}" Foreground="#8290A3" />
+              </Grid>
+            </Border>
+            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="#8290A3" Margin="0,8,0,0" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Recent activity" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="Operation history will appear here as modules are enabled." Foreground="#8290A3" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

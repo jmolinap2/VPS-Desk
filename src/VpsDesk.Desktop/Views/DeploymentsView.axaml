@@ -7,26 +7,26 @@
   <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
-        <TextBlock Text="Deployments" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="Guarded Git + Docker Compose workflow with preflight and post-deploy verification." Foreground="#8290A3" FontSize="11" />
+        <TextBlock Text="{DynamicResource Deployments_Title}" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Deployments_Subtitle}" Foreground="#8290A3" FontSize="11" />
       </StackPanel>
-      <TextBlock Grid.Column="1" Text="{Binding LastChecked, StringFormat=Preflight {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding LastChecked}" Foreground="#8290A3" VerticalAlignment="Center" />
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
       <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
           <StackPanel>
-            <TextBlock Text="Remote repository" Foreground="#8290A3" FontSize="11" />
+            <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
           </StackPanel>
           <Button Grid.Column="1"
-                  Content="Discover remote options"
+                  Content="{DynamicResource Deployments_Discover}"
                   Command="{Binding DiscoverRemoteOptionsCommand}"
                   IsEnabled="{Binding !IsBusy}"
                   VerticalAlignment="Bottom" />
           <Button Grid.Column="2"
-                  Content="Run preflight"
+                  Content="{DynamicResource Deployments_RunPreflight}"
                   Command="{Binding RunPreflightCommand}"
                   IsEnabled="{Binding !IsBusy}"
                   VerticalAlignment="Bottom" />
@@ -34,20 +34,20 @@
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
           <StackPanel>
-            <TextBlock Text="Branch" Foreground="#8290A3" FontSize="11" />
+            <TextBlock Text="{DynamicResource Deployments_Branch}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding Branch}" PlaceholderText="main" />
             <ComboBox Margin="0,5,0,0"
                       ItemsSource="{Binding AvailableBranches}"
                       SelectedItem="{Binding SelectedBranchSuggestion}"
-                      PlaceholderText="Choose a branch discovered on the server" />
+                      PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
           </StackPanel>
           <StackPanel Grid.Column="1">
-            <TextBlock Text="Compose file" Foreground="#8290A3" FontSize="11" />
+            <TextBlock Text="{DynamicResource Deployments_ComposeFile}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
             <ComboBox Margin="0,5,0,0"
                       ItemsSource="{Binding AvailableComposeFiles}"
                       SelectedItem="{Binding SelectedComposeSuggestion}"
-                      PlaceholderText="Choose a Compose file discovered on the server" />
+                      PlaceholderText="{DynamicResource Deployments_ComposePlaceholder}" />
           </StackPanel>
         </Grid>
       </Grid>
@@ -58,26 +58,26 @@
         <StackPanel Spacing="14">
           <Border Classes="card">
             <StackPanel Spacing="12">
-              <TextBlock Text="Safety and strategy" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Deployments_Safety}" FontSize="16" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                 <StackPanel>
-                  <CheckBox Content="Require environment file" IsChecked="{Binding RequireEnvironmentFile}" />
+                  <CheckBox Content="{DynamicResource Deployments_RequireEnv}" IsChecked="{Binding RequireEnvironmentFile}" />
                   <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,6,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Spacing="8">
-                  <CheckBox Content="Pull referenced images" IsChecked="{Binding PullImages}" />
-                  <CheckBox Content="Build application images" IsChecked="{Binding BuildImages}" />
+                  <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" />
+                  <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" />
                 </StackPanel>
               </Grid>
 
               <StackPanel>
-                <TextBlock Text="HTTP health URLs after deployment (optional, one per line)" Foreground="#8290A3" FontSize="11" />
+                <TextBlock Text="{DynamicResource Deployments_HealthUrls}" Foreground="#8290A3" FontSize="11" />
                 <TextBox Text="{Binding HttpHealthUrls}"
                          AcceptsReturn="True"
                          TextWrapping="NoWrap"
                          MinHeight="72"
                          PlaceholderText="https://app.example.com/health&#10;http://127.0.0.1:8080/health" />
-                <TextBlock Text="Checks run from the VPS after Compose finishes. No Holos/ABP endpoint is hardcoded." Foreground="#66758A" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <TextBlock Text="{DynamicResource Deployments_HealthHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
               </StackPanel>
 
               <Border Background="#0E131B" CornerRadius="8" Padding="10">
@@ -88,7 +88,7 @@
 
           <Border Classes="card">
             <Grid RowDefinitions="Auto,*" RowSpacing="10">
-              <TextBlock Text="Preflight checks" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Deployments_PreflightChecks}" FontSize="16" FontWeight="SemiBold" />
               <ListBox Grid.Row="1" ItemsSource="{Binding Checks}" MinHeight="210">
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="deploy:PreflightCheckResult">
@@ -108,15 +108,15 @@
           </Border>
 
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Request deployment" Command="{Binding RequestDeployCommand}" IsEnabled="{Binding CanDeploy}" />
+            <Button Content="{DynamicResource Deployments_Request}" Command="{Binding RequestDeployCommand}" IsEnabled="{Binding CanDeploy}" />
           </StackPanel>
 
           <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingDeploy}">
             <StackPanel Spacing="10">
               <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="Confirm deploy" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
-                <Button Content="Cancel" Command="{Binding CancelDeployCommand}" />
+                <Button Content="{DynamicResource Deployments_Confirm}" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
+                <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
               </StackPanel>
             </StackPanel>
           </Border>
@@ -124,8 +124,8 @@
           <Border Classes="card">
             <Grid RowDefinitions="Auto,*" RowSpacing="10">
               <StackPanel>
-                <TextBlock Text="Post-deploy verification" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Text="Container state/health plus optional HTTP smoke checks. A zero exit code is not treated as proof that the release is healthy." Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                <TextBlock Text="{DynamicResource Deployments_PostDeploy}" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="{DynamicResource Deployments_PostDeployHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
               </StackPanel>
               <ListBox Grid.Row="1" ItemsSource="{Binding PostChecks}" MinHeight="120">
                 <ListBox.ItemTemplate>
@@ -150,8 +150,8 @@
       <Border Grid.Column="1" Classes="card">
         <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
           <StackPanel>
-            <TextBlock Text="Deployment output" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="Git fetch/checkout/fast-forward → optional image pull → Compose up → Compose status → post-deploy verification" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+            <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Deployments_OutputHelp}" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
           </StackPanel>
 
           <ItemsControl Grid.Row="1" ItemsSource="{Binding Steps}">

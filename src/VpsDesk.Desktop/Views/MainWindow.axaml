@@ -14,7 +14,7 @@
       <Grid RowDefinitions="72,60,*">
         <StackPanel Margin="20,18,12,12">
           <TextBlock Text="VPS Desk" FontSize="22" FontWeight="SemiBold" />
-          <TextBlock Text="Linux operations client" FontSize="11" Foreground="#8290A3" />
+          <TextBlock Text="{DynamicResource App_Subtitle}" FontSize="11" Foreground="#8290A3" />
         </StackPanel>
 
         <Border Grid.Row="1" Margin="12,4" Padding="12,8" Background="#151B25" CornerRadius="8">
@@ -26,17 +26,17 @@
 
         <ScrollViewer Grid.Row="2">
           <StackPanel Margin="4,12">
-            <Button Classes="nav" Content="Servers" Command="{Binding NavigateCommand}" CommandParameter="Servers" />
-            <Button Classes="nav" Content="Dashboard" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" />
-            <Button Classes="nav" Content="Containers" Command="{Binding NavigateCommand}" CommandParameter="Containers" />
-            <Button Classes="nav" Content="Deployments" Command="{Binding NavigateCommand}" CommandParameter="Deployments" />
-            <Button Classes="nav" Content="Logs" Command="{Binding NavigateCommand}" CommandParameter="Logs" />
-            <Button Classes="nav" Content="Storage" Command="{Binding NavigateCommand}" CommandParameter="Storage" />
-            <Button Classes="nav" Content="Files" Command="{Binding NavigateCommand}" CommandParameter="Files" />
-            <Button Classes="nav" Content="Terminal" Command="{Binding NavigateCommand}" CommandParameter="Terminal" />
-            <Button Classes="nav" Content="Security" Command="{Binding NavigateCommand}" CommandParameter="Security" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Servers}" Command="{Binding NavigateCommand}" CommandParameter="Servers" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Dashboard}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Containers}" Command="{Binding NavigateCommand}" CommandParameter="Containers" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Logs}" Command="{Binding NavigateCommand}" CommandParameter="Logs" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Storage}" Command="{Binding NavigateCommand}" CommandParameter="Storage" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Files}" Command="{Binding NavigateCommand}" CommandParameter="Files" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Terminal}" Command="{Binding NavigateCommand}" CommandParameter="Terminal" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Security}" Command="{Binding NavigateCommand}" CommandParameter="Security" />
             <Border Height="1" Background="#202734" Margin="12,12" />
-            <Button Classes="nav" Content="Settings" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
+            <Button Classes="nav" Content="{DynamicResource Nav_Settings}" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -45,8 +45,8 @@
     <Border Grid.Column="1" Background="#0D1118" BorderBrush="#202734" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto" Margin="24,0">
         <StackPanel VerticalAlignment="Center">
-          <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding HeaderSubtitle}" FontSize="11" Foreground="#8290A3" />
+          <TextBlock Text="{Binding LocalizedHeaderTitle}" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding LocalizedHeaderSubtitle}" FontSize="11" Foreground="#8290A3" />
         </StackPanel>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -56,7 +56,7 @@
           <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
             <TextBlock Text="{Binding ConnectionStatus}" FontSize="11" FontWeight="SemiBold" />
           </Border>
-          <Button Content="Refresh" Command="{Binding RefreshCommand}" IsVisible="{Binding IsDashboardPage}" />
+          <Button Content="{DynamicResource Common_Refresh}" Command="{Binding RefreshCommand}" IsVisible="{Binding IsDashboardPage}" />
         </StackPanel>
       </Grid>
     </Border>
@@ -89,8 +89,8 @@
       <Grid IsVisible="{Binding IsPendingUtilityPage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
           <StackPanel Spacing="10">
-            <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="This module is part of the v2 migration plan and will be enabled after the current operations foundation is validated." TextWrapping="Wrap" Foreground="#8290A3" />
+            <TextBlock Text="{Binding LocalizedHeaderTitle}" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Shell_PendingModule}" TextWrapping="Wrap" Foreground="#8290A3" />
           </StackPanel>
         </Border>
       </Grid>

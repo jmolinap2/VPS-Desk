@@ -22,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -34,3 +34,35 @@ jobs:
 
       - name: Build
         run: dotnet build VpsDesk.slnx --configuration Release --no-restore
+
+      - name: Desktop startup smoke test
+        shell: bash
+        run: |
+          set +e
+          timeout 5s xvfb-run -a dotnet src/VpsDesk.Desktop/bin/Release/net10.0/VpsDesk.Desktop.dll
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            echo "Desktop process exited unexpectedly with code $code"
+            exit "$code"
+          fi
+
+      - name: Publish Windows x64 test build
+        if: github.event_name == 'push'
+        run: >-
+          dotnet publish src/VpsDesk.Desktop/VpsDesk.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output artifacts/VPS-Desk-win-x64
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+
+      - name: Upload Windows x64 test build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: VPS-Desk-win-x64
+          path: artifacts/VPS-Desk-win-x64/
+          if-no-files-found: error
+          retention-days: 14

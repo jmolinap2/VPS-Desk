@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
+using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -9,8 +10,17 @@ namespace VpsDesk.Desktop.ViewModels;
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly IServerProbeService _probe;
-    private readonly ServerProfile? _server;
-    private readonly string? _secret;
+    private readonly ServerProfileStore _store;
+    private ServerProfile? _server;
+    private string? _activeSecret;
+    private Guid? _editingServerId;
+
+    public ObservableCollection<ServerProfile> Servers { get; } = new();
+    public ObservableCollection<double> CpuSeries { get; } = new();
+    public ObservableCollection<double> MemorySeries { get; } = new();
+
+    public IReadOnlyList<string> AuthenticationOptions { get; } = ["PrivateKey", "Password"];
+    public IReadOnlyList<string> EnvironmentOptions { get; } = ["Development", "Staging", "Production"];
 
     [ObservableProperty]
     private string _selectedServerName = "No server selected";
@@ -58,26 +68,98 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     private bool _isRefreshing;
 
-    public ObservableCollection<double> CpuSeries { get; } = new();
-    public ObservableCollection<double> MemorySeries { get; } = new();
+    [ObservableProperty]
+    private string _selectedPage = "Dashboard";
 
-    public MainWindowViewModel(IServerProbeService probe, ServerProfile? server, string? secret, string? warning = null)
+    [ObservableProperty]
+    private string _headerTitle = "Dashboard";
+
+    [ObservableProperty]
+    private string _headerSubtitle = "Overview of the selected Linux VPS";
+
+    [ObservableProperty]
+    private ServerProfile? _selectedServerInList;
+
+    [ObservableProperty]
+    private string _editorName = string.Empty;
+
+    [ObservableProperty]
+    private string _editorHost = string.Empty;
+
+    [ObservableProperty]
+    private int _editorPort = 22;
+
+    [ObservableProperty]
+    private string _editorUsername = "root";
+
+    [ObservableProperty]
+    private string _editorAuthenticationType = "PrivateKey";
+
+    [ObservableProperty]
+    private string _editorPrivateKeyPath = string.Empty;
+
+    [ObservableProperty]
+    private string _editorSecret = string.Empty;
+
+    [ObservableProperty]
+    private string _editorProvider = "Hostinger";
+
+    [ObservableProperty]
+    private string _editorEnvironment = "Production";
+
+    [ObservableProperty]
+    private string _serverEditorMessage = "Secrets are kept in memory only and are not written to servers.json.";
+
+    public bool IsDashboardPage => SelectedPage == "Dashboard";
+    public bool IsServersPage => SelectedPage == "Servers";
+    public bool IsPlaceholderPage => !IsDashboardPage && !IsServersPage;
+
+    public MainWindowViewModel(
+        IServerProbeService probe,
+        ServerProfileStore store,
+        BootstrapServerContext bootstrap)
     {
         _probe = probe;
-        _server = server;
-        _secret = secret;
+        _store = store;
+
+        var snapshot = store.Load();
+        foreach (var server in snapshot.Servers)
+        {
+            Servers.Add(server);
+        }
+
+        if (Servers.Count == 0 && bootstrap.Profile != null)
+        {
+            Servers.Add(bootstrap.Profile);
+            _activeSecret = bootstrap.Secret;
+            store.Save(Servers, bootstrap.Profile.Id);
+        }
+
+        _server = snapshot.SelectedServerId is Guid selectedId
+            ? Servers.FirstOrDefault(x => x.Id == selectedId)
+            : Servers.FirstOrDefault();
+
+        if (_server == null && bootstrap.Profile != null)
+        {
+            _server = Servers.FirstOrDefault(x => x.Id == bootstrap.Profile.Id) ?? bootstrap.Profile;
+            _activeSecret = bootstrap.Secret;
+        }
+        else if (_server?.Id == bootstrap.Profile?.Id)
+        {
+            _activeSecret = bootstrap.Secret;
+        }
 
         if (_server != null)
         {
             SelectedServerName = _server.Name;
-            CompatibilityLabel = string.Equals(_server.ProviderLabel, "Hostinger", StringComparison.OrdinalIgnoreCase)
-                ? "HOSTINGER · PENDING CHECK"
-                : "GENERIC LINUX · PENDING CHECK";
+            CompatibilityLabel = ProviderPendingLabel(_server);
+            SelectedServerInList = _server;
+            LoadEditor(_server);
         }
 
-        if (!string.IsNullOrWhiteSpace(warning))
+        if (!string.IsNullOrWhiteSpace(bootstrap.Warning) && _server == null)
         {
-            StatusMessage = warning;
+            StatusMessage = bootstrap.Warning;
         }
 
         for (var i = 0; i < 30; i++)
@@ -85,6 +167,162 @@ public partial class MainWindowViewModel : ObservableObject
             CpuSeries.Add(0);
             MemorySeries.Add(0);
         }
+    }
+
+    partial void OnSelectedPageChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsDashboardPage));
+        OnPropertyChanged(nameof(IsServersPage));
+        OnPropertyChanged(nameof(IsPlaceholderPage));
+    }
+
+    partial void OnSelectedServerInListChanged(ServerProfile? value)
+    {
+        if (value != null)
+        {
+            LoadEditor(value);
+        }
+    }
+
+    [RelayCommand]
+    private void Navigate(string? page)
+    {
+        if (string.IsNullOrWhiteSpace(page)) return;
+        SelectedPage = page;
+        HeaderTitle = page;
+        HeaderSubtitle = page switch
+        {
+            "Servers" => "Manage Linux VPS connection profiles",
+            "Dashboard" => "Overview of the selected Linux VPS",
+            "Containers" => "Docker and Compose operations",
+            "Deployments" => "Safe application deployment workflows",
+            "Logs" => "Docker, system and application logs",
+            "Storage" => "Disk, images, volumes and large directories",
+            "Files" => "Secure SFTP file operations",
+            "Terminal" => "Interactive SSH administration",
+            "Security" => "Server hardening and exposure checks",
+            "Settings" => "VPS Desk preferences and local security",
+            _ => "VPS Desk"
+        };
+    }
+
+    [RelayCommand]
+    private void NewServer()
+    {
+        _editingServerId = null;
+        SelectedServerInList = null;
+        EditorName = string.Empty;
+        EditorHost = string.Empty;
+        EditorPort = 22;
+        EditorUsername = "root";
+        EditorAuthenticationType = "PrivateKey";
+        EditorPrivateKeyPath = string.Empty;
+        EditorSecret = string.Empty;
+        EditorProvider = "Hostinger";
+        EditorEnvironment = "Production";
+        ServerEditorMessage = "Create a profile. Passwords/passphrases are session-only for now.";
+    }
+
+    [RelayCommand]
+    private void SaveServer()
+    {
+        if (string.IsNullOrWhiteSpace(EditorName) || string.IsNullOrWhiteSpace(EditorHost) || string.IsNullOrWhiteSpace(EditorUsername))
+        {
+            ServerEditorMessage = "Name, host and username are required.";
+            return;
+        }
+
+        if (EditorPort is < 1 or > 65535)
+        {
+            ServerEditorMessage = "SSH port must be between 1 and 65535.";
+            return;
+        }
+
+        if (!Enum.TryParse<SshAuthenticationType>(EditorAuthenticationType, out var auth) || auth == SshAuthenticationType.Agent)
+        {
+            auth = SshAuthenticationType.PrivateKey;
+        }
+
+        if (!Enum.TryParse<ServerEnvironment>(EditorEnvironment, out var environment))
+        {
+            environment = ServerEnvironment.Production;
+        }
+
+        if (auth == SshAuthenticationType.PrivateKey && string.IsNullOrWhiteSpace(EditorPrivateKeyPath))
+        {
+            ServerEditorMessage = "Select or enter a private key path for key authentication.";
+            return;
+        }
+
+        var id = _editingServerId ?? Guid.NewGuid();
+        var profile = new ServerProfile(
+            id,
+            EditorName.Trim(),
+            EditorHost.Trim(),
+            EditorPort,
+            EditorUsername.Trim(),
+            auth,
+            auth == SshAuthenticationType.PrivateKey ? EditorPrivateKeyPath.Trim() : null,
+            null,
+            string.IsNullOrWhiteSpace(EditorProvider) ? null : EditorProvider.Trim(),
+            environment,
+            []);
+
+        var existing = Servers.FirstOrDefault(x => x.Id == id);
+        if (existing == null)
+        {
+            Servers.Add(profile);
+        }
+        else
+        {
+            var index = Servers.IndexOf(existing);
+            Servers[index] = profile;
+        }
+
+        _editingServerId = id;
+        SelectedServerInList = profile;
+        _store.Save(Servers, _server?.Id);
+        ServerEditorMessage = "Profile saved locally. Secret was not persisted.";
+    }
+
+    [RelayCommand]
+    private void DeleteServer()
+    {
+        if (SelectedServerInList == null) return;
+        var deleting = SelectedServerInList;
+        Servers.Remove(deleting);
+        SelectedServerInList = null;
+
+        if (_server?.Id == deleting.Id)
+        {
+            _server = Servers.FirstOrDefault();
+            _activeSecret = null;
+            ApplyActiveServerHeader();
+        }
+
+        _store.Save(Servers, _server?.Id);
+        NewServer();
+        ServerEditorMessage = "Profile deleted.";
+    }
+
+    [RelayCommand]
+    private void ActivateServer()
+    {
+        if (SelectedServerInList == null)
+        {
+            ServerEditorMessage = "Select a server first.";
+            return;
+        }
+
+        _server = SelectedServerInList;
+        _activeSecret = string.IsNullOrWhiteSpace(EditorSecret) ? null : EditorSecret;
+        _store.Save(Servers, _server.Id);
+        ApplyActiveServerHeader();
+        SelectedPage = "Dashboard";
+        HeaderTitle = "Dashboard";
+        HeaderSubtitle = "Overview of the selected Linux VPS";
+        StatusMessage = "Server activated. Press Refresh to run compatibility checks and telemetry.";
+        RefreshCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanRefresh() => !IsRefreshing && _server != null;
@@ -99,7 +337,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            var compatibility = await _probe.CheckCompatibilityAsync(_server, _secret);
+            var compatibility = await _probe.CheckCompatibilityAsync(_server, _activeSecret);
             var ssh = compatibility.Capabilities.FirstOrDefault(x => x.Capability == ServerCapability.Ssh);
             ConnectionStatus = ssh?.Available == true ? "SSH Online" : "SSH Offline";
             CompatibilityLabel = compatibility.Level switch
@@ -122,7 +360,7 @@ public partial class MainWindowViewModel : ObservableObject
             }
 
             StatusMessage = "Reading live telemetry...";
-            var metrics = await _probe.ReadMetricsAsync(_server, _secret);
+            var metrics = await _probe.ReadMetricsAsync(_server, _activeSecret);
 
             CpuUsage = Math.Clamp(metrics.CpuUsagePercent, 0, 100);
             MemoryUsage = Math.Clamp(metrics.MemoryUsagePercent, 0, 100);
@@ -151,6 +389,41 @@ public partial class MainWindowViewModel : ObservableObject
             IsRefreshing = false;
         }
     }
+
+    private void LoadEditor(ServerProfile server)
+    {
+        _editingServerId = server.Id;
+        EditorName = server.Name;
+        EditorHost = server.Host;
+        EditorPort = server.Port;
+        EditorUsername = server.Username;
+        EditorAuthenticationType = server.AuthenticationType.ToString();
+        EditorPrivateKeyPath = server.PrivateKeyPath ?? string.Empty;
+        EditorSecret = server.Id == _server?.Id ? _activeSecret ?? string.Empty : string.Empty;
+        EditorProvider = server.ProviderLabel ?? string.Empty;
+        EditorEnvironment = server.Environment.ToString();
+        ServerEditorMessage = "Edit the profile or activate it. Secrets are not persisted.";
+    }
+
+    private void ApplyActiveServerHeader()
+    {
+        if (_server == null)
+        {
+            SelectedServerName = "No server selected";
+            ConnectionStatus = "Offline";
+            CompatibilityLabel = "Compatibility unknown";
+            return;
+        }
+
+        SelectedServerName = _server.Name;
+        ConnectionStatus = "Not checked";
+        CompatibilityLabel = ProviderPendingLabel(_server);
+    }
+
+    private static string ProviderPendingLabel(ServerProfile server)
+        => string.Equals(server.ProviderLabel, "Hostinger", StringComparison.OrdinalIgnoreCase)
+            ? "HOSTINGER · PENDING CHECK"
+            : "GENERIC LINUX · PENDING CHECK";
 
     private static string CapabilityText(CompatibilitySnapshot snapshot, ServerCapability capability)
     {

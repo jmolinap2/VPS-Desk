@@ -34,6 +34,21 @@ internal static class SshConnectionFactory
         };
     }
 
+    public static void ApplyHostKeyPolicy(BaseClient client, ServerProfile server)
+    {
+        var expected = NormalizeFingerprint(server.HostKeyFingerprintSha256);
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            return;
+        }
+
+        client.HostKeyReceived += (_, e) =>
+        {
+            var actual = NormalizeFingerprint(e.FingerPrintSHA256);
+            e.CanTrust = string.Equals(actual, expected, StringComparison.Ordinal);
+        };
+    }
+
     private static AuthenticationMethod CreatePrivateKeyAuth(ServerProfile server, string? passphrase)
     {
         if (string.IsNullOrWhiteSpace(server.PrivateKeyPath))
@@ -51,5 +66,17 @@ internal static class SshConnectionFactory
             : new PrivateKeyFile(server.PrivateKeyPath, passphrase);
 
         return new PrivateKeyAuthenticationMethod(server.Username, key);
+    }
+
+    private static string? NormalizeFingerprint(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim();
+        if (normalized.StartsWith("SHA256:", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized[7..];
+        }
+
+        return normalized.TrimEnd('=');
     }
 }

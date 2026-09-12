@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:activity="using:VpsDesk.Domain.Activity"
              x:Class="VpsDesk.Desktop.Views.DashboardView"
              x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
@@ -83,10 +84,39 @@
       </Grid>
 
       <Border Classes="card">
-        <StackPanel Spacing="10">
-          <TextBlock Text="{DynamicResource Dashboard_RecentActivity}" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Text="{DynamicResource Dashboard_RecentActivityHelp}" Foreground="#8290A3" />
-        </StackPanel>
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Dashboard_RecentActivity}" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Dashboard_RecentActivityHelp}" Foreground="#8290A3" FontSize="11" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{Binding RecentActivity.Count, StringFormat={}{0} eventos}" Foreground="#66758A" VerticalAlignment="Center" />
+          </Grid>
+
+          <ItemsControl Grid.Row="1" ItemsSource="{Binding RecentActivity}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="activity:OperationHistoryEntry">
+                <Border Background="#0E131B" CornerRadius="8" Padding="12" Margin="0,3">
+                  <Grid ColumnDefinitions="Auto,1.3*,1.8*,Auto" ColumnSpacing="12">
+                    <TextBlock Text="{Binding StartedAt, StringFormat={}{0:dd/MM HH:mm}}" Foreground="#66758A" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Text="{Binding ServerName}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Environment}" Foreground="#66758A" FontSize="10" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding Summary}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="{Binding Outcome}" FontWeight="SemiBold" Foreground="#A8B4C5" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <TextBlock Grid.Row="1"
+                     Text="{DynamicResource Dashboard_NoRecentActivity}"
+                     Foreground="#66758A"
+                     IsVisible="{Binding !HasRecentActivity}"
+                     Margin="0,8,0,0" />
+        </Grid>
       </Border>
     </StackPanel>
   </ScrollViewer>

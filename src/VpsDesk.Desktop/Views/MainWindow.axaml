@@ -3,6 +3,7 @@
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
         xmlns:vm="using:VpsDesk.Desktop.ViewModels"
         xmlns:servers="using:VpsDesk.Domain.Servers"
+        xmlns:containers="using:VpsDesk.Domain.Containers"
         x:Class="VpsDesk.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="VPS Desk"
@@ -54,7 +55,7 @@
           <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
             <TextBlock Text="{Binding ConnectionStatus}" FontSize="11" FontWeight="SemiBold" />
           </Border>
-          <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+          <Button Content="Refresh" Command="{Binding RefreshCommand}" IsVisible="{Binding IsDashboardPage}" />
         </StackPanel>
       </Grid>
     </Border>
@@ -246,7 +247,141 @@
         </Border>
       </Grid>
 
-      <Grid IsVisible="{Binding IsPlaceholderPage}" Margin="24">
+      <Grid IsVisible="{Binding IsContainersPage}" Margin="24" RowDefinitions="Auto,*" RowSpacing="14">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel>
+            <TextBlock Text="Docker containers" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="Inventory and live stats are read directly over SSH. No Docker API port is exposed." Foreground="#8290A3" FontSize="11" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock Text="{Binding ContainerModule.LastUpdated, StringFormat=Updated {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
+            <Button Content="Refresh containers" Command="{Binding ContainerModule.RefreshCommand}" IsEnabled="{Binding !ContainerModule.IsBusy}" />
+          </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="14">
+          <Border Classes="card">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+              <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="10">
+                <Border Background="#0E131B" CornerRadius="8" Padding="12">
+                  <StackPanel>
+                    <TextBlock Text="TOTAL" FontSize="10" Foreground="#66758A" />
+                    <TextBlock Text="{Binding ContainerModule.TotalCount}" FontSize="24" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Background="#0E131B" CornerRadius="8" Padding="12">
+                  <StackPanel>
+                    <TextBlock Text="RUNNING" FontSize="10" Foreground="#66758A" />
+                    <TextBlock Text="{Binding ContainerModule.RunningCount}" FontSize="24" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Background="#0E131B" CornerRadius="8" Padding="12">
+                  <StackPanel>
+                    <TextBlock Text="STOPPED" FontSize="10" Foreground="#66758A" />
+                    <TextBlock Text="{Binding ContainerModule.StoppedCount}" FontSize="24" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="3" Background="#0E131B" CornerRadius="8" Padding="12">
+                  <StackPanel>
+                    <TextBlock Text="UNHEALTHY" FontSize="10" Foreground="#66758A" />
+                    <TextBlock Text="{Binding ContainerModule.UnhealthyCount}" FontSize="24" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="4" Background="#0E131B" CornerRadius="8" Padding="12">
+                  <StackPanel>
+                    <TextBlock Text="PROJECTS" FontSize="10" Foreground="#66758A" />
+                    <TextBlock Text="{Binding ContainerModule.ProjectCount}" FontSize="24" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+
+              <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
+                <TextBlock Text="{Binding ContainerModule.StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+              </Border>
+
+              <ListBox Grid.Row="2" ItemsSource="{Binding ContainerModule.Items}" SelectedItem="{Binding ContainerModule.SelectedContainer}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="containers:DockerContainerInfo">
+                    <Border Padding="12" Margin="0,3" Background="#0E131B" CornerRadius="8">
+                      <Grid ColumnDefinitions="1.25*,1.5*,1.1*,0.65*,0.8*" ColumnSpacing="12">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding ComposeProject}" Foreground="#66758A" FontSize="10" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding Image}" Foreground="#A8B4C5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding State}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding Status}" Foreground="#66758A" FontSize="10" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                          <TextBlock Text="CPU" FontSize="9" Foreground="#66758A" />
+                          <TextBlock Text="{Binding CpuPercent, StringFormat={}{0:F1}%}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                          <TextBlock Text="RAM" FontSize="9" Foreground="#66758A" />
+                          <TextBlock Text="{Binding MemoryPercent, StringFormat={}{0:F1}%}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Classes="card">
+            <ScrollViewer>
+              <StackPanel Spacing="14">
+                <StackPanel>
+                  <TextBlock Text="Selected container" FontSize="16" FontWeight="SemiBold" />
+                  <TextBlock Text="Start, stop and restart require an explicit confirmation." Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Border Background="#0E131B" CornerRadius="8" Padding="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding ContainerModule.SelectedContainer.Name}" FontSize="19" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding ContainerModule.SelectedContainer.Image}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="6" Margin="0,8,0,0">
+                      <TextBlock Text="State" Foreground="#66758A" />
+                      <TextBlock Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.State}" />
+                      <TextBlock Grid.Row="1" Text="Health" Foreground="#66758A" />
+                      <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Health}" />
+                      <TextBlock Grid.Row="2" Text="CPU" Foreground="#66758A" />
+                      <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.CpuPercent, StringFormat={}{0:F2}%}" />
+                      <TextBlock Grid.Row="3" Text="Memory" Foreground="#66758A" />
+                      <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.MemoryUsage}" />
+                      <TextBlock Grid.Row="4" Text="Network" Foreground="#66758A" />
+                      <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.NetworkIo}" />
+                      <TextBlock Grid.Row="5" Text="Ports" Foreground="#66758A" />
+                      <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Ports}" TextWrapping="Wrap" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="Start" Command="{Binding ContainerModule.RequestStartCommand}" IsEnabled="{Binding ContainerModule.CanStartSelected}" />
+                  <Button Content="Stop" Command="{Binding ContainerModule.RequestStopCommand}" IsEnabled="{Binding ContainerModule.CanStopSelected}" />
+                  <Button Content="Restart" Command="{Binding ContainerModule.RequestRestartCommand}" IsEnabled="{Binding ContainerModule.CanRestartSelected}" />
+                </StackPanel>
+
+                <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding ContainerModule.HasPendingAction}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="{Binding ContainerModule.PendingActionMessage}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Content="Confirm action" Command="{Binding ContainerModule.ConfirmActionCommand}" />
+                      <Button Content="Cancel" Command="{Binding ContainerModule.CancelActionCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <TextBlock Text="Container deletion, image pruning and volume removal are intentionally not exposed here yet." Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Grid>
+
+      <Grid IsVisible="{Binding IsLegacyPlaceholderPage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />

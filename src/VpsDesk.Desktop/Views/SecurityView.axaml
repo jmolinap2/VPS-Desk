@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:security="using:VpsDesk.Domain.Security"
+             x:Class="VpsDesk.Desktop.Views.SecurityView"
+             x:DataType="vm:SecurityViewModel">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel>
+        <TextBlock Text="Security" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="Read-only exposure and SSH posture checks. VPS Desk does not change firewall or sshd configuration from this screen." Foreground="#8290A3" FontSize="11" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <TextBlock Text="{Binding LastChecked, StringFormat=Checked {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
+        <Button Content="Run audit" Command="{Binding RunAuditCommand}" IsEnabled="{Binding !IsBusy}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="14">
+      <Border Classes="card">
+        <StackPanel>
+          <TextBlock Text="PASSED" FontSize="10" Foreground="#66758A" />
+          <TextBlock Text="{Binding PassedCount}" FontSize="32" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="1" Classes="card">
+        <StackPanel>
+          <TextBlock Text="WARNINGS" FontSize="10" Foreground="#66758A" />
+          <TextBlock Text="{Binding WarningCount}" FontSize="32" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="2" Classes="card">
+        <StackPanel>
+          <TextBlock Text="CRITICAL" FontSize="10" Foreground="#66758A" />
+          <TextBlock Text="{Binding CriticalCount}" FontSize="32" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Classes="card">
+      <Grid RowDefinitions="Auto,*" RowSpacing="12">
+        <Border Background="#0E131B" CornerRadius="8" Padding="10">
+          <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+        </Border>
+
+        <ListBox Grid.Row="1" ItemsSource="{Binding Checks}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="security:SecurityCheck">
+              <Border Background="#0E131B" CornerRadius="8" Padding="12" Margin="0,3">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Detail}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text="{Binding Severity}" Foreground="#A8B4C5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

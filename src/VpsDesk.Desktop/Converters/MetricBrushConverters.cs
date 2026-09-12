@@ -4,6 +4,11 @@ using Avalonia.Media;
 
 namespace VpsDesk.Desktop.Converters;
 
+/// <summary>
+/// Semantic metric colors used by the dashboard.
+/// CPU: warning from 60%, critical from 80%.
+/// Memory and disk: warning from 70%, critical from 85%.
+/// </summary>
 public sealed class UsageToBrushConverter : IValueConverter
 {
     private static readonly IBrush Normal = Brush.Parse("#22C55E");

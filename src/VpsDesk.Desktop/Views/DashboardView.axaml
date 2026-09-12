@@ -94,15 +94,15 @@
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="14" Margin="0,-7,2,0">
         <StackPanel Orientation="Horizontal" Spacing="5">
           <Ellipse Width="7" Height="7" Fill="#22C55E" VerticalAlignment="Center" />
-          <TextBlock Text="{DynamicResource Dashboard_StatusNormal}" Foreground="#66758A" FontSize="10" />
+          <TextBlock Text="{DynamicResource Security_Passed}" Foreground="#66758A" FontSize="10" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="5">
           <Ellipse Width="7" Height="7" Fill="#F59E0B" VerticalAlignment="Center" />
-          <TextBlock Text="{DynamicResource Dashboard_StatusElevated}" Foreground="#66758A" FontSize="10" />
+          <TextBlock Text="{DynamicResource Security_Warnings}" Foreground="#66758A" FontSize="10" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="5">
           <Ellipse Width="7" Height="7" Fill="#EF4444" VerticalAlignment="Center" />
-          <TextBlock Text="{DynamicResource Dashboard_StatusCritical}" Foreground="#66758A" FontSize="10" />
+          <TextBlock Text="{DynamicResource Security_Critical}" Foreground="#66758A" FontSize="10" />
         </StackPanel>
       </StackPanel>
 

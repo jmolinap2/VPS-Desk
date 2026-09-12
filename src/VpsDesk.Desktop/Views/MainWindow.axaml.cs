@@ -17,12 +17,19 @@ public partial class MainWindow : Window
 
         _telemetryTimer.Tick += async (_, _) =>
         {
-            if (DataContext is MainWindowViewModel vm
-                && vm.IsDashboardPage
+            if (DataContext is not MainWindowViewModel vm) return;
+
+            if (vm.IsDashboardPage
                 && vm.AutoRefreshEnabled
                 && vm.RefreshCommand.CanExecute(null))
             {
                 await vm.RefreshCommand.ExecuteAsync(null);
+            }
+            else if (vm.IsContainersPage
+                     && vm.ContainerModule.AutoRefreshEnabled
+                     && vm.ContainerModule.RefreshCommand.CanExecute(null))
+            {
+                await vm.ContainerModule.RefreshCommand.ExecuteAsync(null);
             }
         };
 

@@ -17,7 +17,9 @@ public partial class MainWindowViewModel
         IDeploymentPreflightService preflightService,
         IComposeDeploymentService deploymentService,
         IDeploymentDiscoveryService discoveryService,
-        IPostDeployVerificationService postDeployVerificationService)
+        IPostDeployVerificationService postDeployVerificationService,
+        string? remoteRepositoryPath,
+        string? composeFile)
     {
         if (_deploymentsModule != null) return;
 
@@ -27,7 +29,9 @@ public partial class MainWindowViewModel
             discoveryService,
             postDeployVerificationService,
             () => _server,
-            () => _activeSecret);
+            () => _activeSecret,
+            remoteRepositoryPath,
+            composeFile);
 
         PropertyChanged += HandleDeploymentsNavigation;
         OnPropertyChanged(nameof(DeploymentsModule));

@@ -14,9 +14,9 @@
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
-      <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-          <StackPanel>
+          <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
             <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
           </StackPanel>
@@ -24,16 +24,18 @@
                   Content="{DynamicResource Deployments_Discover}"
                   Command="{Binding DiscoverRemoteOptionsCommand}"
                   IsEnabled="{Binding !IsBusy}"
+                  ToolTip.Tip="{DynamicResource Deployments_DiscoverTooltip}"
                   VerticalAlignment="Bottom" />
           <Button Grid.Column="2"
                   Content="{DynamicResource Deployments_RunPreflight}"
                   Command="{Binding RunPreflightCommand}"
                   IsEnabled="{Binding !IsBusy}"
+                  ToolTip.Tip="{DynamicResource Deployments_RunPreflightTooltip}"
                   VerticalAlignment="Bottom" />
         </Grid>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
-          <StackPanel>
+          <StackPanel ToolTip.Tip="{DynamicResource Deployments_BranchTooltip}">
             <TextBlock Text="{DynamicResource Deployments_Branch}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding Branch}" PlaceholderText="main" />
             <ComboBox Margin="0,5,0,0"
@@ -41,7 +43,7 @@
                       SelectedItem="{Binding SelectedBranchSuggestion}"
                       PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
           </StackPanel>
-          <StackPanel Grid.Column="1">
+          <StackPanel Grid.Column="1" ToolTip.Tip="{DynamicResource Deployments_ComposeFileTooltip}">
             <TextBlock Text="{DynamicResource Deployments_ComposeFile}" Foreground="#8290A3" FontSize="11" />
             <TextBox Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
             <ComboBox Margin="0,5,0,0"
@@ -50,6 +52,13 @@
                       PlaceholderText="{DynamicResource Deployments_ComposePlaceholder}" />
           </StackPanel>
         </Grid>
+
+        <Border Grid.Row="2" Background="#0E131B" CornerRadius="8" Padding="10">
+          <StackPanel Spacing="3">
+            <TextBlock Text="{DynamicResource Deployments_WorkflowHelp}" Foreground="#A8B4C5" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
       </Grid>
     </Border>
 
@@ -60,13 +69,13 @@
             <StackPanel Spacing="12">
               <TextBlock Text="{DynamicResource Deployments_Safety}" FontSize="16" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                <StackPanel>
+                <StackPanel ToolTip.Tip="{DynamicResource Deployments_RequireEnvTooltip}">
                   <CheckBox Content="{DynamicResource Deployments_RequireEnv}" IsChecked="{Binding RequireEnvironmentFile}" />
                   <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,6,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Spacing="8">
-                  <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" />
-                  <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" />
+                  <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" ToolTip.Tip="{DynamicResource Deployments_PullImagesTooltip}" />
+                  <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" ToolTip.Tip="{DynamicResource Deployments_BuildImagesTooltip}" />
                 </StackPanel>
               </Grid>
 
@@ -80,9 +89,6 @@
                 <TextBlock Text="{DynamicResource Deployments_HealthHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
               </StackPanel>
 
-              <Border Background="#0E131B" CornerRadius="8" Padding="10">
-                <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
-              </Border>
             </StackPanel>
           </Border>
 

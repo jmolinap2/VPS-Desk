@@ -44,7 +44,13 @@ public partial class App : Avalonia.Application
             var viewModel = new MainWindowViewModel(probe, store, bootstrap);
             LocalizationService.Current.CultureChanged += (_, _) => viewModel.RefreshLocalization();
             viewModel.InitializeContainers(containers);
-            viewModel.InitializeDeployments(preflight, deployment, discovery, postDeployVerification);
+            viewModel.InitializeDeployments(
+                preflight,
+                deployment,
+                discovery,
+                postDeployVerification,
+                bootstrap.RemoteRepositoryPath,
+                bootstrap.ComposeFile);
             viewModel.InitializeLogs(containers, logs);
             viewModel.InitializeStorage(storage);
             viewModel.InitializeFiles(files);

@@ -2,7 +2,12 @@ using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.Services;
 
-public sealed record BootstrapServerContext(ServerProfile? Profile, string? Secret, string? Warning = null);
+public sealed record BootstrapServerContext(
+    ServerProfile? Profile,
+    string? Secret,
+    string? RemoteRepositoryPath = null,
+    string? ComposeFile = null,
+    string? Warning = null);
 
 public static class BootstrapServerProfileLoader
 {
@@ -34,7 +39,10 @@ public static class BootstrapServerProfileLoader
 
         if (!values.TryGetValue("SERVER_HOST", out var host) || string.IsNullOrWhiteSpace(host))
         {
-            return new BootstrapServerContext(null, null, "Configure a server from the Servers screen or provide SERVER_HOST for bootstrap testing.");
+            return new BootstrapServerContext(
+                null,
+                null,
+                Warning: "Configure a server from the Servers screen or provide SERVER_HOST for bootstrap testing.");
         }
 
         values.TryGetValue("SERVER_USER", out var user);
@@ -42,6 +50,8 @@ public static class BootstrapServerProfileLoader
         values.TryGetValue("SSH_PASSWORD", out var password);
         values.TryGetValue("SSH_HOST_FINGERPRINT", out var hostFingerprint);
         values.TryGetValue("SERVER_PROVIDER", out var provider);
+        values.TryGetValue("REMOTE_REPO_PATH", out var remoteRepositoryPath);
+        values.TryGetValue("COMPOSE_FILE", out var composeFile);
 
         var port = values.TryGetValue("SSH_PORT", out var portRaw) && int.TryParse(portRaw, out var parsedPort)
             ? parsedPort
@@ -65,7 +75,11 @@ public static class BootstrapServerProfileLoader
             ["bootstrap"],
             string.IsNullOrWhiteSpace(hostFingerprint) ? null : hostFingerprint);
 
-        return new BootstrapServerContext(profile, string.IsNullOrWhiteSpace(password) ? null : password);
+        return new BootstrapServerContext(
+            profile,
+            string.IsNullOrWhiteSpace(password) ? null : password,
+            string.IsNullOrWhiteSpace(remoteRepositoryPath) ? null : remoteRepositoryPath,
+            string.IsNullOrWhiteSpace(composeFile) ? null : composeFile);
     }
 
     private static string? FindEnvFile()

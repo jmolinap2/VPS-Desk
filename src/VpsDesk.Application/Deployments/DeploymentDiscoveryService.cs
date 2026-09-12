@@ -37,7 +37,7 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
 
         var branchCommand =
             $"bash -lc \"REPO={repo}; " +
-            "[ -d \\\"$REPO/.git\\\" ] || exit 9; " +
+            "git -C \\\"$REPO\\\" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 9; " +
             "git -C \\\"$REPO\\\" for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ " +
             "| sed 's#^origin/##' | grep -v '^HEAD$' | sort -u\"";
 
@@ -54,6 +54,12 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
 
         if (!branchesResult.Succeeded)
         {
+            if (branchesResult.ExitCode == 9)
+            {
+                throw new InvalidOperationException(
+                    $"'{remoteRepositoryPath}' is not a Git working tree on the remote server. Verify REMOTE_REPO_PATH.");
+            }
+
             throw new InvalidOperationException(DescribeFailure(
                 branchesResult,
                 "Could not discover Git branches in the remote repository."));

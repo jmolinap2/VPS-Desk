@@ -28,7 +28,7 @@ public partial class MainWindowViewModel : ObservableObject
     public IEnumerable<ISeries> DiskGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(DiskUsage));
 
     [ObservableProperty] private string _selectedServerName = "No server selected";
-    [ObservableProperty] private string _connectionStatus = "Offline";
+    [ObservableProperty] private string _connectionStatus = "Not checked";
     [ObservableProperty] private string _compatibilityLabel = "Compatibility unknown";
     [ObservableProperty] private string _dockerStatus = "Unknown";
     [ObservableProperty] private string _nginxStatus = "Unknown";

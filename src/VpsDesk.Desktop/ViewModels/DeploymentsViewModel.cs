@@ -36,7 +36,7 @@ public partial class DeploymentsViewModel : ObservableObject
     [ObservableProperty] private bool _canDeploy;
     [ObservableProperty] private bool _hasPendingDeploy;
     [ObservableProperty] private string _pendingDeployMessage = string.Empty;
-    [ObservableProperty] private string _statusMessage = "Run preflight before any deployment.";
+    [ObservableProperty] private string _statusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
     [ObservableProperty] private string _lastChecked = "Never";
     [ObservableProperty] private string _deploymentOutput = string.Empty;
 
@@ -46,7 +46,9 @@ public partial class DeploymentsViewModel : ObservableObject
         IDeploymentDiscoveryService discovery,
         IPostDeployVerificationService postDeployVerification,
         Func<ServerProfile?> serverAccessor,
-        Func<string?> secretAccessor)
+        Func<string?> secretAccessor,
+        string? remoteRepositoryPath = null,
+        string? composeFile = null)
     {
         _preflight = preflight;
         _deployment = deployment;
@@ -54,6 +56,8 @@ public partial class DeploymentsViewModel : ObservableObject
         _postDeployVerification = postDeployVerification;
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
+        RemoteRepositoryPath = remoteRepositoryPath?.Trim() ?? string.Empty;
+        ComposeFile = composeFile?.Trim() ?? "docker-compose.yml";
     }
 
     partial void OnRemoteRepositoryPathChanged(string value)
@@ -98,7 +102,7 @@ public partial class DeploymentsViewModel : ObservableObject
         CanDeploy = false;
         DeploymentOutput = string.Empty;
         LastChecked = "Never";
-        StatusMessage = "Run preflight before any deployment.";
+        StatusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
         CancelPendingDeploy();
     }
 
@@ -109,12 +113,12 @@ public partial class DeploymentsViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = "El paso 1 está bloqueado: no hay un servidor activo. Selecciónalo y conéctalo primero en Servidores.";
             return;
         }
         if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
         {
-            StatusMessage = "Enter the remote repository path before discovering branches and Compose files.";
+            StatusMessage = "Escribe la ruta del repositorio remoto y vuelve a detectar las opciones.";
             return;
         }
 
@@ -139,11 +143,11 @@ public partial class DeploymentsViewModel : ObservableObject
             SelectedComposeSuggestion = result.ComposeFiles.FirstOrDefault(x =>
                 x.Equals(ComposeFile, StringComparison.OrdinalIgnoreCase));
 
-            StatusMessage = $"Discovered {result.Branches.Count} branch(es) and {result.ComposeFiles.Count} Compose file(s). Manual values remain allowed.";
+            StatusMessage = $"Detección completada: {result.Branches.Count} rama(s) y {result.ComposeFiles.Count} archivo(s) Compose. Selecciona una sugerencia si hace falta y valida los requisitos (paso 2).";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Remote discovery failed: {ex.Message}";
+            StatusMessage = $"La detección falló. Revisa la conexión SSH y la ruta del repositorio: {ex.Message}";
         }
         finally
         {
@@ -158,7 +162,7 @@ public partial class DeploymentsViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = "La validación está bloqueada: no hay un servidor activo. Selecciónalo y conéctalo primero en Servidores.";
             return;
         }
 
@@ -188,8 +192,8 @@ public partial class DeploymentsViewModel : ObservableObject
             CanDeploy = result.CanProceed;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
             StatusMessage = result.CanProceed
-                ? "Preflight passed. Review the target and request deployment when ready."
-                : "Preflight blocked deployment. Fix failed requirements and run it again.";
+                ? "La validación pasó. El paso 3 ya está habilitado: solicita el despliegue, revisa la confirmación y ejecútalo."
+                : "La validación bloqueó el despliegue. Corrige los requisitos fallidos y repite el paso 2.";
         }
         catch (Exception ex)
         {

@@ -29,5 +29,6 @@ Backups/
 Thumbs.db
 desktop.ini
 .vscode/
+.vs/
 .idea/
 *.user

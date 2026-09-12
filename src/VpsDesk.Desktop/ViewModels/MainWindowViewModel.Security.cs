@@ -20,7 +20,9 @@ public partial class MainWindowViewModel
         _securityModule = new SecurityViewModel(
             securityAuditService,
             () => _server,
-            () => _activeSecret);
+            () => _activeSecret,
+            _operationHistoryStore);
+        _securityModule.HistoryChanged += async (_, _) => await RefreshRecentActivityAsync();
 
         PropertyChanged += HandleSecurityNavigation;
         OnPropertyChanged(nameof(SecurityModule));

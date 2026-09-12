@@ -20,7 +20,9 @@ public partial class MainWindowViewModel
         _containerModule = new ContainersViewModel(
             containerService,
             () => _server,
-            () => _activeSecret);
+            () => _activeSecret,
+            _operationHistoryStore);
+        _containerModule.HistoryChanged += async (_, _) => await RefreshRecentActivityAsync();
 
         PropertyChanged += HandleModuleNavigation;
         OnPropertyChanged(nameof(ContainerModule));

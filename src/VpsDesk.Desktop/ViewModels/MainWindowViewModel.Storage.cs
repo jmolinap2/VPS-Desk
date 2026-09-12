@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using VpsDesk.Application.Abstractions;
+using VpsDesk.Application.Activity;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -13,14 +14,16 @@ public partial class MainWindowViewModel
     public bool IsStoragePage => SelectedPage == "Storage";
     public bool IsRemainingPlaceholderPage => !IsDashboardPage && !IsServersPage && !IsContainersPage && !IsLogsPage && !IsStoragePage;
 
-    public void InitializeStorage(IStorageService storageService)
+    public void InitializeStorage(IStorageService storageService, IOperationHistoryStore? historyStore = null)
     {
         if (_storageModule != null) return;
 
         _storageModule = new StorageViewModel(
             storageService,
             () => _server,
-            () => _activeSecret);
+            () => _activeSecret,
+            historyStore);
+        _storageModule.HistoryChanged += async (_, _) => await RefreshRecentActivityAsync();
 
         PropertyChanged += HandleStorageNavigation;
         OnPropertyChanged(nameof(StorageModule));

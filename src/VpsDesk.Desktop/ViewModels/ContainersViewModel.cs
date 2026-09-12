@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
+using VpsDesk.Application.Activity;
+using VpsDesk.Domain.Activity;
 using VpsDesk.Domain.Containers;
 using VpsDesk.Domain.Servers;
 
@@ -12,12 +14,14 @@ public partial class ContainersViewModel : ObservableObject
     private readonly IContainerService _containers;
     private readonly Func<ServerProfile?> _serverAccessor;
     private readonly Func<string?> _secretAccessor;
+    private readonly IOperationHistoryStore? _historyStore;
     private DockerContainerAction? _pendingAction;
     private string? _pendingContainerId;
     private string? _pendingContainerName;
     private DateTimeOffset? _lastRefreshUtc;
 
     public ObservableCollection<DockerContainerInfo> Items { get; } = new();
+    public event EventHandler? HistoryChanged;
 
     [ObservableProperty] private DockerContainerInfo? _selectedContainer;
     [ObservableProperty] private bool _isBusy;
@@ -41,11 +45,13 @@ public partial class ContainersViewModel : ObservableObject
     public ContainersViewModel(
         IContainerService containers,
         Func<ServerProfile?> serverAccessor,
-        Func<string?> secretAccessor)
+        Func<string?> secretAccessor,
+        IOperationHistoryStore? historyStore = null)
     {
         _containers = containers;
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
+        _historyStore = historyStore;
     }
 
     partial void OnSelectedContainerChanged(DockerContainerInfo? value)
@@ -104,10 +110,7 @@ public partial class ContainersViewModel : ObservableObject
             var items = await _containers.ListAsync(server, _secretAccessor());
 
             Items.Clear();
-            foreach (var item in items)
-            {
-                Items.Add(item);
-            }
+            foreach (var item in items) Items.Add(item);
 
             TotalCount = Items.Count;
             RunningCount = Items.Count(x => x.IsRunning);
@@ -167,6 +170,10 @@ public partial class ContainersViewModel : ObservableObject
         var action = _pendingAction.Value;
         var containerId = _pendingContainerId;
         var containerName = _pendingContainerName ?? containerId;
+        var startedAt = DateTimeOffset.UtcNow;
+        var outcome = OperationOutcome.Failed;
+        string? details = null;
+
         IsBusy = true;
         AutoRefreshEnabled = false;
         StatusMessage = $"Running Docker {action.ToString().ToLowerInvariant()} on {containerName}...";
@@ -176,22 +183,27 @@ public partial class ContainersViewModel : ObservableObject
             var result = await _containers.ExecuteAsync(server, _secretAccessor(), containerId, action);
             if (!result.Succeeded)
             {
-                StatusMessage = string.IsNullOrWhiteSpace(result.Error)
+                details = string.IsNullOrWhiteSpace(result.Error)
                     ? $"Docker {action} failed."
                     : result.Error;
+                StatusMessage = details;
                 return;
             }
 
+            outcome = OperationOutcome.Success;
             StatusMessage = $"{containerName}: {action} completed.";
+            details = StatusMessage;
             CancelPendingAction();
         }
         catch (Exception ex)
         {
+            details = ex.Message;
             StatusMessage = $"Container action failed: {ex.Message}";
         }
         finally
         {
             IsBusy = false;
+            await RecordActionAsync(server, action, containerName, startedAt, outcome, details);
         }
 
         await RefreshAsync();
@@ -227,6 +239,32 @@ public partial class ContainersViewModel : ObservableObject
             ? " This is a Production server and the action can interrupt service."
             : string.Empty;
         PendingActionMessage = $"Confirm {action.ToString().ToLowerInvariant()} for container '{selected.Name}'.{productionWarning}";
+    }
+
+    private async Task RecordActionAsync(
+        ServerProfile server,
+        DockerContainerAction action,
+        string containerName,
+        DateTimeOffset startedAt,
+        OperationOutcome outcome,
+        string? details)
+    {
+        if (_historyStore is null) return;
+        var finishedAt = DateTimeOffset.UtcNow;
+        var entry = new OperationHistoryEntry(
+            Guid.NewGuid(),
+            server.Id,
+            server.Name,
+            server.Environment.ToString(),
+            OperationKind.ContainerAction,
+            action.ToString(),
+            $"{action} · {containerName}",
+            outcome,
+            startedAt,
+            finishedAt,
+            Details: details);
+        await _historyStore.AddAsync(entry);
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void CancelPendingAction()

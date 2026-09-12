@@ -3,5 +3,6 @@
     <ProjectReference Include="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
     <ProjectReference Include="../VpsDesk.Application/VpsDesk.Application.csproj" />
     <PackageReference Include="SSH.NET" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
   </ItemGroup>
 </Project>

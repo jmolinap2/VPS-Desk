@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:deploy="using:VpsDesk.Application.Deployments"
+             xmlns:activity="using:VpsDesk.Domain.Activity"
              x:Class="VpsDesk.Desktop.Views.DeploymentsView"
              x:DataType="vm:DeploymentsViewModel">
   <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
@@ -16,200 +17,265 @@
       </StackPanel>
     </Grid>
 
-    <Border Grid.Row="1" Classes="card">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
-        <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
-          <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
-          <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
-          <ComboBox Margin="0,5,0,0"
-                    ItemsSource="{Binding AvailableProjects}"
-                    SelectedItem="{Binding SelectedProjectSuggestion}"
-                    IsVisible="{Binding HasProjectSuggestions}"
-                    PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
-            <ComboBox.ItemTemplate>
-              <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
-                <TextBlock Text="{Binding RemoteRepositoryPath}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </StackPanel>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+      <Button Content="{DynamicResource Deployments_NewDeployment}" Command="{Binding ShowNewDeploymentCommand}" />
+      <Button Content="{DynamicResource Deployments_History}" Command="{Binding ShowHistoryCommand}" />
+      <TextBlock Text="{Binding DeploymentHistory.Count, StringFormat={}{0} registros}" Foreground="#66758A" VerticalAlignment="Center" Margin="8,0,0,0" />
+    </StackPanel>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-          <Button Content="{DynamicResource Deployments_Execute}"
-                  Command="{Binding StartDeploymentCommand}"
-                  IsEnabled="{Binding !IsBusy}"
-                  Background="#0F766E"
-                  Foreground="White"
-                  FontWeight="SemiBold"
-                  ToolTip.Tip="{DynamicResource Deployments_ExecuteTooltip}" />
-          <Button Content="{DynamicResource Deployments_Discover}"
-                  Command="{Binding DiscoverRemoteOptionsCommand}"
-                  IsEnabled="{Binding !IsBusy}"
-                  ToolTip.Tip="{DynamicResource Deployments_DiscoverTooltip}" />
-          <Button Content="{DynamicResource Deployments_RunPreflight}"
-                  Command="{Binding RunPreflightCommand}"
-                  IsEnabled="{Binding !IsBusy}"
-                  ToolTip.Tip="{DynamicResource Deployments_RunPreflightTooltip}" />
-          <Button Content="{DynamicResource Deployments_SaveProfile}"
-                  Command="{Binding SaveProfileCommand}"
-                  IsEnabled="{Binding !IsBusy}"
-                  ToolTip.Tip="{DynamicResource Deployments_SaveProfileTooltip}" />
-        </StackPanel>
-
-        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
-          <StackPanel ToolTip.Tip="{DynamicResource Deployments_BranchTooltip}">
-            <TextBlock Text="{DynamicResource Deployments_Branch}" Foreground="#8290A3" FontSize="11" />
-            <TextBox Text="{Binding Branch}" PlaceholderText="main" />
-            <ComboBox Margin="0,5,0,0"
-                      ItemsSource="{Binding AvailableBranches}"
-                      SelectedItem="{Binding SelectedBranchSuggestion}"
-                      PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
-          </StackPanel>
-          <StackPanel Grid.Column="1" ToolTip.Tip="{DynamicResource Deployments_ComposeFileTooltip}">
-            <TextBlock Text="{DynamicResource Deployments_ComposeFile}" Foreground="#8290A3" FontSize="11" />
-            <TextBox Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
-            <ComboBox Margin="0,5,0,0"
-                      ItemsSource="{Binding AvailableComposeFiles}"
-                      SelectedItem="{Binding SelectedComposeSuggestion}"
-                      PlaceholderText="{DynamicResource Deployments_ComposePlaceholder}" />
-          </StackPanel>
-        </Grid>
-
-        <Border Grid.Row="3" Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingDeploy}">
-          <StackPanel Spacing="10">
-            <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="{DynamicResource Deployments_Confirm}" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
-              <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
+    <Grid Grid.Row="2" IsVisible="{Binding IsNewDeploymentView}" RowDefinitions="Auto,*" RowSpacing="14">
+      <Border Classes="card">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
+              <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
+              <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/root/mi-app" />
+              <ComboBox Margin="0,5,0,0"
+                        ItemsSource="{Binding AvailableProjects}"
+                        SelectedItem="{Binding SelectedProjectSuggestion}"
+                        IsVisible="{Binding HasProjectSuggestions}"
+                        PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
+                    <TextBlock Text="{Binding RemoteRepositoryPath}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
             </StackPanel>
-          </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+              <Button Content="{DynamicResource Deployments_Discover}"
+                      Command="{Binding DiscoverRemoteOptionsCommand}"
+                      IsEnabled="{Binding !IsBusy}" />
+              <Button Content="{DynamicResource Deployments_RunPreflight}"
+                      Command="{Binding RunPreflightCommand}"
+                      IsEnabled="{Binding !IsBusy}" />
+              <Button Content="{DynamicResource Deployments_Execute}"
+                      Command="{Binding StartDeploymentCommand}"
+                      IsEnabled="{Binding !IsBusy}"
+                      Background="#0F766E"
+                      Foreground="White"
+                      FontWeight="SemiBold" />
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Deployments_Branch}" Foreground="#8290A3" FontSize="11" />
+              <TextBox Text="{Binding Branch}" PlaceholderText="main" />
+              <ComboBox Margin="0,5,0,0"
+                        ItemsSource="{Binding AvailableBranches}"
+                        SelectedItem="{Binding SelectedBranchSuggestion}"
+                        PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+              <TextBlock Text="{DynamicResource Deployments_ComposeFile}" Foreground="#8290A3" FontSize="11" />
+              <TextBox Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
+              <ComboBox Margin="0,5,0,0"
+                        ItemsSource="{Binding AvailableComposeFiles}"
+                        SelectedItem="{Binding SelectedComposeSuggestion}"
+                        PlaceholderText="{DynamicResource Deployments_ComposePlaceholder}" />
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Deployments_Safety}" FontWeight="SemiBold" Margin="0,0,0,6" />
+              <CheckBox Content="{DynamicResource Deployments_RequireEnv}" IsChecked="{Binding RequireEnvironmentFile}" />
+              <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,5,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Bottom">
+              <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" />
+              <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" />
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Deployments_HealthUrls}" Foreground="#8290A3" FontSize="11" />
+              <TextBox Text="{Binding HttpHealthUrls}"
+                       AcceptsReturn="True"
+                       MinHeight="62"
+                       PlaceholderText="https://app.example.com/health" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Content="{DynamicResource Deployments_SaveProfile}"
+                    Command="{Binding SaveProfileCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    VerticalAlignment="Bottom" />
+          </Grid>
+
+          <Border Grid.Row="4" Background="#0E131B" CornerRadius="8" Padding="10">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="14">
+        <Border Classes="card" Width="300">
+          <Grid RowDefinitions="Auto,*" RowSpacing="10">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Deployments_Process}" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Deployments_ProcessHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+            </StackPanel>
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Steps}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="deploy:DeploymentStepResult">
+                  <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock Text="{Binding Label}" />
+                      <TextBlock Grid.Column="1" Text="{Binding ExitCode, StringFormat=exit {0}}" Foreground="#66758A" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
         </Border>
 
-        <Border Grid.Row="4" Background="#0E131B" CornerRadius="8" Padding="10">
-          <StackPanel Spacing="3">
-            <TextBlock Text="{DynamicResource Deployments_WorkflowHelp}" Foreground="#A8B4C5" FontWeight="SemiBold" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
-          </StackPanel>
+        <Border Grid.Column="1" Classes="card">
+          <Grid RowDefinitions="Auto,*" RowSpacing="10">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Deployments_OutputHelp}" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+            </StackPanel>
+            <TextBox Grid.Row="1"
+                     Text="{Binding DeploymentOutput}"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="NoWrap"
+                     FontFamily="Cascadia Mono,Consolas,monospace"
+                     FontSize="12"
+                     Background="#080B10"
+                     BorderThickness="0"
+                     Padding="14"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          </Grid>
         </Border>
       </Grid>
-    </Border>
 
-    <Grid Grid.Row="2" ColumnDefinitions="0.95*,1.4*" ColumnSpacing="14">
-      <ScrollViewer>
-        <StackPanel Spacing="14">
-          <Border Classes="card">
-            <StackPanel Spacing="12">
-              <TextBlock Text="{DynamicResource Deployments_Safety}" FontSize="16" FontWeight="SemiBold" />
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                <StackPanel ToolTip.Tip="{DynamicResource Deployments_RequireEnvTooltip}">
-                  <CheckBox Content="{DynamicResource Deployments_RequireEnv}" IsChecked="{Binding RequireEnvironmentFile}" />
-                  <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,6,0,0" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="8">
-                  <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" ToolTip.Tip="{DynamicResource Deployments_PullImagesTooltip}" />
-                  <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" ToolTip.Tip="{DynamicResource Deployments_BuildImagesTooltip}" />
-                </StackPanel>
-              </Grid>
-
-              <StackPanel>
-                <TextBlock Text="{DynamicResource Deployments_HealthUrls}" Foreground="#8290A3" FontSize="11" />
-                <TextBox Text="{Binding HttpHealthUrls}"
-                         AcceptsReturn="True"
-                         TextWrapping="NoWrap"
-                         MinHeight="72"
-                         PlaceholderText="https://app.example.com/health&#10;http://127.0.0.1:8080/health" />
-                <TextBlock Text="{DynamicResource Deployments_HealthHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
-              </StackPanel>
-
+      <Border Grid.RowSpan="2"
+              Background="#B0000000"
+              IsVisible="{Binding HasPendingDeploy}">
+        <Border Classes="card" Width="600" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Deployments_ConfirmTitle}" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+              <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
+              <Button Content="{DynamicResource Deployments_Confirm}" Command="{Binding ConfirmDeployCommand}" Background="#0F766E" Foreground="White" />
             </StackPanel>
-          </Border>
-
-          <Border Classes="card">
-            <Grid RowDefinitions="Auto,*" RowSpacing="10">
-              <TextBlock Text="{DynamicResource Deployments_PreflightChecks}" FontSize="16" FontWeight="SemiBold" />
-              <ListBox Grid.Row="1" ItemsSource="{Binding Checks}" MinHeight="210">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="deploy:PreflightCheckResult">
-                    <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
-                      <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel>
-                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#A8B4C5" VerticalAlignment="Center" />
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Grid>
-          </Border>
-
-          <Border Classes="card">
-            <Grid RowDefinitions="Auto,*" RowSpacing="10">
-              <StackPanel>
-                <TextBlock Text="{DynamicResource Deployments_PostDeploy}" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Text="{DynamicResource Deployments_PostDeployHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
-              </StackPanel>
-              <ListBox Grid.Row="1" ItemsSource="{Binding PostChecks}" MinHeight="120">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="deploy:PostDeployCheckResult">
-                    <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
-                      <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel>
-                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#A8B4C5" VerticalAlignment="Center" />
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Grid>
-          </Border>
-        </StackPanel>
-      </ScrollViewer>
-
-      <Border Grid.Column="1" Classes="card">
-        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-          <StackPanel>
-            <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="{DynamicResource Deployments_OutputHelp}" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
           </StackPanel>
+        </Border>
+      </Border>
+    </Grid>
 
-          <ItemsControl Grid.Row="1" ItemsSource="{Binding Steps}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="deploy:DeploymentStepResult">
-                <Border Background="#0E131B" CornerRadius="14" Padding="9,5" Margin="0,0,8,6">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding Label}" />
-                    <TextBlock Text="{Binding ExitCode, StringFormat=exit {0}}" Foreground="#66758A" />
+    <Grid Grid.Row="2" IsVisible="{Binding IsHistoryView}" ColumnDefinitions="0.85*,1.45*" ColumnSpacing="14">
+      <Border Classes="card">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <StackPanel>
+            <TextBlock Text="{DynamicResource Deployments_History}" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Deployments_HistoryHelp}" Foreground="#66758A" FontSize="11" />
+          </StackPanel>
+          <ListBox Grid.Row="1" ItemsSource="{Binding DeploymentHistory}" SelectedItem="{Binding SelectedHistoryEntry}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="activity:OperationHistoryEntry">
+                <Border Background="#0E131B" CornerRadius="8" Padding="11" Margin="0,3">
+                  <StackPanel Spacing="3">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="{Binding StartedAt, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}" Foreground="#8290A3" />
+                      <TextBlock Grid.Column="1" Text="{Binding Outcome}" FontWeight="SemiBold" />
+                    </Grid>
+                    <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ServerName}" Foreground="#66758A" FontSize="10" />
                   </StackPanel>
                 </Border>
               </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <TextBox Grid.Row="2"
-                   Text="{Binding DeploymentOutput}"
-                   IsReadOnly="True"
-                   AcceptsReturn="True"
-                   TextWrapping="NoWrap"
-                   FontFamily="Cascadia Mono,Consolas,monospace"
-                   FontSize="12"
-                   Background="#080B10"
-                   BorderThickness="0"
-                   Padding="14"
-                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                   ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </ListBox.ItemTemplate>
+          </ListBox>
         </Grid>
       </Border>
+
+      <Border Grid.Column="1" Classes="card">
+        <ScrollViewer>
+          <StackPanel Spacing="12">
+            <TextBlock Text="{DynamicResource Deployments_HistoryDetail}" FontSize="17" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+              <TextBlock Text="Servidor" Foreground="#66758A" />
+              <TextBlock Grid.Column="1" Text="{Binding SelectedHistoryEntry.ServerName}" />
+              <TextBlock Grid.Row="1" Text="Entorno" Foreground="#66758A" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedHistoryEntry.Environment}" />
+              <TextBlock Grid.Row="2" Text="Repositorio" Foreground="#66758A" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedHistoryEntry.RemoteRepositoryPath}" />
+              <TextBlock Grid.Row="3" Text="Rama" Foreground="#66758A" />
+              <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedHistoryEntry.Branch}" />
+              <TextBlock Grid.Row="4" Text="Compose" Foreground="#66758A" />
+              <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedHistoryEntry.ComposeFile}" />
+              <TextBlock Grid.Row="5" Text="Resultado" Foreground="#66758A" />
+              <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedHistoryEntry.Outcome}" />
+              <TextBlock Grid.Row="6" Text="Duración" Foreground="#66758A" />
+              <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedHistoryEntry.Duration, StringFormat={}{0:g}}" />
+              <TextBlock Grid.Row="7" Text="Paso fallido" Foreground="#66758A" />
+              <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedHistoryEntry.FailedStep}" />
+            </Grid>
+            <TextBlock Text="{DynamicResource Deployments_HistoryChecks}" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <TextBox Text="{Binding SelectedHistoryEntry.Details}" IsReadOnly="True" AcceptsReturn="True" MinHeight="110" FontFamily="Cascadia Mono,Consolas,monospace" />
+            <TextBlock Text="{DynamicResource Deployments_HistoryOutput}" FontWeight="SemiBold" />
+            <TextBox Text="{Binding SelectedHistoryEntry.Output}" IsReadOnly="True" AcceptsReturn="True" MinHeight="260" TextWrapping="NoWrap" FontFamily="Cascadia Mono,Consolas,monospace" Background="#080B10" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
     </Grid>
+
+    <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsPreflightModalOpen}">
+      <Border Classes="card" Width="700" MaxHeight="620" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+          <TextBlock Text="{DynamicResource Deployments_PreflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="1" Text="{Binding PreflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+          <ListBox Grid.Row="2" ItemsSource="{Binding Checks}" MinHeight="180">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="deploy:PreflightCheckResult">
+                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Status}" FontWeight="SemiBold" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Button Grid.Row="3" Content="{DynamicResource Common_Close}" Command="{Binding ClosePreflightModalCommand}" HorizontalAlignment="Right" IsEnabled="{Binding !IsBusy}" />
+        </Grid>
+      </Border>
+    </Border>
+
+    <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsPostflightModalOpen}">
+      <Border Classes="card" Width="700" MaxHeight="620" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+          <TextBlock Text="{DynamicResource Deployments_PostflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="1" Text="{Binding PostflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+          <ListBox Grid.Row="2" ItemsSource="{Binding PostChecks}" MinHeight="180">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="deploy:PostDeployCheckResult">
+                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Status}" FontWeight="SemiBold" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Button Grid.Row="3" Content="{DynamicResource Common_Close}" Command="{Binding ClosePostflightModalCommand}" HorizontalAlignment="Right" IsEnabled="{Binding !IsBusy}" />
+        </Grid>
+      </Border>
+    </Border>
   </Grid>
 </UserControl>

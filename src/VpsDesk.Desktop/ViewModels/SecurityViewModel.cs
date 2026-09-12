@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
+using VpsDesk.Application.Activity;
+using VpsDesk.Domain.Activity;
 using VpsDesk.Domain.Security;
 using VpsDesk.Domain.Servers;
 
@@ -12,9 +15,11 @@ public partial class SecurityViewModel : ObservableObject
     private readonly ISecurityAuditService _security;
     private readonly Func<ServerProfile?> _serverAccessor;
     private readonly Func<string?> _secretAccessor;
+    private readonly IOperationHistoryStore? _historyStore;
     private DateTimeOffset? _lastAuditUtc;
 
     public ObservableCollection<SecurityCheck> Checks { get; } = new();
+    public event EventHandler? HistoryChanged;
 
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private int _passedCount;
@@ -26,11 +31,13 @@ public partial class SecurityViewModel : ObservableObject
     public SecurityViewModel(
         ISecurityAuditService security,
         Func<ServerProfile?> serverAccessor,
-        Func<string?> secretAccessor)
+        Func<string?> secretAccessor,
+        IOperationHistoryStore? historyStore = null)
     {
         _security = security;
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
+        _historyStore = historyStore;
     }
 
     public async Task AuditIfNeededAsync()
@@ -64,6 +71,7 @@ public partial class SecurityViewModel : ObservableObject
             return;
         }
 
+        var startedAt = DateTimeOffset.UtcNow;
         IsBusy = true;
         StatusMessage = "Running read-only security checks...";
 
@@ -89,14 +97,54 @@ public partial class SecurityViewModel : ObservableObject
                 : WarningCount > 0
                     ? $"Audit completed with {WarningCount} warning(s)."
                     : "Audit completed without critical or warning findings.";
+
+            await RecordAuditAsync(server, startedAt, null);
         }
         catch (Exception ex)
         {
             StatusMessage = $"Unable to complete security audit: {ex.Message}";
+            await RecordAuditAsync(server, startedAt, ex);
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private async Task RecordAuditAsync(ServerProfile server, DateTimeOffset startedAt, Exception? exception)
+    {
+        if (_historyStore is null) return;
+
+        var details = new StringBuilder();
+        foreach (var check in Checks)
+        {
+            details.AppendLine($"[{check.Severity}] {check.Label}: {check.Detail}");
+        }
+
+        var outcome = exception is not null
+            ? OperationOutcome.Failed
+            : CriticalCount > 0 || WarningCount > 0
+                ? OperationOutcome.Warning
+                : OperationOutcome.Success;
+
+        var summary = exception is not null
+            ? "Auditoría de seguridad fallida"
+            : $"Auditoría de seguridad · {CriticalCount} críticos · {WarningCount} advertencias";
+
+        var entry = new OperationHistoryEntry(
+            Guid.NewGuid(),
+            server.Id,
+            server.Name,
+            server.Environment.ToString(),
+            OperationKind.SecurityAudit,
+            "Security audit",
+            summary,
+            outcome,
+            startedAt,
+            DateTimeOffset.UtcNow,
+            Details: exception?.Message ?? details.ToString().TrimEnd());
+
+        await _historyStore.AddAsync(entry);
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 }

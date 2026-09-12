@@ -9,4 +9,10 @@ public interface IStorageService
         ServerProfile server,
         string? secret,
         CancellationToken cancellationToken = default);
+
+    Task<StorageCleanupResult> CleanupAsync(
+        ServerProfile server,
+        StorageCleanupRequest request,
+        string? secret,
+        CancellationToken cancellationToken = default);
 }

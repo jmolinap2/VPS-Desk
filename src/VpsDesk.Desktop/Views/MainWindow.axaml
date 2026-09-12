@@ -65,8 +65,14 @@
       <views:DashboardView IsVisible="{Binding IsDashboardPage}" />
       <views:ServersView IsVisible="{Binding IsServersPage}" />
       <views:ContainersView IsVisible="{Binding IsContainersPage}" />
-      <views:LogsView DataContext="{Binding LogsModule}" IsVisible="{Binding IsLogsPage}" />
-      <views:StorageView DataContext="{Binding StorageModule}" IsVisible="{Binding IsStoragePage}" />
+
+      <Grid IsVisible="{Binding IsLogsPage}">
+        <views:LogsView DataContext="{Binding LogsModule}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsStoragePage}">
+        <views:StorageView DataContext="{Binding StorageModule}" />
+      </Grid>
 
       <Grid IsVisible="{Binding IsRemainingPlaceholderPage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">

@@ -49,7 +49,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         command.CommandTimeout = request.Timeout;
         var stdout = command.Execute();
         var stderr = command.Error ?? string.Empty;
-        var exitCode = command.ExitStatus;
+        var exitCode = command.ExitStatus ?? -1;
         client.Disconnect();
 
         return new SshCommandResult(exitCode, stdout ?? string.Empty, stderr, stopwatch.Elapsed, false, false);

@@ -48,21 +48,21 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
         string? secret,
         CancellationToken cancellationToken = default)
     {
-        var repo = Quote(request.RemoteRepositoryPath.Trim().TrimEnd('/'));
-        var branch = Quote(request.Branch ?? string.Empty);
-        var compose = Quote(request.ComposeFile ?? string.Empty);
-        var envFile = Quote(request.EnvironmentFileName);
+        var repo = ShellQuote(request.RemoteRepositoryPath.Trim().TrimEnd('/'));
+        var branch = ShellQuote(request.Branch ?? string.Empty);
+        var compose = ShellQuote(request.ComposeFile ?? string.Empty);
+        var envFile = ShellQuote(request.EnvironmentFileName);
 
-        var script = $"bash -lc \"" +
-                     $"REPO={repo}; BRANCH={branch}; COMPOSE={compose}; ENVFILE={envFile}; " +
-                     "command -v git >/dev/null 2>&1 && echo GIT=1 || echo GIT=0; " +
-                     "command -v docker >/dev/null 2>&1 && echo DOCKER=1 || echo DOCKER=0; " +
-                     "docker compose version >/dev/null 2>&1 && echo COMPOSE_CLI=1 || echo COMPOSE_CLI=0; " +
-                     "[ -d \"$REPO/.git\" ] && echo REPO=1 || echo REPO=0; " +
-                     "if [ -z \"$BRANCH\" ]; then echo BRANCH=2; " +
-                     "elif [ -d \"$REPO/.git\" ] && git -C \"$REPO\" rev-parse --verify \"$BRANCH\" >/dev/null 2>&1; then echo BRANCH=1; else echo BRANCH=0; fi; " +
-                     "if [ -z \"$COMPOSE\" ]; then echo COMPOSE_FILE=2; elif [ -f \"$REPO/$COMPOSE\" ]; then echo COMPOSE_FILE=1; else echo COMPOSE_FILE=0; fi; " +
-                     "[ -f \"$REPO/$ENVFILE\" ] && echo ENVFILE=1 || echo ENVFILE=0\"";
+        var script =
+            $"REPO={repo}; BRANCH={branch}; COMPOSE={compose}; ENVFILE={envFile}; " +
+            "command -v git >/dev/null 2>&1 && echo GIT=1 || echo GIT=0; " +
+            "command -v docker >/dev/null 2>&1 && echo DOCKER=1 || echo DOCKER=0; " +
+            "docker compose version >/dev/null 2>&1 && echo COMPOSE_CLI=1 || echo COMPOSE_CLI=0; " +
+            "[ -d \"$REPO/.git\" ] && echo REPO=1 || echo REPO=0; " +
+            "if [ -z \"$BRANCH\" ]; then echo BRANCH=2; " +
+            "elif [ -d \"$REPO/.git\" ] && (git -C \"$REPO\" show-ref --verify --quiet \"refs/heads/$BRANCH\" || git -C \"$REPO\" show-ref --verify --quiet \"refs/remotes/origin/$BRANCH\"); then echo BRANCH=1; else echo BRANCH=0; fi; " +
+            "if [ -z \"$COMPOSE\" ]; then echo COMPOSE_FILE=2; elif [ -f \"$REPO/$COMPOSE\" ]; then echo COMPOSE_FILE=1; else echo COMPOSE_FILE=0; fi; " +
+            "[ -f \"$REPO/$ENVFILE\" ] && echo ENVFILE=1 || echo ENVFILE=0";
 
         SshCommandResult result;
         try
@@ -153,5 +153,6 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
         return result;
     }
 
-    private static string Quote(string value) => "'" + value.Replace("'", "'\\''") + "'";
+    internal static string ShellQuote(string value)
+        => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
 }

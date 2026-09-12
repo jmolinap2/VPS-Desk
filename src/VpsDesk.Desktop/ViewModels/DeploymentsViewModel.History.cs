@@ -23,6 +23,9 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private string _preflightModalMessage = string.Empty;
     [ObservableProperty] private bool _isPostflightModalOpen;
     [ObservableProperty] private string _postflightModalMessage = string.Empty;
+    [ObservableProperty] private int _postflightPassedCount;
+    [ObservableProperty] private int _postflightWarningCount;
+    [ObservableProperty] private int _postflightFailedCount;
 
     public bool IsNewDeploymentView => !IsHistoryView;
     public event EventHandler? HistoryChanged;
@@ -137,19 +140,24 @@ public partial class DeploymentsViewModel
 
     private void BeginPostflightModal()
     {
+        PostflightPassedCount = 0;
+        PostflightWarningCount = 0;
+        PostflightFailedCount = 0;
         IsPostflightModalOpen = true;
         PostflightModalMessage = "Verificando contenedores y comprobaciones HTTP después del despliegue...";
     }
 
     private void CompletePostflightModalFromChecks()
     {
-        var failed = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Failed);
-        var warnings = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Warning);
-        PostflightModalMessage = failed
-            ? "El postvuelo encontró problemas. El despliegue terminó, pero no debe considerarse saludable todavía."
-            : warnings
-                ? "Postvuelo completado con advertencias. Revísalas antes de dar por saludable la versión."
-                : "Postvuelo correcto. La versión desplegada pasó las comprobaciones.";
+        PostflightPassedCount = PostChecks.Count(x => x.Status == PostDeployCheckStatus.Passed);
+        PostflightWarningCount = PostChecks.Count(x => x.Status == PostDeployCheckStatus.Warning);
+        PostflightFailedCount = PostChecks.Count(x => x.Status == PostDeployCheckStatus.Failed);
+
+        PostflightModalMessage = PostflightFailedCount > 0
+            ? "El despliegue terminó, pero el postvuelo detectó problemas. Revisa los controles fallidos antes de considerar saludable la versión."
+            : PostflightWarningCount > 0
+                ? "El despliegue terminó con advertencias de postvuelo. Conviene revisarlas antes de cerrar."
+                : "Despliegue verificado. Los contenedores y comprobaciones configuradas respondieron correctamente.";
     }
 
     private async Task RecordObservedDeploymentAsync()

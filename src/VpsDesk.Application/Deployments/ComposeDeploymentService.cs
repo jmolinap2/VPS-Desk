@@ -23,7 +23,9 @@ public sealed record DeploymentStepResult(
 public sealed record ComposeDeploymentResult(
     IReadOnlyList<DeploymentStepResult> Steps,
     DateTimeOffset StartedAt,
-    DateTimeOffset FinishedAt)
+    DateTimeOffset FinishedAt,
+    string? PreviousCommit,
+    string? DeployedCommit)
 {
     public bool Succeeded => Steps.Count > 0 && Steps.All(x => x.Succeeded);
     public DeploymentStepResult? FailedStep => Steps.FirstOrDefault(x => !x.Succeeded);
@@ -59,14 +61,12 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
         var remoteBranch = DeploymentPreflightService.ShellQuote("origin/" + request.Branch.Trim());
         var localRef = DeploymentPreflightService.ShellQuote("refs/heads/" + request.Branch.Trim());
 
+        var previousCommit = await TryReadCommitAsync(request, repo, secret, cancellationToken);
+
         var commands = new List<(string Code, string Label, string Command, TimeSpan Timeout)>
         {
             ("fetch", "Fetch Git", $"git -C {repo} fetch --prune origin", TimeSpan.FromSeconds(60)),
             ("checkout", "Checkout branch",
-                // `git checkout -- <name>` means "restore the path <name>", not
-                // "switch to the branch <name>". That made a valid branch such as
-                // develop fail after a successful preflight. The name is shell-quoted
-                // above; omit Git's path separator here so it is a branch argument.
                 $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
                 TimeSpan.FromSeconds(45)),
             ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90))
@@ -114,7 +114,42 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             if (!result.Succeeded) break;
         }
 
-        return new ComposeDeploymentResult(steps, startedAt, DateTimeOffset.UtcNow);
+        var deployedCommit = steps.Any(x => x.Code == "pull" && x.Succeeded)
+            ? await TryReadCommitAsync(request, repo, secret, cancellationToken)
+            : previousCommit;
+
+        return new ComposeDeploymentResult(
+            steps,
+            startedAt,
+            DateTimeOffset.UtcNow,
+            previousCommit,
+            deployedCommit);
+    }
+
+    private async Task<string?> TryReadCommitAsync(
+        ComposeDeploymentRequest request,
+        string quotedRepository,
+        string? secret,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ssh.ExecuteAsync(
+                new SshCommandRequest(
+                    request.Server,
+                    $"git -C {quotedRepository} rev-parse HEAD",
+                    TimeSpan.FromSeconds(15)),
+                secret,
+                cancellationToken);
+
+            if (!result.Succeeded) return null;
+            var value = LogSanitizer.Sanitize(result.StandardOutput).Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string CombineOutput(string stdout, string stderr)

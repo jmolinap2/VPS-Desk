@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Renci.SshNet;
 using VpsDesk.Application.Abstractions;
-using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Infrastructure.Ssh;
 
@@ -28,6 +27,10 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         {
             return new SshCommandResult(-1, string.Empty, "SSH command cancelled.", stopwatch.Elapsed, false, true);
         }
+        catch (Exception ex)
+        {
+            return new SshCommandResult(-1, string.Empty, ex.Message, stopwatch.Elapsed, false, false);
+        }
     }
 
     private static SshCommandResult ExecuteCore(
@@ -38,7 +41,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var client = new SshClient(CreateConnectionInfo(request.Server, secret, request.Timeout));
+        using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
         client.Connect();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -50,26 +53,5 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         client.Disconnect();
 
         return new SshCommandResult(exitCode, stdout ?? string.Empty, stderr, stopwatch.Elapsed, false, false);
-    }
-
-    private static ConnectionInfo CreateConnectionInfo(ServerProfile server, string? secret, TimeSpan timeout)
-    {
-        AuthenticationMethod auth = server.AuthenticationType switch
-        {
-            SshAuthenticationType.PrivateKey when !string.IsNullOrWhiteSpace(server.PrivateKeyPath)
-                => new PrivateKeyAuthenticationMethod(
-                    server.Username,
-                    string.IsNullOrEmpty(secret)
-                        ? new PrivateKeyFile(server.PrivateKeyPath)
-                        : new PrivateKeyFile(server.PrivateKeyPath, secret)),
-            SshAuthenticationType.Password when !string.IsNullOrEmpty(secret)
-                => new PasswordAuthenticationMethod(server.Username, secret),
-            _ => throw new InvalidOperationException("The configured SSH authentication method is not ready.")
-        };
-
-        return new ConnectionInfo(server.Host, server.Port, server.Username, auth)
-        {
-            Timeout = timeout
-        };
     }
 }

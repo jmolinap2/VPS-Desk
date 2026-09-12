@@ -15,13 +15,17 @@ public partial class MainWindowViewModel
 
     public void InitializeDeployments(
         IDeploymentPreflightService preflightService,
-        IComposeDeploymentService deploymentService)
+        IComposeDeploymentService deploymentService,
+        IDeploymentDiscoveryService discoveryService,
+        IPostDeployVerificationService postDeployVerificationService)
     {
         if (_deploymentsModule != null) return;
 
         _deploymentsModule = new DeploymentsViewModel(
             preflightService,
             deploymentService,
+            discoveryService,
+            postDeployVerificationService,
             () => _server,
             () => _activeSecret);
 

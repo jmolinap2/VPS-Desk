@@ -18,16 +18,13 @@ public partial class App : Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var bootstrap = BootstrapServerProfileLoader.Load();
+            var store = new ServerProfileStore();
             var ssh = new SshNetCommandExecutor();
             var probe = new LinuxServerProbeService(ssh);
 
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(
-                    probe,
-                    bootstrap.Profile,
-                    bootstrap.Secret,
-                    bootstrap.Warning)
+                DataContext = new MainWindowViewModel(probe, store, bootstrap)
             };
         }
 

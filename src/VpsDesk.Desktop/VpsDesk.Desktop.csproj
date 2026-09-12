@@ -12,5 +12,8 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
+    <None Update="Localization/Languages/**/*.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

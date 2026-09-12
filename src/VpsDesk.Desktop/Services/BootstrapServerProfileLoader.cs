@@ -40,6 +40,7 @@ public static class BootstrapServerProfileLoader
         values.TryGetValue("SERVER_USER", out var user);
         values.TryGetValue("SSH_KEY_PATH", out var keyPath);
         values.TryGetValue("SSH_PASSWORD", out var password);
+        values.TryGetValue("SSH_HOST_FINGERPRINT", out var hostFingerprint);
         values.TryGetValue("SERVER_PROVIDER", out var provider);
 
         var port = values.TryGetValue("SSH_PORT", out var portRaw) && int.TryParse(portRaw, out var parsedPort)
@@ -61,7 +62,8 @@ public static class BootstrapServerProfileLoader
             null,
             string.IsNullOrWhiteSpace(provider) ? "Hostinger" : provider,
             ServerEnvironment.Production,
-            ["bootstrap"]);
+            ["bootstrap"],
+            string.IsNullOrWhiteSpace(hostFingerprint) ? null : hostFingerprint);
 
         return new BootstrapServerContext(profile, string.IsNullOrWhiteSpace(password) ? null : password);
     }

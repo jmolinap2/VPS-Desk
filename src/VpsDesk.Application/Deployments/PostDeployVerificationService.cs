@@ -71,11 +71,11 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
         var compose = DeploymentPreflightService.ShellQuote(request.ComposeFile.Trim());
 
         var command =
-            $"bash -lc \"REPO={repo}; COMPOSE={compose}; " +
-            "cd \\\"$REPO\\\" || exit 9; " +
-            "IDS=\\\"$(docker compose -f \\\"$COMPOSE\\\" ps -aq)\\\"; " +
-            "if [ -z \\\"$IDS\\\" ]; then echo __VPSDESK_NO_CONTAINERS__; exit 0; fi; " +
-            "docker inspect --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $IDS\"";
+            $"REPO={repo}; COMPOSE={compose}; " +
+            "cd \"$REPO\" || exit 9; " +
+            "IDS=\"$(docker compose -f \"$COMPOSE\" ps -aq)\"; " +
+            "if [ -z \"$IDS\" ]; then echo __VPSDESK_NO_CONTAINERS__; exit 0; fi; " +
+            "docker inspect --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $IDS";
 
         var result = await ssh.ExecuteAsync(
             new SshCommandRequest(request.Server, command, TimeSpan.FromSeconds(20)),
@@ -162,8 +162,8 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
 
         var url = DeploymentPreflightService.ShellQuote(uri.AbsoluteUri);
         var command =
-            $"bash -lc \"URL={url}; " +
-            "curl -sS -L -o /dev/null --connect-timeout 5 --max-time 15 -w '%{http_code}' \\\"$URL\\\"\"";
+            $"URL={url}; " +
+            "curl -sS -L -o /dev/null --connect-timeout 5 --max-time 15 -w '%{http_code}' \"$URL\"";
 
         var result = await ssh.ExecuteAsync(
             new SshCommandRequest(server, command, TimeSpan.FromSeconds(20)),

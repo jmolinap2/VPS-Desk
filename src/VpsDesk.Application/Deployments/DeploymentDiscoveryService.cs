@@ -97,16 +97,16 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
         var repo = DeploymentPreflightService.ShellQuote(remoteRepositoryPath.Trim().TrimEnd('/'));
 
         var branchCommand =
-            $"bash -lc \"REPO={repo}; " +
-            "git -C \\\"$REPO\\\" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 9; " +
-            "git -C \\\"$REPO\\\" for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ " +
-            "| sed 's#^origin/##' | grep -v '^HEAD$' | sort -u\"";
+            $"REPO={repo}; " +
+            "git -C \"$REPO\" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 9; " +
+            "git -C \"$REPO\" for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ " +
+            "| sed 's#^origin/##' | grep -v '^HEAD$' | sort -u";
 
         var composeCommand =
-            $"bash -lc \"REPO={repo}; " +
-            "[ -d \\\"$REPO\\\" ] || exit 9; " +
-            "find \\\"$REPO\\\" -maxdepth 1 -type f -printf '%f\\n' " +
-            "| grep -E '^(compose.*|docker-compose.*)\\.ya?ml$' | sort -u\"";
+            $"REPO={repo}; " +
+            "[ -d \"$REPO\" ] || exit 9; " +
+            "find \"$REPO\" -maxdepth 1 -type f -printf '%f\\n' " +
+            "| grep -E '^(compose.*|docker-compose.*)\\.ya?ml$' | sort -u";
 
         var branchesResult = await ssh.ExecuteAsync(
             new SshCommandRequest(server, branchCommand, TimeSpan.FromSeconds(15)),

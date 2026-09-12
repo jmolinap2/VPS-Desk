@@ -1,9 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
         xmlns:vm="using:VpsDesk.Desktop.ViewModels"
-        xmlns:servers="using:VpsDesk.Domain.Servers"
-        xmlns:containers="using:VpsDesk.Domain.Containers"
         xmlns:views="using:VpsDesk.Desktop.Views"
         x:Class="VpsDesk.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -19,12 +16,14 @@
           <TextBlock Text="VPS Desk" FontSize="22" FontWeight="SemiBold" />
           <TextBlock Text="Linux operations client" FontSize="11" Foreground="#8290A3" />
         </StackPanel>
+
         <Border Grid.Row="1" Margin="12,4" Padding="12,8" Background="#151B25" CornerRadius="8">
           <StackPanel>
             <TextBlock Text="{Binding SelectedServerName}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding ConnectionStatus}" FontSize="11" Foreground="#8290A3" />
           </StackPanel>
         </Border>
+
         <ScrollViewer Grid.Row="2">
           <StackPanel Margin="4,12">
             <Button Classes="nav" Content="Servers" Command="{Binding NavigateCommand}" CommandParameter="Servers" />
@@ -49,6 +48,7 @@
           <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />
           <TextBlock Text="{Binding HeaderSubtitle}" FontSize="11" Foreground="#8290A3" />
         </StackPanel>
+
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
             <TextBlock Text="{Binding CompatibilityLabel}" FontSize="11" FontWeight="SemiBold" />
@@ -62,335 +62,17 @@
     </Border>
 
     <Grid Grid.Column="1" Grid.Row="1">
-      <ScrollViewer IsVisible="{Binding IsDashboardPage}">
-        <StackPanel Margin="24" Spacing="18">
-          <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
-            <Border Classes="card">
-              <StackPanel Spacing="6">
-                <TextBlock Text="CPU" Foreground="#8290A3" />
-                <Grid Height="112">
-                  <lvc:PieChart Series="{Binding CpuGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
-                  <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Grid>
-                <TextBlock Text="{Binding LoadSummary}" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="1" Classes="card">
-              <StackPanel Spacing="8">
-                <TextBlock Text="MEMORY" Foreground="#8290A3" />
-                <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
-                <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}" Height="8" />
-                <TextBlock Text="{Binding MemorySummary}" FontSize="11" Foreground="#66758A" Margin="0,8,0,0" />
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="2" Classes="card">
-              <StackPanel Spacing="6">
-                <TextBlock Text="DISK" Foreground="#8290A3" />
-                <Grid Height="112">
-                  <lvc:PieChart Series="{Binding DiskGaugeSeries}" InitialRotation="-90" MaxAngle="270" MinValue="0" MaxValue="100" />
-                  <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Grid>
-                <TextBlock Text="Root filesystem" FontSize="11" Foreground="#66758A" HorizontalAlignment="Center" />
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="3" Classes="card">
-              <StackPanel Spacing="8">
-                <TextBlock Text="UPTIME" Foreground="#8290A3" />
-                <TextBlock Text="{Binding Uptime}" FontSize="30" FontWeight="SemiBold" Margin="0,18,0,12" />
-                <TextBlock Text="NETWORK" Foreground="#8290A3" FontSize="11" />
-                <TextBlock Text="{Binding NetworkSummary}" FontSize="11" Foreground="#66758A" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-          </Grid>
+      <views:DashboardView IsVisible="{Binding IsDashboardPage}" />
+      <views:ServersView IsVisible="{Binding IsServersPage}" />
+      <views:ContainersView IsVisible="{Binding IsContainersPage}" />
+      <views:LogsView DataContext="{Binding LogsModule}" IsVisible="{Binding IsLogsPage}" />
+      <views:StorageView DataContext="{Binding StorageModule}" IsVisible="{Binding IsStoragePage}" />
 
-          <Grid ColumnDefinitions="2*,*" ColumnSpacing="14" MinHeight="360">
-            <Border Classes="card">
-              <Grid RowDefinitions="Auto,*">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel>
-                    <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="CPU and memory · live samples · auto refresh 10s after first successful connection" FontSize="11" Foreground="#8290A3" />
-                  </StackPanel>
-                  <TextBlock Grid.Column="1" Text="{Binding LastChecked, StringFormat=Last check: {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
-                </Grid>
-                <lvc:CartesianChart Grid.Row="1" Margin="0,18,0,0" LegendPosition="Top">
-                  <lvc:CartesianChart.Series>
-                    <lvc:XamlLineSeries SeriesName="CPU" Values="{Binding CpuSeries}" Fill="{x:Null}" GeometrySize="0" />
-                    <lvc:XamlLineSeries SeriesName="Memory" Values="{Binding MemorySeries}" Fill="{x:Null}" GeometrySize="0" />
-                  </lvc:CartesianChart.Series>
-                </lvc:CartesianChart>
-              </Grid>
-            </Border>
-
-            <Border Grid.Column="1" Classes="card">
-              <StackPanel Spacing="12">
-                <TextBlock Text="Services" FontSize="16" FontWeight="SemiBold" />
-                <Border Background="#0E131B" CornerRadius="8" Padding="12">
-                  <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Text="Docker" Margin="10,0" />
-                    <TextBlock Grid.Column="2" Text="{Binding DockerStatus}" Foreground="#8290A3" />
-                  </Grid>
-                </Border>
-                <Border Background="#0E131B" CornerRadius="8" Padding="12">
-                  <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Text="Nginx" Margin="10,0" />
-                    <TextBlock Grid.Column="2" Text="{Binding NginxStatus}" Foreground="#8290A3" />
-                  </Grid>
-                </Border>
-                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="#8290A3" Margin="0,8,0,0" />
-              </StackPanel>
-            </Border>
-          </Grid>
-
-          <Border Classes="card">
-            <StackPanel Spacing="10">
-              <TextBlock Text="Recent activity" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="Operation history will appear here as modules are enabled." Foreground="#8290A3" />
-            </StackPanel>
-          </Border>
-        </StackPanel>
-      </ScrollViewer>
-
-      <Grid IsVisible="{Binding IsServersPage}" Margin="24" ColumnDefinitions="340,*" ColumnSpacing="18">
-        <Border Classes="card">
-          <Grid RowDefinitions="Auto,*,Auto">
-            <StackPanel>
-              <TextBlock Text="Servers" FontSize="18" FontWeight="SemiBold" />
-              <TextBlock Text="Saved locally on this computer" Foreground="#8290A3" FontSize="11" />
-            </StackPanel>
-            <ListBox Grid.Row="1" Margin="0,16,0,12" ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServerInList}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="servers:ServerProfile">
-                  <Border Padding="10" Margin="0,2" Background="#0E131B" CornerRadius="8">
-                    <StackPanel>
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Host}" Foreground="#8290A3" FontSize="11" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <Button Grid.Row="2" Content="+ New server" Command="{Binding NewServerCommand}" />
-          </Grid>
-        </Border>
-
-        <Border Grid.Column="1" Classes="card">
-          <ScrollViewer>
-            <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
-              <StackPanel>
-                <TextBlock Text="Connection profile" FontSize="18" FontWeight="SemiBold" />
-                <TextBlock Text="VPS Desk connects directly over SSH; no VPS Desk agent is installed on the server." Foreground="#8290A3" TextWrapping="Wrap" />
-              </StackPanel>
-
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-                <StackPanel>
-                  <TextBlock Text="Name" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorName}" PlaceholderText="Production VPS" />
-                </StackPanel>
-                <StackPanel Grid.Column="1">
-                  <TextBlock Text="Provider" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorProvider}" PlaceholderText="Hostinger / Generic" />
-                </StackPanel>
-
-                <StackPanel Grid.Row="1" Margin="0,12,0,0">
-                  <TextBlock Text="Host / IP" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorHost}" PlaceholderText="203.0.113.10" />
-                </StackPanel>
-                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,12,0,0">
-                  <TextBlock Text="SSH port" Foreground="#8290A3" />
-                  <NumericUpDown Minimum="1" Maximum="65535" Value="{Binding EditorPort}" />
-                </StackPanel>
-
-                <StackPanel Grid.Row="2" Margin="0,12,0,0">
-                  <TextBlock Text="Username" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorUsername}" />
-                </StackPanel>
-                <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,12,0,0">
-                  <TextBlock Text="Environment" Foreground="#8290A3" />
-                  <ComboBox ItemsSource="{Binding EnvironmentOptions}" SelectedItem="{Binding EditorEnvironment}" />
-                </StackPanel>
-
-                <StackPanel Grid.Row="3" Margin="0,12,0,0">
-                  <TextBlock Text="Authentication" Foreground="#8290A3" />
-                  <ComboBox ItemsSource="{Binding AuthenticationOptions}" SelectedItem="{Binding EditorAuthenticationType}" />
-                </StackPanel>
-                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,12,0,0">
-                  <TextBlock Text="Private key path" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorPrivateKeyPath}" PlaceholderText="C:\Users\you\.ssh\id_ed25519" />
-                </StackPanel>
-
-                <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,12,0,0">
-                  <TextBlock Text="Password / key passphrase (session only)" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorSecret}" PasswordChar="●" />
-                </StackPanel>
-
-                <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,12,0,0">
-                  <TextBlock Text="SSH host fingerprint SHA256 (recommended)" Foreground="#8290A3" />
-                  <TextBox Text="{Binding EditorHostKeyFingerprint}" PlaceholderText="SHA256:..." />
-                  <TextBlock Text="When supplied, VPS Desk rejects a server whose SSH host key does not match." Foreground="#66758A" FontSize="11" Margin="0,4,0,0" />
-                </StackPanel>
-              </Grid>
-
-              <Border Background="#0E131B" CornerRadius="8" Padding="12">
-                <TextBlock Text="{Binding ServerEditorMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
-              </Border>
-
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button Content="Test connection" Command="{Binding TestServerCommand}" IsEnabled="{Binding !IsTestingServer}" />
-                <Button Content="Save profile" Command="{Binding SaveServerCommand}" />
-                <Button Content="Use this server" Command="{Binding ActivateServerCommand}" />
-                <Button Content="Delete" Command="{Binding DeleteServerCommand}" />
-              </StackPanel>
-            </StackPanel>
-          </ScrollViewer>
-        </Border>
-      </Grid>
-
-      <Grid IsVisible="{Binding IsContainersPage}" Margin="24" RowDefinitions="Auto,*" RowSpacing="14">
-        <Grid ColumnDefinitions="*,Auto">
-          <StackPanel>
-            <TextBlock Text="Docker containers" FontSize="18" FontWeight="SemiBold" />
-            <TextBlock Text="Inventory and live stats are read directly over SSH. No Docker API port is exposed." Foreground="#8290A3" FontSize="11" />
-          </StackPanel>
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <TextBlock Text="{Binding ContainerModule.LastUpdated, StringFormat=Updated {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
-            <Button Content="Refresh containers" Command="{Binding ContainerModule.RefreshCommand}" IsEnabled="{Binding !ContainerModule.IsBusy}" />
-          </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="14">
-          <Border Classes="card">
-            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
-              <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="10">
-                <Border Background="#0E131B" CornerRadius="8" Padding="12">
-                  <StackPanel>
-                    <TextBlock Text="TOTAL" FontSize="10" Foreground="#66758A" />
-                    <TextBlock Text="{Binding ContainerModule.TotalCount}" FontSize="24" FontWeight="SemiBold" />
-                  </StackPanel>
-                </Border>
-                <Border Grid.Column="1" Background="#0E131B" CornerRadius="8" Padding="12">
-                  <StackPanel>
-                    <TextBlock Text="RUNNING" FontSize="10" Foreground="#66758A" />
-                    <TextBlock Text="{Binding ContainerModule.RunningCount}" FontSize="24" FontWeight="SemiBold" />
-                  </StackPanel>
-                </Border>
-                <Border Grid.Column="2" Background="#0E131B" CornerRadius="8" Padding="12">
-                  <StackPanel>
-                    <TextBlock Text="STOPPED" FontSize="10" Foreground="#66758A" />
-                    <TextBlock Text="{Binding ContainerModule.StoppedCount}" FontSize="24" FontWeight="SemiBold" />
-                  </StackPanel>
-                </Border>
-                <Border Grid.Column="3" Background="#0E131B" CornerRadius="8" Padding="12">
-                  <StackPanel>
-                    <TextBlock Text="UNHEALTHY" FontSize="10" Foreground="#66758A" />
-                    <TextBlock Text="{Binding ContainerModule.UnhealthyCount}" FontSize="24" FontWeight="SemiBold" />
-                  </StackPanel>
-                </Border>
-                <Border Grid.Column="4" Background="#0E131B" CornerRadius="8" Padding="12">
-                  <StackPanel>
-                    <TextBlock Text="PROJECTS" FontSize="10" Foreground="#66758A" />
-                    <TextBlock Text="{Binding ContainerModule.ProjectCount}" FontSize="24" FontWeight="SemiBold" />
-                  </StackPanel>
-                </Border>
-              </Grid>
-
-              <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
-                <TextBlock Text="{Binding ContainerModule.StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
-              </Border>
-
-              <ListBox Grid.Row="2" ItemsSource="{Binding ContainerModule.Items}" SelectedItem="{Binding ContainerModule.SelectedContainer}">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="containers:DockerContainerInfo">
-                    <Border Padding="12" Margin="0,3" Background="#0E131B" CornerRadius="8">
-                      <Grid ColumnDefinitions="1.25*,1.5*,1.1*,0.65*,0.8*" ColumnSpacing="12">
-                        <StackPanel>
-                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding ComposeProject}" Foreground="#66758A" FontSize="10" />
-                        </StackPanel>
-                        <TextBlock Grid.Column="1" Text="{Binding Image}" Foreground="#A8B4C5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding State}" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding Status}" Foreground="#66758A" FontSize="10" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
-                          <TextBlock Text="CPU" FontSize="9" Foreground="#66758A" />
-                          <TextBlock Text="{Binding CpuPercent, StringFormat={}{0:F1}%}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
-                          <TextBlock Text="RAM" FontSize="9" Foreground="#66758A" />
-                          <TextBlock Text="{Binding MemoryPercent, StringFormat={}{0:F1}%}" />
-                        </StackPanel>
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Grid>
-          </Border>
-
-          <Border Grid.Column="1" Classes="card">
-            <ScrollViewer>
-              <StackPanel Spacing="14">
-                <StackPanel>
-                  <TextBlock Text="Selected container" FontSize="16" FontWeight="SemiBold" />
-                  <TextBlock Text="Start, stop and restart require an explicit confirmation." Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
-                </StackPanel>
-
-                <Border Background="#0E131B" CornerRadius="8" Padding="14">
-                  <StackPanel Spacing="8">
-                    <TextBlock Text="{Binding ContainerModule.SelectedContainer.Name}" FontSize="19" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding ContainerModule.SelectedContainer.Image}" Foreground="#A8B4C5" TextWrapping="Wrap" />
-                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="6" Margin="0,8,0,0">
-                      <TextBlock Text="State" Foreground="#66758A" />
-                      <TextBlock Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.State}" />
-                      <TextBlock Grid.Row="1" Text="Health" Foreground="#66758A" />
-                      <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Health}" />
-                      <TextBlock Grid.Row="2" Text="CPU" Foreground="#66758A" />
-                      <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.CpuPercent, StringFormat={}{0:F2}%}" />
-                      <TextBlock Grid.Row="3" Text="Memory" Foreground="#66758A" />
-                      <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.MemoryUsage}" />
-                      <TextBlock Grid.Row="4" Text="Network" Foreground="#66758A" />
-                      <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.NetworkIo}" />
-                      <TextBlock Grid.Row="5" Text="Ports" Foreground="#66758A" />
-                      <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Ports}" TextWrapping="Wrap" />
-                    </Grid>
-                  </StackPanel>
-                </Border>
-
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Content="Start" Command="{Binding ContainerModule.RequestStartCommand}" IsEnabled="{Binding ContainerModule.CanStartSelected}" />
-                  <Button Content="Stop" Command="{Binding ContainerModule.RequestStopCommand}" IsEnabled="{Binding ContainerModule.CanStopSelected}" />
-                  <Button Content="Restart" Command="{Binding ContainerModule.RequestRestartCommand}" IsEnabled="{Binding ContainerModule.CanRestartSelected}" />
-                </StackPanel>
-
-                <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding ContainerModule.HasPendingAction}">
-                  <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding ContainerModule.PendingActionMessage}" TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                      <Button Content="Confirm action" Command="{Binding ContainerModule.ConfirmActionCommand}" />
-                      <Button Content="Cancel" Command="{Binding ContainerModule.CancelActionCommand}" />
-                    </StackPanel>
-                  </StackPanel>
-                </Border>
-
-                <TextBlock Text="Container deletion, image pruning and volume removal are intentionally not exposed here yet." Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
-              </StackPanel>
-            </ScrollViewer>
-          </Border>
-        </Grid>
-      </Grid>
-
-      <Grid IsVisible="{Binding IsLogsPage}">
-        <views:LogsView DataContext="{Binding LogsModule}" />
-      </Grid>
-
-      <Grid IsVisible="{Binding IsModulesPlaceholderPage}" Margin="24">
+      <Grid IsVisible="{Binding IsRemainingPlaceholderPage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="This module is part of the v2 migration plan and will be enabled after the server/dashboard foundation is validated." TextWrapping="Wrap" Foreground="#8290A3" />
+            <TextBlock Text="This module is part of the v2 migration plan and will be enabled after the current operations foundation is validated." TextWrapping="Wrap" Foreground="#8290A3" />
           </StackPanel>
         </Border>
       </Grid>

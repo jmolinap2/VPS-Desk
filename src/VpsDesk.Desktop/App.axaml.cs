@@ -32,11 +32,13 @@ public partial class App : Avalonia.Application
             var files = new SftpRemoteFileService();
             var preflight = new DeploymentPreflightService(ssh);
             var deployment = new ComposeDeploymentService(ssh);
+            var discovery = new DeploymentDiscoveryService(ssh);
+            var postDeployVerification = new PostDeployVerificationService(ssh);
             var security = new LinuxSecurityAuditService(ssh);
 
             var viewModel = new MainWindowViewModel(probe, store, bootstrap);
             viewModel.InitializeContainers(containers);
-            viewModel.InitializeDeployments(preflight, deployment);
+            viewModel.InitializeDeployments(preflight, deployment, discovery, postDeployVerification);
             viewModel.InitializeLogs(containers, logs);
             viewModel.InitializeStorage(storage);
             viewModel.InitializeFiles(files);

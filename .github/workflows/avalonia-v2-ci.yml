@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'Scripts/Validate-Localization.ps1'
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
       - 'VpsDesk.slnx'
@@ -28,6 +29,10 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
+
+      - name: Validate localization packs
+        shell: pwsh
+        run: ./Scripts/Validate-Localization.ps1
 
       - name: Restore
         run: dotnet restore VpsDesk.slnx

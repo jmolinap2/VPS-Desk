@@ -44,10 +44,8 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
         var composeCommand =
             $"bash -lc \"REPO={repo}; " +
             "[ -d \\\"$REPO\\\" ] || exit 9; " +
-            "find \\\"$REPO\\\" -maxdepth 1 -type f \\\(" +
-            " -name 'compose*.yml' -o -name 'compose*.yaml'" +
-            " -o -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' \\\)" +
-            " -printf '%f\\n' | sort -u\"";
+            "find \\\"$REPO\\\" -maxdepth 1 -type f -printf '%f\\n' " +
+            "| grep -E '^(compose.*|docker-compose.*)\\.ya?ml$' | sort -u\"";
 
         var branchesResult = await ssh.ExecuteAsync(
             new SshCommandRequest(server, branchCommand, TimeSpan.FromSeconds(15)),
@@ -66,7 +64,10 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
             secret,
             cancellationToken);
 
-        if (!composeResult.Succeeded)
+        // grep returns 1 when there are simply no matches. Treat that as an empty list,
+        // not as a connection/discovery failure.
+        var composeOutput = composeResult.StandardOutput;
+        if (!composeResult.Succeeded && !string.IsNullOrWhiteSpace(composeResult.StandardError))
         {
             throw new InvalidOperationException(DescribeFailure(
                 composeResult,
@@ -75,7 +76,7 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
 
         return new DeploymentDiscoveryResult(
             SplitLines(branchesResult.StandardOutput),
-            SplitLines(composeResult.StandardOutput));
+            SplitLines(composeOutput));
     }
 
     private static IReadOnlyList<string> SplitLines(string value)

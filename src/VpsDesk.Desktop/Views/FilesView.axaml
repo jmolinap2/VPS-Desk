@@ -7,18 +7,18 @@
   <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
-        <TextBlock Text="Files" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="Browse and edit small text files over SFTP. No remote shell command is used for file transfer." Foreground="#8290A3" FontSize="11" />
+        <TextBlock Text="{DynamicResource Files_Title}" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Files_Subtitle}" Foreground="#8290A3" FontSize="11" />
       </StackPanel>
-      <TextBlock Grid.Column="1" Text="{Binding LastUpdated, StringFormat=Updated {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding LastUpdated}" Foreground="#8290A3" VerticalAlignment="Center" />
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-        <Button Content="Up" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" />
+        <Button Content="{DynamicResource Common_Up}" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" />
         <TextBox Grid.Column="1" Text="{Binding CurrentPath}" PlaceholderText="/var/www" />
-        <Button Grid.Column="2" Content="Go" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" />
-        <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
+        <Button Grid.Column="2" Content="{DynamicResource Common_Go}" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" />
+        <Button Grid.Column="3" Content="{DynamicResource Common_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
       </Grid>
     </Border>
 
@@ -26,8 +26,8 @@
       <Border Classes="card">
         <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
           <StackPanel>
-            <TextBlock Text="Remote directory" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="Folders first · select an entry and open it" Foreground="#66758A" FontSize="11" />
+            <TextBlock Text="{DynamicResource Files_RemoteDirectory}" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Files_RemoteDirectoryHelp}" Foreground="#66758A" FontSize="11" />
           </StackPanel>
 
           <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
@@ -50,7 +50,7 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <Button Grid.Row="1" Content="Open selected" Command="{Binding OpenSelectedCommand}" HorizontalAlignment="Left" IsEnabled="{Binding !IsBusy}" />
+            <Button Grid.Row="1" Content="{DynamicResource Files_OpenSelected}" Command="{Binding OpenSelectedCommand}" HorizontalAlignment="Left" IsEnabled="{Binding !IsBusy}" />
           </Grid>
         </Grid>
       </Border>
@@ -58,12 +58,12 @@
       <Border Grid.Column="1" Classes="card">
         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
           <StackPanel>
-            <TextBlock Text="Text editor" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Files_TextEditor}" FontSize="16" FontWeight="SemiBold" />
             <TextBlock Text="{Binding EditorPath}" Foreground="#8290A3" FontSize="11" TextTrimming="CharacterEllipsis" />
           </StackPanel>
 
           <Border Grid.Row="1" Background="#111722" CornerRadius="8" Padding="10">
-            <TextBlock Text="Only explicit Save writes to the VPS. Files larger than 2 MB are not opened in this editor." Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+            <TextBlock Text="{DynamicResource Files_EditorHelp}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
           </Border>
 
           <TextBox Grid.Row="2"
@@ -81,16 +81,16 @@
 
           <StackPanel Grid.Row="3" Spacing="10">
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Save file" Command="{Binding RequestSaveCommand}" IsEnabled="{Binding HasOpenTextFile}" />
-              <Button Content="Close editor" Command="{Binding CloseEditorCommand}" IsEnabled="{Binding HasOpenTextFile}" />
+              <Button Content="{DynamicResource Files_Save}" Command="{Binding RequestSaveCommand}" IsEnabled="{Binding HasOpenTextFile}" />
+              <Button Content="{DynamicResource Files_CloseEditor}" Command="{Binding CloseEditorCommand}" IsEnabled="{Binding HasOpenTextFile}" />
             </StackPanel>
 
             <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingSave}">
               <StackPanel Spacing="10">
                 <TextBlock Text="{Binding PendingSaveMessage}" TextWrapping="Wrap" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Content="Confirm save" Command="{Binding ConfirmSaveCommand}" IsEnabled="{Binding !IsBusy}" />
-                  <Button Content="Cancel" Command="{Binding CancelSaveCommand}" />
+                  <Button Content="{DynamicResource Files_ConfirmSave}" Command="{Binding ConfirmSaveCommand}" IsEnabled="{Binding !IsBusy}" />
+                  <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSaveCommand}" />
                 </StackPanel>
               </StackPanel>
             </Border>

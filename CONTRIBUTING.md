@@ -1,25 +1,24 @@
-# Contributing
+# Contribuir
 
-Thanks for helping improve VPS Desk.
+Gracias por ayudar a mejorar VPS Desk.
 
-## Development
+## Desarrollo
 
-- Use PowerShell 7 or newer.
-- Keep configuration in `.env`; commit only `.env.example`.
-- Do not commit credentials, private keys, generated logs or local backups.
-- Prefer small pull requests with a clear description of the behavior changed.
-- Document any command that can modify a remote VPS, Docker resources or deploy
-  state.
+- Usa PowerShell 7 o superior.
+- Mantén la configuración en `.env`; sube solo `.env.example`.
+- No subas credenciales, llaves privadas, logs generados ni backups locales.
+- Prefiere pull requests pequeños con una descripción clara del comportamiento cambiado.
+- Documenta cualquier comando que pueda modificar un VPS remoto, recursos Docker o estado de deploy.
 
-## Manual Checks
+## Checks Manuales
 
-Before opening a pull request, start the app locally with:
+Antes de abrir un pull request, inicia la app localmente con:
 
 ```powershell
 .\Run.bat
 ```
 
-For script syntax checks, parse the entry point from PowerShell:
+Para revisar sintaxis de scripts, parsea el punto de entrada desde PowerShell:
 
 ```powershell
 $tokens = $null
@@ -28,8 +27,6 @@ $errors = $null
 $errors
 ```
 
-## Security
+## Seguridad
 
-If your change touches SSH, Docker prune, deploy execution, token handling or
-log output, call that out clearly in the pull request.
-
+Si tu cambio toca SSH, Docker prune, ejecución de deploys, manejo de tokens o salida de logs, menciónalo claramente en el pull request.

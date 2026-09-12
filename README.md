@@ -1,105 +1,97 @@
 # VPS Desk
 
-VPS Desk is a lightweight Windows desktop control panel for monitoring and
-operating a Linux VPS through SSH. It is built with PowerShell 7 and WPF, so it
-can give a VPS a practical graphical interface without requiring a full remote
-desktop environment on the server.
+VPS Desk es un panel de control de escritorio para Windows pensado para monitorear y operar servidores VPS Linux mediante SSH. Está construido con PowerShell 7 y WPF, así que permite darle a un VPS una interfaz gráfica práctica sin instalar un entorno de escritorio remoto dentro del servidor.
 
-## Features
+## Funciones
 
-- Desktop dashboard for VPS reachability, CPU, memory, disk and uptime.
-- SSH-based server checks using key auth or password auth.
-- Docker service visibility for common `sql`, `api` and `front` containers.
-- Storage view with disk usage, Docker images and top Docker directories.
-- Remote log viewer for Docker containers and host journals.
-- Deploy and migration launcher for existing PowerShell automation scripts.
-- Environment switcher for Development, Staging and Production.
-- Production guardrails for risky deploy options.
-- Local log masking for passwords, tokens, secrets and long encoded values.
+- Dashboard de escritorio para disponibilidad del VPS, CPU, memoria, disco y uptime.
+- Verificaciones por SSH usando llave privada o contraseña.
+- Visibilidad de servicios Docker comunes como `sql`, `api` y `front`.
+- Vista de almacenamiento con uso de disco, imágenes Docker y directorios Docker más pesados.
+- Visor de logs remotos para contenedores Docker y journals del sistema.
+- Lanzador de deploys y migraciones sobre scripts PowerShell existentes.
+- Selector de entorno para Development, Staging y Production.
+- Guardas de producción para opciones riesgosas de deploy.
+- Enmascaramiento local de contraseñas, tokens, secretos y valores largos codificados.
 
-## Requirements
+## Requisitos
 
-- Windows 10 or Windows 11.
-- PowerShell 7 or newer, available as `pwsh`.
-- OpenSSH client available in `PATH`.
-- SSH access to the target VPS.
-- Docker on the VPS for Docker-related status, storage and log features.
-- Optional: a Git token only when your deploy script needs private repository
-  access.
+- Windows 10 o Windows 11.
+- PowerShell 7 o superior, disponible como `pwsh`.
+- Cliente OpenSSH disponible en el `PATH`.
+- Acceso SSH al VPS objetivo.
+- Docker en el VPS para funciones relacionadas con contenedores, storage y logs.
+- Opcional: un token de Git solo si tu flujo de deploy necesita acceder a repositorios privados.
 
-## Quick Start
+## Inicio Rápido
 
-1. Clone or download this repository.
-2. Copy `.env.example` to `.env`.
-3. Edit `.env` with your VPS host, SSH user and local paths.
-4. Run `Run.bat`.
+1. Clona o descarga este repositorio.
+2. Copia `.env.example` como `.env`.
+3. Edita `.env` con tu host VPS, usuario SSH y rutas locales.
+4. Ejecuta `Run.bat`.
 
-You can also start it directly from PowerShell:
+También puedes iniciarlo directamente desde PowerShell:
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\VpsDesk.ps1
 ```
 
-## Configuration
+## Configuración
 
-VPS Desk reads local configuration from a `.env` file in the project folder.
-Use `.env.example` as the public template.
+VPS Desk lee la configuración local desde un archivo `.env` en la carpeta del proyecto. Usa `.env.example` como plantilla pública.
 
-Important variables:
+Variables importantes:
 
-- `SERVER_HOST`: VPS IP address or DNS name.
-- `SERVER_USER`: SSH user.
-- `SSH_PORT`: SSH port, usually `22`.
-- `SSH_KEY_PATH`: path to your private SSH key.
-- `REPO_LOCAL`: local path to the project that contains your deploy scripts.
-- `REMOTE_REPO_PATH`: remote path to your app on the VPS.
-- `COMPOSE_FILE`: Docker Compose file name on the VPS.
-- `GIT_TOKEN`: optional token for private repositories.
-- `SSH_PASSWORD`: optional password for password-based SSH.
+- `SERVER_HOST`: IP o DNS del VPS.
+- `SERVER_USER`: usuario SSH.
+- `SSH_PORT`: puerto SSH, normalmente `22`.
+- `SSH_KEY_PATH`: ruta a tu llave privada SSH.
+- `REPO_LOCAL`: ruta local del proyecto que contiene tus scripts de deploy.
+- `REMOTE_REPO_PATH`: ruta remota de tu aplicación dentro del VPS.
+- `COMPOSE_FILE`: nombre del archivo Docker Compose en el VPS.
+- `GIT_TOKEN`: token opcional para repositorios privados.
+- `SSH_PASSWORD`: contraseña opcional para autenticación SSH por password.
 
-Never commit `.env`, real tokens, private keys, passwords or generated logs.
+Nunca subas `.env`, tokens reales, llaves privadas, contraseñas o logs generados.
 
-## Usage Notes
+## Notas De Uso
 
-- The Dashboard page can check host reachability and collect metrics through
-  SSH.
-- The Storage page can inspect Docker disk usage and run Docker prune commands.
-  Review destructive prune actions before confirming them.
-- The Log Center can load logs from Docker containers or `journalctl`.
-- The Operations page expects deploy or migration scripts to exist under the
-  `scripts` folder of `REPO_LOCAL`.
+- La página Dashboard puede verificar conectividad y obtener métricas mediante SSH.
+- La página Storage puede inspeccionar uso de disco Docker y ejecutar comandos de limpieza. Revisa las acciones destructivas antes de confirmarlas.
+- Log Center puede cargar logs desde contenedores Docker o `journalctl`.
+- Operations espera encontrar scripts de deploy o migración dentro de la carpeta `scripts` de `REPO_LOCAL`.
 
-## Project Structure
+## Estructura Del Proyecto
 
 ```text
 .
-|-- Assets/                 # App assets
-|-- Schemas/                # WPF XAML layout
+|-- Assets/                 # Recursos de la aplicación
+|-- docs/                   # Roadmap de producto y documentos de planificación
+|-- Schemas/                # Layout WPF en XAML
 |-- Scripts/
-|   |-- Core/               # State, env loading, health checks, log security
-|   `-- GUI/                # Window, navigation and UI handlers
-|-- Run.bat                 # Windows launcher
-|-- VpsDesk.ps1             # Main PowerShell entry point
-|-- .env.example            # Public configuration template
-|-- LICENSE                 # MIT license
+|   |-- Core/               # Estado, carga de env, health checks, seguridad de logs
+|   `-- GUI/                # Ventana, navegación y handlers de UI
+|-- Run.bat                 # Launcher para Windows
+|-- VpsDesk.ps1             # Punto de entrada principal en PowerShell
+|-- .env.example            # Plantilla pública de configuración
+|-- LICENSE                 # Licencia MIT
 `-- README.md
 ```
 
-## Security
+## Roadmap
 
-This tool can execute commands against a real server. Use a least-privilege SSH
-user whenever possible, keep private keys protected, and test actions in
-Development or Staging before Production.
+Consulta [docs/PRODUCT_ROADMAP.md](docs/PRODUCT_ROADMAP.md) para el plan de producto por fases.
 
-If a token or password was ever committed, pasted into an issue, or shared in a
-public zip, rotate it immediately.
+## Seguridad
 
-## Contributing
+Esta herramienta puede ejecutar comandos contra un servidor real. Usa un usuario SSH con los mínimos privilegios posibles, protege tus llaves privadas y prueba las acciones en Development o Staging antes de Production.
 
-Contributions are welcome. Please keep changes small, avoid committing
-machine-specific configuration, and document any behavior that can modify a
-remote VPS.
+Si un token o contraseña fue subido, compartido en un issue o incluido en un zip público, rótalo inmediatamente.
 
-## License
+## Contribuir
 
-MIT. See `LICENSE`.
+Las contribuciones son bienvenidas. Mantén los cambios pequeños, evita subir configuración específica de tu máquina y documenta cualquier comportamiento que pueda modificar un VPS remoto.
+
+## Licencia
+
+MIT. Consulta `LICENSE`.

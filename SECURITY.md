@@ -1,28 +1,25 @@
-# Security Policy
+# Política De Seguridad
 
-VPS Desk is a local desktop tool that can connect to real VPS hosts and execute
-remote commands. Treat configuration and logs as sensitive.
+VPS Desk es una herramienta local de escritorio que puede conectarse a servidores VPS reales y ejecutar comandos remotos. Trata la configuración y los logs como información sensible.
 
-## Supported Versions
+## Versiones Soportadas
 
-Security fixes are accepted for the current `main` branch.
+Los fixes de seguridad se aceptan sobre la rama `main` actual.
 
-## Reporting a Vulnerability
+## Reportar Una Vulnerabilidad
 
-Please report vulnerabilities privately to the repository owner. Do not open a
-public issue with working exploits, private server details, tokens, passwords or
-keys.
+Reporta vulnerabilidades de forma privada al dueño del repositorio. No abras issues públicos con exploits funcionales, detalles privados de servidores, tokens, contraseñas o llaves.
 
-Include:
+Incluye:
 
-- A short description of the issue.
-- Steps to reproduce with safe sample data.
-- The affected feature or file.
-- Any suggested fix, if you already have one.
+- Una descripción corta del problema.
+- Pasos para reproducirlo usando datos de ejemplo seguros.
+- La función o archivo afectado.
+- Una sugerencia de solución, si ya tienes una.
 
-## Secret Handling
+## Manejo De Secretos
 
-- Do not commit `.env`.
-- Do not commit private SSH keys.
-- Do not paste real tokens or passwords into issues or pull requests.
-- Rotate any credential that may have been exposed.
+- No subas `.env`.
+- No subas llaves privadas SSH.
+- No pegues tokens o contraseñas reales en issues o pull requests.
+- Rota cualquier credencial que pudo haberse expuesto.

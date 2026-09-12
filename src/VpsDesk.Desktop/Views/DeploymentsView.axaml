@@ -8,91 +8,150 @@
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
         <TextBlock Text="Deployments" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="Guarded Git + Docker Compose workflow. No arbitrary deploy shell script is executed by this screen." Foreground="#8290A3" FontSize="11" />
+        <TextBlock Text="Guarded Git + Docker Compose workflow with preflight and post-deploy verification." Foreground="#8290A3" FontSize="11" />
       </StackPanel>
       <TextBlock Grid.Column="1" Text="{Binding LastChecked, StringFormat=Preflight {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
-      <Grid ColumnDefinitions="1.55*,0.8*,1.05*,Auto" ColumnSpacing="12">
-        <StackPanel>
-          <TextBlock Text="Remote repository" Foreground="#8290A3" FontSize="11" />
-          <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
-        </StackPanel>
-        <StackPanel Grid.Column="1">
-          <TextBlock Text="Branch" Foreground="#8290A3" FontSize="11" />
-          <TextBox Text="{Binding Branch}" PlaceholderText="main" />
-        </StackPanel>
-        <StackPanel Grid.Column="2">
-          <TextBlock Text="Compose file" Foreground="#8290A3" FontSize="11" />
-          <TextBox Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
-        </StackPanel>
-        <Button Grid.Column="3" Content="Run preflight" Command="{Binding RunPreflightCommand}" IsEnabled="{Binding !IsBusy}" VerticalAlignment="Bottom" />
+      <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+          <StackPanel>
+            <TextBlock Text="Remote repository" Foreground="#8290A3" FontSize="11" />
+            <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/opt/my-app" />
+          </StackPanel>
+          <Button Grid.Column="1"
+                  Content="Discover remote options"
+                  Command="{Binding DiscoverRemoteOptionsCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  VerticalAlignment="Bottom" />
+          <Button Grid.Column="2"
+                  Content="Run preflight"
+                  Command="{Binding RunPreflightCommand}"
+                  IsEnabled="{Binding !IsBusy}"
+                  VerticalAlignment="Bottom" />
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+          <StackPanel>
+            <TextBlock Text="Branch" Foreground="#8290A3" FontSize="11" />
+            <TextBox Text="{Binding Branch}" PlaceholderText="main" />
+            <ComboBox Margin="0,5,0,0"
+                      ItemsSource="{Binding AvailableBranches}"
+                      SelectedItem="{Binding SelectedBranchSuggestion}"
+                      PlaceholderText="Choose a branch discovered on the server" />
+          </StackPanel>
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Compose file" Foreground="#8290A3" FontSize="11" />
+            <TextBox Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
+            <ComboBox Margin="0,5,0,0"
+                      ItemsSource="{Binding AvailableComposeFiles}"
+                      SelectedItem="{Binding SelectedComposeSuggestion}"
+                      PlaceholderText="Choose a Compose file discovered on the server" />
+          </StackPanel>
+        </Grid>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="2" ColumnDefinitions="0.9*,1.4*" ColumnSpacing="14">
-      <StackPanel Spacing="14">
-        <Border Classes="card">
-          <StackPanel Spacing="12">
-            <TextBlock Text="Safety and strategy" FontSize="16" FontWeight="SemiBold" />
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+    <Grid Grid.Row="2" ColumnDefinitions="0.95*,1.4*" ColumnSpacing="14">
+      <ScrollViewer>
+        <StackPanel Spacing="14">
+          <Border Classes="card">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Safety and strategy" FontSize="16" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel>
+                  <CheckBox Content="Require environment file" IsChecked="{Binding RequireEnvironmentFile}" />
+                  <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,6,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="8">
+                  <CheckBox Content="Pull referenced images" IsChecked="{Binding PullImages}" />
+                  <CheckBox Content="Build application images" IsChecked="{Binding BuildImages}" />
+                </StackPanel>
+              </Grid>
+
               <StackPanel>
-                <CheckBox Content="Require environment file" IsChecked="{Binding RequireEnvironmentFile}" />
-                <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,6,0,0" />
+                <TextBlock Text="HTTP health URLs after deployment (optional, one per line)" Foreground="#8290A3" FontSize="11" />
+                <TextBox Text="{Binding HttpHealthUrls}"
+                         AcceptsReturn="True"
+                         TextWrapping="NoWrap"
+                         MinHeight="72"
+                         PlaceholderText="https://app.example.com/health&#10;http://127.0.0.1:8080/health" />
+                <TextBlock Text="Checks run from the VPS after Compose finishes. No Holos/ABP endpoint is hardcoded." Foreground="#66758A" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="8">
-                <CheckBox Content="Pull referenced images" IsChecked="{Binding PullImages}" />
-                <CheckBox Content="Build application images" IsChecked="{Binding BuildImages}" />
-              </StackPanel>
-            </Grid>
-            <Border Background="#0E131B" CornerRadius="8" Padding="10">
-              <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
-            </Border>
-          </StackPanel>
-        </Border>
 
-        <Border Classes="card">
-          <Grid RowDefinitions="Auto,*" RowSpacing="10">
-            <TextBlock Text="Preflight checks" FontSize="16" FontWeight="SemiBold" />
-            <ListBox Grid.Row="1" ItemsSource="{Binding Checks}" MinHeight="260">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="deploy:PreflightCheckResult">
-                  <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <StackPanel>
-                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#A8B4C5" VerticalAlignment="Center" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Grid>
-        </Border>
-
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Button Content="Request deployment" Command="{Binding RequestDeployCommand}" IsEnabled="{Binding CanDeploy}" />
-        </StackPanel>
-
-        <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingDeploy}">
-          <StackPanel Spacing="10">
-            <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Confirm deploy" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
-              <Button Content="Cancel" Command="{Binding CancelDeployCommand}" />
+              <Border Background="#0E131B" CornerRadius="8" Padding="10">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+              </Border>
             </StackPanel>
+          </Border>
+
+          <Border Classes="card">
+            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+              <TextBlock Text="Preflight checks" FontSize="16" FontWeight="SemiBold" />
+              <ListBox Grid.Row="1" ItemsSource="{Binding Checks}" MinHeight="210">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="deploy:PreflightCheckResult">
+                    <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#A8B4C5" VerticalAlignment="Center" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Border>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Request deployment" Command="{Binding RequestDeployCommand}" IsEnabled="{Binding CanDeploy}" />
           </StackPanel>
-        </Border>
-      </StackPanel>
+
+          <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasPendingDeploy}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Confirm deploy" Command="{Binding ConfirmDeployCommand}" IsEnabled="{Binding !IsBusy}" />
+                <Button Content="Cancel" Command="{Binding CancelDeployCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card">
+            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+              <StackPanel>
+                <TextBlock Text="Post-deploy verification" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="Container state/health plus optional HTTP smoke checks. A zero exit code is not treated as proof that the release is healthy." Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+              </StackPanel>
+              <ListBox Grid.Row="1" ItemsSource="{Binding PostChecks}" MinHeight="120">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="deploy:PostDeployCheckResult">
+                    <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#A8B4C5" VerticalAlignment="Center" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
 
       <Border Grid.Column="1" Classes="card">
         <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
           <StackPanel>
             <TextBlock Text="Deployment output" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="Git fetch/checkout/fast-forward → optional image pull → Compose up → Compose status" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+            <TextBlock Text="Git fetch/checkout/fast-forward → optional image pull → Compose up → Compose status → post-deploy verification" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
           </StackPanel>
 
           <ItemsControl Grid.Row="1" ItemsSource="{Binding Steps}">

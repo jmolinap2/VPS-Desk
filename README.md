@@ -1,96 +1,104 @@
 # VPS Desk
 
-VPS Desk es un panel de control de escritorio para Windows pensado para monitorear y operar servidores VPS Linux mediante SSH. Está construido con PowerShell 7 y WPF, así que permite darle a un VPS una interfaz gráfica práctica sin instalar un entorno de escritorio remoto dentro del servidor.
+VPS Desk es un cliente de escritorio para administrar y observar VPS Linux mediante SSH/SFTP sin instalar un panel o agente propio dentro del servidor.
 
-## Funciones
+La nueva versión se está desarrollando en .NET 10 + Avalonia. Hostinger es el primer proveedor probado/certificado, pero el núcleo no depende de Hostinger: detecta las capacidades reales del VPS y puede trabajar con servidores Linux compatibles.
 
-- Dashboard de escritorio para disponibilidad del VPS, CPU, memoria, disco y uptime.
-- Verificaciones por SSH usando llave privada o contraseña.
-- Visibilidad de servicios Docker comunes como `sql`, `api` y `front`.
-- Vista de almacenamiento con uso de disco, imágenes Docker y directorios Docker más pesados.
-- Visor de logs remotos para contenedores Docker y journals del sistema.
-- Lanzador de deploys y migraciones sobre scripts PowerShell existentes.
-- Selector de entorno para Development, Staging y Production.
-- Guardas de producción para opciones riesgosas de deploy.
-- Enmascaramiento local de contraseñas, tokens, secretos y valores largos codificados.
+## Estado actual de v2
 
-## Requisitos
+La rama `rewrite/avalonia-v2` contiene la reconstrucción moderna. Ya incluye:
 
-- Windows 10 o Windows 11.
-- PowerShell 7 o superior, disponible como `pwsh`.
-- Cliente OpenSSH disponible en el `PATH`.
-- Acceso SSH al VPS objetivo.
-- Docker en el VPS para funciones relacionadas con contenedores, storage y logs.
-- Opcional: un token de Git solo si tu flujo de deploy necesita acceder a repositorios privados.
+- aplicación desktop Avalonia para Windows/Linux/macOS a nivel de framework;
+- gestión local de perfiles de servidores;
+- autenticación SSH por llave privada o contraseña;
+- pinning opcional de huella SHA256 de la clave SSH del servidor;
+- Compatibility Check de Linux, Bash, systemd, journalctl, Docker, Compose, Git y Nginx;
+- telemetría real de CPU, RAM, swap, disco, red, load average y uptime;
+- Dashboard con gauges y gráficas LiveCharts2;
+- refresco automático de métricas después de una conexión válida;
+- SFTP para lectura/escritura remota sin incrustar contenido sensible en comandos shell;
+- preflight genérico de despliegue reutilizado y desacoplado de Holos;
+- sanitización/clasificación de logs recuperada del Migrator;
+- CI que compila, hace smoke test gráfico y genera un build Windows x64 de prueba.
 
-## Inicio Rápido
+Las páginas Containers, Deployments, Logs, Storage, Files, Terminal, Security y Settings todavía se están migrando. El shell ya reserva su navegación, pero no deben considerarse terminadas.
 
-1. Clona o descarga este repositorio.
-2. Copia `.env.example` como `.env`.
-3. Edita `.env` con tu host VPS, usuario SSH y rutas locales.
-4. Ejecuta `Run.bat`.
-
-También puedes iniciarlo directamente desde PowerShell:
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\VpsDesk.ps1
-```
-
-## Configuración
-
-VPS Desk lee la configuración local desde un archivo `.env` en la carpeta del proyecto. Usa `.env.example` como plantilla pública.
-
-Variables importantes:
-
-- `SERVER_HOST`: IP o DNS del VPS.
-- `SERVER_USER`: usuario SSH.
-- `SSH_PORT`: puerto SSH, normalmente `22`.
-- `SSH_KEY_PATH`: ruta a tu llave privada SSH.
-- `REPO_LOCAL`: ruta local del proyecto que contiene tus scripts de deploy.
-- `REMOTE_REPO_PATH`: ruta remota de tu aplicación dentro del VPS.
-- `COMPOSE_FILE`: nombre del archivo Docker Compose en el VPS.
-- `GIT_TOKEN`: token opcional para repositorios privados.
-- `SSH_PASSWORD`: contraseña opcional para autenticación SSH por password.
-
-Nunca subas `.env`, tokens reales, llaves privadas, contraseñas o logs generados.
-
-## Notas De Uso
-
-- La página Dashboard puede verificar conectividad y obtener métricas mediante SSH.
-- La página Storage puede inspeccionar uso de disco Docker y ejecutar comandos de limpieza. Revisa las acciones destructivas antes de confirmarlas.
-- Log Center puede cargar logs desde contenedores Docker o `journalctl`.
-- Operations espera encontrar scripts de deploy o migración dentro de la carpeta `scripts` de `REPO_LOCAL`.
-
-## Estructura Del Proyecto
+## Arquitectura v2
 
 ```text
-.
-|-- Assets/                 # Recursos de la aplicación
-|-- docs/                   # Roadmap de producto y documentos de planificación
-|-- Schemas/                # Layout WPF en XAML
-|-- Scripts/
-|   |-- Core/               # Estado, carga de env, health checks, seguridad de logs
-|   `-- GUI/                # Ventana, navegación y handlers de UI
-|-- Run.bat                 # Launcher para Windows
-|-- VpsDesk.ps1             # Punto de entrada principal en PowerShell
-|-- .env.example            # Plantilla pública de configuración
-|-- LICENSE                 # Licencia MIT
-`-- README.md
+VpsDesk.Desktop        Avalonia, MVVM, LiveCharts2
+        |
+VpsDesk.Application    Casos de uso y abstracciones
+        |
+VpsDesk.Domain         Perfiles, capacidades, métricas y operaciones
+        ^
+VpsDesk.Infrastructure SSH.NET, SFTP y probes Linux
 ```
 
-## Roadmap
+El VPS no necesita instalar VPS Desk:
 
-Consulta [docs/PRODUCT_ROADMAP.md](docs/PRODUCT_ROADMAP.md) para el plan de producto por fases.
+```text
+PC del operador
+  VPS Desk
+     |
+     | SSH / SFTP
+     v
+VPS Linux
+  SSH + herramientas ya existentes
+```
+
+## Probar v2 desde código
+
+Requisitos de desarrollo:
+
+- .NET SDK 10.
+- Windows, Linux o macOS compatible con Avalonia.
+- acceso SSH a un VPS Linux.
+
+```powershell
+git switch rewrite/avalonia-v2
+dotnet restore VpsDesk.slnx
+dotnet run --project src/VpsDesk.Desktop/VpsDesk.Desktop.csproj
+```
+
+Al abrir la aplicación, entra a **Servers** para registrar un VPS. Los perfiles no sensibles se guardan en el perfil local del usuario. Las contraseñas y passphrases permanecen solo en memoria durante la sesión.
+
+Para una primera conexión se recomienda verificar externamente la huella SSH del servidor y guardarla en el campo **SSH host fingerprint SHA256**. Cuando está configurada, VPS Desk rechaza una clave de host distinta.
+
+## Bootstrap desde `.env`
+
+La v2 puede importar una configuración inicial desde `.env` únicamente como mecanismo de transición/pruebas. Si no existen perfiles guardados, puede leer:
+
+- `SERVER_NAME`
+- `SERVER_PROVIDER`
+- `SERVER_HOST`
+- `SERVER_USER`
+- `SSH_PORT`
+- `SSH_KEY_PATH`
+- `SSH_HOST_FINGERPRINT`
+- `SSH_PASSWORD`
+
+Los perfiles gestionados desde la UI sustituyen gradualmente esta dependencia.
+
+## Código heredado
+
+Los archivos PowerShell/WPF existentes se conservan temporalmente en la raíz (`VpsDesk.ps1`, `Scripts/`, `Schemas/`, `Run.bat`) para no perder capacidades mientras se realiza la migración. No forman parte de la arquitectura objetivo de v2 y se retirarán únicamente cuando exista paridad funcional comprobada.
+
+`HolosMigratorUI` también se usa como fuente de capacidades probadas: se reutiliza la lógica generalizable, pero no se copian nombres, rutas, compose files ni supuestos específicos de Holos/Hostinger.
+
+## Documentación
+
+- `docs/V2_PLAN.md`: alcance general de la reconstrucción.
+- `docs/ARCHITECTURE_V2.md`: arquitectura objetivo.
+- `docs/UI_SPEC_V2.md`: especificación de interfaz.
+- `docs/MIGRATION_FROM_HOLOS.md`: matriz de reutilización del Migrator.
+- `docs/PRODUCT_ROADMAP.md`: roadmap funcional más amplio.
 
 ## Seguridad
 
-Esta herramienta puede ejecutar comandos contra un servidor real. Usa un usuario SSH con los mínimos privilegios posibles, protege tus llaves privadas y prueba las acciones en Development o Staging antes de Production.
+VPS Desk puede ejecutar acciones administrativas reales. La versión final debe tratar como requisitos de primer nivel el pinning de host SSH, mínimo privilegio, secretos locales protegidos, sanitización de logs, confirmaciones reforzadas en Production y preflight antes de operaciones destructivas.
 
-Si un token o contraseña fue subido, compartido en un issue o incluido en un zip público, rótalo inmediatamente.
-
-## Contribuir
-
-Las contribuciones son bienvenidas. Mantén los cambios pequeños, evita subir configuración específica de tu máquina y documenta cualquier comportamiento que pueda modificar un VPS remoto.
+No subas `.env`, llaves privadas, contraseñas, tokens, backups ni logs sensibles al repositorio.
 
 ## Licencia
 

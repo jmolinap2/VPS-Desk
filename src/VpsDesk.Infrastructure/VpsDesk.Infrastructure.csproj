@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
+    <ProjectReference Include="../VpsDesk.Application/VpsDesk.Application.csproj" />
+    <PackageReference Include="SSH.NET" />
+  </ItemGroup>
+</Project>

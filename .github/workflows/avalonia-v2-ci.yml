@@ -1,0 +1,73 @@
+name: Avalonia v2 CI
+
+on:
+  push:
+    branches:
+      - rewrite/avalonia-v2
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'Scripts/Validate-Localization.ps1'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'VpsDesk.slnx'
+      - '.github/workflows/avalonia-v2-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Validate localization packs
+        shell: pwsh
+        run: ./Scripts/Validate-Localization.ps1
+
+      - name: Restore
+        run: dotnet restore VpsDesk.slnx
+
+      - name: Build
+        run: dotnet build VpsDesk.slnx --configuration Release --no-restore
+
+      - name: Desktop startup smoke test
+        shell: bash
+        run: |
+          set +e
+          timeout 5s xvfb-run -a dotnet src/VpsDesk.Desktop/bin/Release/net10.0/VpsDesk.Desktop.dll
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            echo "Desktop process exited unexpectedly with code $code"
+            exit "$code"
+          fi
+
+      - name: Publish Windows x64 test build
+        if: github.event_name == 'push'
+        run: >-
+          dotnet publish src/VpsDesk.Desktop/VpsDesk.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output artifacts/VPS-Desk-win-x64
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+
+      - name: Upload Windows x64 test build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: VPS-Desk-win-x64
+          path: artifacts/VPS-Desk-win-x64/
+          if-no-files-found: error
+          retention-days: 14

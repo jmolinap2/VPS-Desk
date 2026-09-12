@@ -1,3 +1,9 @@
+# Build output .NET
+bin/
+obj/
+VPS-Desk-win-x64/
+*.lnk
+
 # Credenciales y configuracion sensible
 .env
 .env.*

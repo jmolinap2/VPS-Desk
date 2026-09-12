@@ -1,0 +1,140 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:containers="using:VpsDesk.Domain.Containers"
+             x:Class="VpsDesk.Desktop.Views.ContainersView"
+             x:DataType="vm:MainWindowViewModel">
+  <Grid Margin="24" RowDefinitions="Auto,*" RowSpacing="14">
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel>
+        <TextBlock Text="{DynamicResource Containers_Title}" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Containers_Subtitle}" Foreground="#8290A3" FontSize="11" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <TextBlock Text="{Binding ContainerModule.LastUpdated}" Foreground="#8290A3" VerticalAlignment="Center" />
+        <Button Content="{DynamicResource Containers_Refresh}" Command="{Binding ContainerModule.RefreshCommand}" IsEnabled="{Binding !ContainerModule.IsBusy}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="14">
+      <Border Classes="card">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+          <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="10">
+            <Border Background="#0E131B" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="{DynamicResource Containers_Total}" FontSize="10" Foreground="#66758A" />
+                <TextBlock Text="{Binding ContainerModule.TotalCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="#0E131B" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="{DynamicResource Containers_Running}" FontSize="10" Foreground="#66758A" />
+                <TextBlock Text="{Binding ContainerModule.RunningCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="#0E131B" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="{DynamicResource Containers_Stopped}" FontSize="10" Foreground="#66758A" />
+                <TextBlock Text="{Binding ContainerModule.StoppedCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Background="#0E131B" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="{DynamicResource Containers_Unhealthy}" FontSize="10" Foreground="#66758A" />
+                <TextBlock Text="{Binding ContainerModule.UnhealthyCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Background="#0E131B" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="{DynamicResource Containers_Projects}" FontSize="10" Foreground="#66758A" />
+                <TextBlock Text="{Binding ContainerModule.ProjectCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
+            <TextBlock Text="{Binding ContainerModule.StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+          </Border>
+
+          <ListBox Grid.Row="2" ItemsSource="{Binding ContainerModule.Items}" SelectedItem="{Binding ContainerModule.SelectedContainer}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="containers:DockerContainerInfo">
+                <Border Padding="12" Margin="0,3" Background="#0E131B" CornerRadius="8">
+                  <Grid ColumnDefinitions="1.25*,1.5*,1.1*,0.65*,0.8*" ColumnSpacing="12">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding ComposeProject}" Foreground="#66758A" FontSize="10" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Image}" Foreground="#A8B4C5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding State}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Status}" Foreground="#66758A" FontSize="10" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                      <TextBlock Text="CPU" FontSize="9" Foreground="#66758A" />
+                      <TextBlock Text="{Binding CpuPercent, StringFormat={}{0:F1}%}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                      <TextBlock Text="RAM" FontSize="9" Foreground="#66758A" />
+                      <TextBlock Text="{Binding MemoryPercent, StringFormat={}{0:F1}%}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Classes="card">
+        <ScrollViewer>
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Containers_Selected}" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Containers_ActionHelp}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Background="#0E131B" CornerRadius="8" Padding="14">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding ContainerModule.SelectedContainer.Name}" FontSize="19" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding ContainerModule.SelectedContainer.Image}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="6" Margin="0,8,0,0">
+                  <TextBlock Text="{DynamicResource Containers_State}" Foreground="#66758A" />
+                  <TextBlock Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.State}" />
+                  <TextBlock Grid.Row="1" Text="{DynamicResource Containers_Health}" Foreground="#66758A" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Health}" />
+                  <TextBlock Grid.Row="2" Text="CPU" Foreground="#66758A" />
+                  <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.CpuPercent, StringFormat={}{0:F2}%}" />
+                  <TextBlock Grid.Row="3" Text="{DynamicResource Containers_Memory}" Foreground="#66758A" />
+                  <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.MemoryUsage}" />
+                  <TextBlock Grid.Row="4" Text="{DynamicResource Containers_Network}" Foreground="#66758A" />
+                  <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.NetworkIo}" />
+                  <TextBlock Grid.Row="5" Text="{DynamicResource Containers_Ports}" Foreground="#66758A" />
+                  <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Ports}" TextWrapping="Wrap" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="{DynamicResource Common_Start}" Command="{Binding ContainerModule.RequestStartCommand}" IsEnabled="{Binding ContainerModule.CanStartSelected}" />
+              <Button Content="{DynamicResource Common_Stop}" Command="{Binding ContainerModule.RequestStopCommand}" IsEnabled="{Binding ContainerModule.CanStopSelected}" />
+              <Button Content="{DynamicResource Common_Restart}" Command="{Binding ContainerModule.RequestRestartCommand}" IsEnabled="{Binding ContainerModule.CanRestartSelected}" />
+            </StackPanel>
+
+            <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding ContainerModule.HasPendingAction}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{Binding ContainerModule.PendingActionMessage}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="{DynamicResource Containers_ConfirmAction}" Command="{Binding ContainerModule.ConfirmActionCommand}" />
+                  <Button Content="{DynamicResource Common_Cancel}" Command="{Binding ContainerModule.CancelActionCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="{DynamicResource Containers_SafetyNote}" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:storage="using:VpsDesk.Domain.Storage"
+             x:Class="VpsDesk.Desktop.Views.StorageView"
+             x:DataType="vm:StorageViewModel">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel>
+        <TextBlock Text="{DynamicResource Storage_Title}" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Storage_Subtitle}" Foreground="#8290A3" FontSize="11" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <TextBlock Text="{Binding LastUpdated}" Foreground="#8290A3" VerticalAlignment="Center" />
+        <Button Content="{DynamicResource Storage_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="1.3*,*,*" ColumnSpacing="14">
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{DynamicResource Storage_RootFilesystem}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{Binding RootUsagePercent, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
+          <ProgressBar Minimum="0" Maximum="100" Value="{Binding RootUsagePercent}" Height="8" />
+          <TextBlock Text="{Binding RootUsed}" Foreground="#A8B4C5" />
+          <TextBlock Text="{Binding RootAvailable}" Foreground="#66758A" FontSize="11" />
+          <TextBlock Text="{Binding RootTotal}" Foreground="#66758A" FontSize="11" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="1" Classes="card">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource Storage_DockerImages}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{Binding ImageCount}" FontSize="34" FontWeight="SemiBold" Margin="0,12,0,0" />
+          <TextBlock Text="{DynamicResource Storage_ImagesHelp}" Foreground="#66758A" FontSize="11" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="2" Classes="card">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource Storage_DockerVolumes}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{Binding VolumeCount}" FontSize="34" FontWeight="SemiBold" Margin="0,12,0,0" />
+          <TextBlock Text="{DynamicResource Storage_VolumesHelp}" Foreground="#66758A" FontSize="11" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="2" ColumnDefinitions="1.1*,1.5*,1.1*" ColumnSpacing="14">
+      <Border Classes="card">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <StackPanel>
+            <TextBlock Text="{DynamicResource Storage_DockerUsage}" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="docker system df" Foreground="#66758A" FontSize="11" />
+          </StackPanel>
+          <ListBox Grid.Row="1" ItemsSource="{Binding DockerUsage}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="storage:DockerDiskUsage">
+                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Type}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Size}" Foreground="#A8B4C5" />
+                    <TextBlock Text="{Binding Reclaimable}" Foreground="#66758A" FontSize="11" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Classes="card">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <TextBlock Text="{DynamicResource Storage_Images}" FontSize="16" FontWeight="SemiBold" />
+          <ListBox Grid.Row="1" ItemsSource="{Binding Images}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="storage:DockerImageInfo">
+                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel>
+                      <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding CreatedSince}" Foreground="#66758A" FontSize="11" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Size}" Foreground="#A8B4C5" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="2" Classes="card">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+          <TextBlock Text="{DynamicResource Storage_Volumes}" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+          <ListBox Grid.Row="2" ItemsSource="{Binding Volumes}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="storage:DockerVolumeInfo">
+                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Driver}" Foreground="#66758A" FontSize="11" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

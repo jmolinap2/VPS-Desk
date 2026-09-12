@@ -4,6 +4,7 @@
         xmlns:vm="using:VpsDesk.Desktop.ViewModels"
         xmlns:servers="using:VpsDesk.Domain.Servers"
         xmlns:containers="using:VpsDesk.Domain.Containers"
+        xmlns:views="using:VpsDesk.Desktop.Views"
         x:Class="VpsDesk.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="VPS Desk"
@@ -381,7 +382,11 @@
         </Grid>
       </Grid>
 
-      <Grid IsVisible="{Binding IsLegacyPlaceholderPage}" Margin="24">
+      <Grid IsVisible="{Binding IsLogsPage}">
+        <views:LogsView DataContext="{Binding LogsModule}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsModulesPlaceholderPage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />

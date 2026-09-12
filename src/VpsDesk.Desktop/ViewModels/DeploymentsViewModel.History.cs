@@ -64,7 +64,7 @@ public partial class DeploymentsViewModel
 
         DeploymentHistory.Clear();
         foreach (var item in items) DeploymentHistory.Add(item);
-        SelectedHistoryEntry ??= DeploymentHistory.FirstOrDefault();
+        SelectedHistoryEntry = DeploymentHistory.FirstOrDefault();
     }
 
     private void BeginPreflightModal()
@@ -151,6 +151,38 @@ public partial class DeploymentsViewModel
             output,
             details.Length == 0 ? null : details.ToString().TrimEnd());
 
+        await SaveHistoryEntryAsync(entry);
+    }
+
+    private async Task RecordDeploymentFailureAsync(ServerProfile server, DateTimeOffset startedAt, Exception exception)
+    {
+        if (_historyStore is null) return;
+        var now = DateTimeOffset.UtcNow;
+        var entry = new OperationHistoryEntry(
+            Guid.NewGuid(),
+            server.Id,
+            server.Name,
+            server.Environment.ToString(),
+            OperationKind.Deployment,
+            "Deploy",
+            $"Despliegue fallido · {Branch.Trim()} · excepción",
+            OperationOutcome.Failed,
+            startedAt,
+            now,
+            RemoteRepositoryPath.Trim(),
+            Branch.Trim(),
+            null,
+            null,
+            ComposeFile.Trim(),
+            "Excepción",
+            exception.Message,
+            exception.ToString());
+        await SaveHistoryEntryAsync(entry);
+    }
+
+    private async Task SaveHistoryEntryAsync(OperationHistoryEntry entry)
+    {
+        if (_historyStore is null) return;
         await _historyStore.AddAsync(entry);
         await RefreshHistoryAsync();
         HistoryChanged?.Invoke(this, EventArgs.Empty);

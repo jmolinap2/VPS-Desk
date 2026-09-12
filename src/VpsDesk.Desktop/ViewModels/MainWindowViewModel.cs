@@ -27,96 +27,43 @@ public partial class MainWindowViewModel : ObservableObject
     public IEnumerable<ISeries> CpuGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(CpuUsage));
     public IEnumerable<ISeries> DiskGaugeSeries => GaugeGenerator.BuildSolidGauge(new GaugeItem(DiskUsage));
 
-    [ObservableProperty]
-    private string _selectedServerName = "No server selected";
-
-    [ObservableProperty]
-    private string _connectionStatus = "Offline";
-
-    [ObservableProperty]
-    private string _compatibilityLabel = "Compatibility unknown";
-
-    [ObservableProperty]
-    private string _dockerStatus = "Unknown";
-
-    [ObservableProperty]
-    private string _nginxStatus = "Unknown";
-
-    [ObservableProperty]
-    private string _lastChecked = "Never";
-
-    [ObservableProperty]
-    private string _loadSummary = "Load -- / -- / --";
-
-    [ObservableProperty]
-    private string _memorySummary = "Awaiting connection";
-
-    [ObservableProperty]
-    private string _networkSummary = "Network RX/TX --";
-
-    [ObservableProperty]
-    private string _statusMessage = "Ready";
-
-    [ObservableProperty]
-    private double _cpuUsage;
-
-    [ObservableProperty]
-    private double _memoryUsage;
-
-    [ObservableProperty]
-    private double _diskUsage;
-
-    [ObservableProperty]
-    private string _uptime = "--";
+    [ObservableProperty] private string _selectedServerName = "No server selected";
+    [ObservableProperty] private string _connectionStatus = "Offline";
+    [ObservableProperty] private string _compatibilityLabel = "Compatibility unknown";
+    [ObservableProperty] private string _dockerStatus = "Unknown";
+    [ObservableProperty] private string _nginxStatus = "Unknown";
+    [ObservableProperty] private string _lastChecked = "Never";
+    [ObservableProperty] private string _loadSummary = "Load -- / -- / --";
+    [ObservableProperty] private string _memorySummary = "Awaiting connection";
+    [ObservableProperty] private string _networkSummary = "Network RX/TX --";
+    [ObservableProperty] private string _statusMessage = "Ready";
+    [ObservableProperty] private double _cpuUsage;
+    [ObservableProperty] private double _memoryUsage;
+    [ObservableProperty] private double _diskUsage;
+    [ObservableProperty] private string _uptime = "--";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     private bool _isRefreshing;
 
-    [ObservableProperty]
-    private bool _autoRefreshEnabled;
+    [ObservableProperty] private bool _autoRefreshEnabled;
+    [ObservableProperty] private string _selectedPage = "Dashboard";
+    [ObservableProperty] private string _headerTitle = "Dashboard";
+    [ObservableProperty] private string _headerSubtitle = "Overview of the selected Linux VPS";
+    [ObservableProperty] private ServerProfile? _selectedServerInList;
 
-    [ObservableProperty]
-    private string _selectedPage = "Dashboard";
-
-    [ObservableProperty]
-    private string _headerTitle = "Dashboard";
-
-    [ObservableProperty]
-    private string _headerSubtitle = "Overview of the selected Linux VPS";
-
-    [ObservableProperty]
-    private ServerProfile? _selectedServerInList;
-
-    [ObservableProperty]
-    private string _editorName = string.Empty;
-
-    [ObservableProperty]
-    private string _editorHost = string.Empty;
-
-    [ObservableProperty]
-    private int _editorPort = 22;
-
-    [ObservableProperty]
-    private string _editorUsername = "root";
-
-    [ObservableProperty]
-    private string _editorAuthenticationType = "PrivateKey";
-
-    [ObservableProperty]
-    private string _editorPrivateKeyPath = string.Empty;
-
-    [ObservableProperty]
-    private string _editorSecret = string.Empty;
-
-    [ObservableProperty]
-    private string _editorProvider = "Hostinger";
-
-    [ObservableProperty]
-    private string _editorEnvironment = "Production";
-
-    [ObservableProperty]
-    private string _serverEditorMessage = "Secrets are kept in memory only and are not written to servers.json.";
+    [ObservableProperty] private string _editorName = string.Empty;
+    [ObservableProperty] private string _editorHost = string.Empty;
+    [ObservableProperty] private int _editorPort = 22;
+    [ObservableProperty] private string _editorUsername = "root";
+    [ObservableProperty] private string _editorAuthenticationType = "PrivateKey";
+    [ObservableProperty] private string _editorPrivateKeyPath = string.Empty;
+    [ObservableProperty] private string _editorSecret = string.Empty;
+    [ObservableProperty] private string _editorProvider = "Hostinger";
+    [ObservableProperty] private string _editorEnvironment = "Production";
+    [ObservableProperty] private string _editorHostKeyFingerprint = string.Empty;
+    [ObservableProperty] private bool _isTestingServer;
+    [ObservableProperty] private string _serverEditorMessage = "Secrets are kept in memory only and are not written to servers.json.";
 
     public bool IsDashboardPage => SelectedPage == "Dashboard";
     public bool IsServersPage => SelectedPage == "Servers";
@@ -231,69 +178,83 @@ public partial class MainWindowViewModel : ObservableObject
         EditorSecret = string.Empty;
         EditorProvider = "Hostinger";
         EditorEnvironment = "Production";
+        EditorHostKeyFingerprint = string.Empty;
         ServerEditorMessage = "Create a profile. Passwords/passphrases are session-only for now.";
     }
 
     [RelayCommand]
     private void SaveServer()
     {
-        if (string.IsNullOrWhiteSpace(EditorName) || string.IsNullOrWhiteSpace(EditorHost) || string.IsNullOrWhiteSpace(EditorUsername))
-        {
-            ServerEditorMessage = "Name, host and username are required.";
-            return;
-        }
-
-        if (EditorPort is < 1 or > 65535)
-        {
-            ServerEditorMessage = "SSH port must be between 1 and 65535.";
-            return;
-        }
-
-        if (!Enum.TryParse<SshAuthenticationType>(EditorAuthenticationType, out var auth) || auth == SshAuthenticationType.Agent)
-        {
-            auth = SshAuthenticationType.PrivateKey;
-        }
-
-        if (!Enum.TryParse<ServerEnvironment>(EditorEnvironment, out var environment))
-        {
-            environment = ServerEnvironment.Production;
-        }
-
-        if (auth == SshAuthenticationType.PrivateKey && string.IsNullOrWhiteSpace(EditorPrivateKeyPath))
-        {
-            ServerEditorMessage = "Select or enter a private key path for key authentication.";
-            return;
-        }
-
         var id = _editingServerId ?? Guid.NewGuid();
-        var profile = new ServerProfile(
-            id,
-            EditorName.Trim(),
-            EditorHost.Trim(),
-            EditorPort,
-            EditorUsername.Trim(),
-            auth,
-            auth == SshAuthenticationType.PrivateKey ? EditorPrivateKeyPath.Trim() : null,
-            null,
-            string.IsNullOrWhiteSpace(EditorProvider) ? null : EditorProvider.Trim(),
-            environment,
-            []);
+        if (!TryBuildEditorProfile(id, out var profile, out var error))
+        {
+            ServerEditorMessage = error;
+            return;
+        }
 
         var existing = Servers.FirstOrDefault(x => x.Id == id);
         if (existing == null)
         {
-            Servers.Add(profile);
+            Servers.Add(profile!);
         }
         else
         {
             var index = Servers.IndexOf(existing);
-            Servers[index] = profile;
+            Servers[index] = profile!;
+            if (_server?.Id == id)
+            {
+                _server = profile;
+                ApplyActiveServerHeader();
+            }
         }
 
         _editingServerId = id;
         SelectedServerInList = profile;
         _store.Save(Servers, _server?.Id);
-        ServerEditorMessage = "Profile saved locally. Secret was not persisted.";
+        ServerEditorMessage = string.IsNullOrWhiteSpace(profile!.HostKeyFingerprintSha256)
+            ? "Profile saved locally. Secret was not persisted. Add the server SHA256 fingerprint to pin its identity."
+            : "Profile saved locally with SSH host-key pinning. Secret was not persisted.";
+    }
+
+    [RelayCommand]
+    private async Task TestServerAsync()
+    {
+        var id = _editingServerId ?? Guid.NewGuid();
+        if (!TryBuildEditorProfile(id, out var profile, out var error))
+        {
+            ServerEditorMessage = error;
+            return;
+        }
+
+        IsTestingServer = true;
+        ServerEditorMessage = "Testing SSH connection and Linux capabilities...";
+        try
+        {
+            var secret = string.IsNullOrWhiteSpace(EditorSecret) ? null : EditorSecret;
+            var result = await _probe.CheckCompatibilityAsync(profile!, secret);
+            var ssh = result.Capabilities.FirstOrDefault(x => x.Capability == ServerCapability.Ssh);
+            if (ssh?.Available != true)
+            {
+                ServerEditorMessage = $"SSH failed: {ssh?.Detail ?? "connection or authentication rejected"}";
+                return;
+            }
+
+            var detected = result.Capabilities
+                .Where(x => x.Available && x.Capability is not ServerCapability.Ssh and not ServerCapability.Linux)
+                .Select(x => x.Capability.ToString())
+                .ToArray();
+
+            ServerEditorMessage = $"Connection OK · {result.Distribution ?? "Linux"} · {result.Level} · " +
+                                  (detected.Length == 0 ? "basic SSH only" : string.Join(", ", detected));
+        }
+        catch (Exception ex)
+        {
+            ServerEditorMessage = $"Connection test failed: {ex.Message}";
+        }
+        finally
+        {
+            IsTestingServer = false;
+        }
     }
 
     [RelayCommand]
@@ -322,7 +283,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (SelectedServerInList == null)
         {
-            ServerEditorMessage = "Select a server first.";
+            ServerEditorMessage = "Select a saved server first.";
             return;
         }
 
@@ -406,6 +367,55 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private bool TryBuildEditorProfile(Guid id, out ServerProfile? profile, out string error)
+    {
+        profile = null;
+        error = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(EditorName) || string.IsNullOrWhiteSpace(EditorHost) || string.IsNullOrWhiteSpace(EditorUsername))
+        {
+            error = "Name, host and username are required.";
+            return false;
+        }
+
+        if (EditorPort is < 1 or > 65535)
+        {
+            error = "SSH port must be between 1 and 65535.";
+            return false;
+        }
+
+        if (!Enum.TryParse<SshAuthenticationType>(EditorAuthenticationType, out var auth) || auth == SshAuthenticationType.Agent)
+        {
+            auth = SshAuthenticationType.PrivateKey;
+        }
+
+        if (!Enum.TryParse<ServerEnvironment>(EditorEnvironment, out var environment))
+        {
+            environment = ServerEnvironment.Production;
+        }
+
+        if (auth == SshAuthenticationType.PrivateKey && string.IsNullOrWhiteSpace(EditorPrivateKeyPath))
+        {
+            error = "Select or enter a private key path for key authentication.";
+            return false;
+        }
+
+        profile = new ServerProfile(
+            id,
+            EditorName.Trim(),
+            EditorHost.Trim(),
+            EditorPort,
+            EditorUsername.Trim(),
+            auth,
+            auth == SshAuthenticationType.PrivateKey ? EditorPrivateKeyPath.Trim() : null,
+            null,
+            string.IsNullOrWhiteSpace(EditorProvider) ? null : EditorProvider.Trim(),
+            environment,
+            [],
+            string.IsNullOrWhiteSpace(EditorHostKeyFingerprint) ? null : EditorHostKeyFingerprint.Trim());
+        return true;
+    }
+
     private void LoadEditor(ServerProfile server)
     {
         _editingServerId = server.Id;
@@ -418,7 +428,8 @@ public partial class MainWindowViewModel : ObservableObject
         EditorSecret = server.Id == _server?.Id ? _activeSecret ?? string.Empty : string.Empty;
         EditorProvider = server.ProviderLabel ?? string.Empty;
         EditorEnvironment = server.Environment.ToString();
-        ServerEditorMessage = "Edit the profile or activate it. Secrets are not persisted.";
+        EditorHostKeyFingerprint = server.HostKeyFingerprintSha256 ?? string.Empty;
+        ServerEditorMessage = "Edit, test, save or activate this profile. Secrets are not persisted.";
     }
 
     private void ApplyActiveServerHeader()

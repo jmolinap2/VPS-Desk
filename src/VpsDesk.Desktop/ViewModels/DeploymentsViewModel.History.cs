@@ -5,13 +5,15 @@ using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Activity;
 using VpsDesk.Application.Deployments;
 using VpsDesk.Domain.Activity;
-using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
 
 public partial class DeploymentsViewModel
 {
     private IOperationHistoryStore? _historyStore;
+    private bool _deploymentObserved;
+    private bool _historyRecordedForCurrentRun;
+    private DateTimeOffset _observedDeploymentStartedAt;
 
     public ObservableCollection<OperationHistoryEntry> DeploymentHistory { get; } = new();
 
@@ -27,6 +29,53 @@ public partial class DeploymentsViewModel
 
     partial void OnIsHistoryViewChanged(bool value)
         => OnPropertyChanged(nameof(IsNewDeploymentView));
+
+    partial void OnStatusMessageChanged(string value)
+    {
+        if (value.Contains("preflight", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("validación previa", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsBusy && Steps.Count == 0)
+            {
+                BeginPreflightModal();
+            }
+        }
+
+        if (value.Contains("Deployment is running", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("despliegue está en ejecución", StringComparison.OrdinalIgnoreCase))
+        {
+            _deploymentObserved = true;
+            _historyRecordedForCurrentRun = false;
+            _observedDeploymentStartedAt = DateTimeOffset.UtcNow;
+        }
+
+        if (value.Contains("Verifying the real container", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("Verificando", StringComparison.OrdinalIgnoreCase) && value.Contains("contenedor", StringComparison.OrdinalIgnoreCase))
+        {
+            BeginPostflightModal();
+        }
+    }
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        if (value) return;
+
+        if (IsPreflightModalOpen && !_deploymentObserved)
+        {
+            _ = CompletePreflightModalAsync(CanDeploy);
+        }
+
+        if (IsPostflightModalOpen)
+        {
+            CompletePostflightModalFromChecks();
+        }
+
+        if (_deploymentObserved && !_historyRecordedForCurrentRun)
+        {
+            _historyRecordedForCurrentRun = true;
+            _ = RecordObservedDeploymentAsync();
+        }
+    }
 
     public void InitializeHistory(IOperationHistoryStore historyStore)
     {
@@ -92,43 +141,50 @@ public partial class DeploymentsViewModel
         PostflightModalMessage = "Verificando contenedores y comprobaciones HTTP después del despliegue...";
     }
 
-    private void CompletePostflightModal(PostDeployVerificationResult verification)
+    private void CompletePostflightModalFromChecks()
     {
-        PostflightModalMessage = verification.Passed
-            ? verification.HasWarnings
+        var failed = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Failed);
+        var warnings = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Warning);
+        PostflightModalMessage = failed
+            ? "El postvuelo encontró problemas. El despliegue terminó, pero no debe considerarse saludable todavía."
+            : warnings
                 ? "Postvuelo completado con advertencias. Revísalas antes de dar por saludable la versión."
-                : "Postvuelo correcto. La versión desplegada pasó las comprobaciones."
-            : "El postvuelo encontró problemas. El despliegue terminó, pero no debe considerarse saludable todavía.";
+                : "Postvuelo correcto. La versión desplegada pasó las comprobaciones.";
     }
 
-    private async Task RecordDeploymentAsync(
-        ServerProfile server,
-        ComposeDeploymentResult result,
-        PostDeployVerificationResult? verification,
-        string output)
+    private async Task RecordObservedDeploymentAsync()
     {
         if (_historyStore is null) return;
+        var server = _serverAccessor();
+        if (server is null) return;
 
-        var outcome = !result.Succeeded || verification?.Passed == false
+        var hasFailedStep = Steps.Any(x => !x.Succeeded);
+        var hasFailedPostCheck = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Failed);
+        var hasWarning = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Warning);
+        var statusLooksFailed = StatusMessage.Contains("failed", StringComparison.OrdinalIgnoreCase)
+                                || StatusMessage.Contains("fall", StringComparison.OrdinalIgnoreCase)
+                                || StatusMessage.Contains("problemas", StringComparison.OrdinalIgnoreCase);
+
+        var outcome = hasFailedStep || hasFailedPostCheck || statusLooksFailed
             ? OperationOutcome.Failed
-            : verification?.HasWarnings == true
+            : hasWarning
                 ? OperationOutcome.Warning
                 : OperationOutcome.Success;
 
+        var failedStep = Steps.FirstOrDefault(x => !x.Succeeded)?.Label;
+        var finishedAt = DateTimeOffset.UtcNow;
+        var startedAt = _observedDeploymentStartedAt == default ? finishedAt : _observedDeploymentStartedAt;
         var details = new StringBuilder();
-        if (verification is not null)
+        foreach (var check in PostChecks)
         {
-            foreach (var check in verification.Checks)
-            {
-                details.AppendLine($"[{check.Status}] {check.Label}: {check.Detail}");
-            }
+            details.AppendLine($"[{check.Status}] {check.Label}: {check.Detail}");
         }
 
         var summary = outcome switch
         {
-            OperationOutcome.Success => $"Despliegue correcto · {Branch.Trim()} · {ShortCommit(result.DeployedCommit)}",
-            OperationOutcome.Warning => $"Despliegue con advertencias · {Branch.Trim()} · {ShortCommit(result.DeployedCommit)}",
-            _ => $"Despliegue fallido · {Branch.Trim()} · {result.FailedStep?.Label ?? "verificación post-despliegue"}"
+            OperationOutcome.Success => $"Despliegue correcto · {Branch.Trim()}",
+            OperationOutcome.Warning => $"Despliegue con advertencias · {Branch.Trim()}",
+            _ => $"Despliegue fallido · {Branch.Trim()} · {failedStep ?? "postvuelo/ejecución"}"
         };
 
         var entry = new OperationHistoryEntry(
@@ -140,56 +196,20 @@ public partial class DeploymentsViewModel
             "Deploy",
             summary,
             outcome,
-            result.StartedAt,
-            result.FinishedAt,
-            RemoteRepositoryPath.Trim(),
-            Branch.Trim(),
-            result.PreviousCommit,
-            result.DeployedCommit,
-            ComposeFile.Trim(),
-            result.FailedStep?.Label,
-            output,
-            details.Length == 0 ? null : details.ToString().TrimEnd());
-
-        await SaveHistoryEntryAsync(entry);
-    }
-
-    private async Task RecordDeploymentFailureAsync(ServerProfile server, DateTimeOffset startedAt, Exception exception)
-    {
-        if (_historyStore is null) return;
-        var now = DateTimeOffset.UtcNow;
-        var entry = new OperationHistoryEntry(
-            Guid.NewGuid(),
-            server.Id,
-            server.Name,
-            server.Environment.ToString(),
-            OperationKind.Deployment,
-            "Deploy",
-            $"Despliegue fallido · {Branch.Trim()} · excepción",
-            OperationOutcome.Failed,
             startedAt,
-            now,
+            finishedAt,
             RemoteRepositoryPath.Trim(),
             Branch.Trim(),
             null,
             null,
             ComposeFile.Trim(),
-            "Excepción",
-            exception.Message,
-            exception.ToString());
-        await SaveHistoryEntryAsync(entry);
-    }
+            failedStep,
+            DeploymentOutput,
+            details.Length == 0 ? StatusMessage : details.ToString().TrimEnd());
 
-    private async Task SaveHistoryEntryAsync(OperationHistoryEntry entry)
-    {
-        if (_historyStore is null) return;
         await _historyStore.AddAsync(entry);
         await RefreshHistoryAsync();
         HistoryChanged?.Invoke(this, EventArgs.Empty);
+        _deploymentObserved = false;
     }
-
-    private static string ShortCommit(string? commit)
-        => string.IsNullOrWhiteSpace(commit)
-            ? "sin SHA"
-            : commit.Length <= 8 ? commit : commit[..8];
 }

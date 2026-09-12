@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Desktop.ViewModels;
 using VpsDesk.Desktop.Views;
+using VpsDesk.Infrastructure.Docker;
 using VpsDesk.Infrastructure.Monitoring;
 using VpsDesk.Infrastructure.Ssh;
 
@@ -21,10 +22,14 @@ public partial class App : Avalonia.Application
             var store = new ServerProfileStore();
             var ssh = new SshNetCommandExecutor();
             var probe = new LinuxServerProbeService(ssh);
+            var containers = new DockerContainerService(ssh);
+
+            var viewModel = new MainWindowViewModel(probe, store, bootstrap);
+            viewModel.InitializeContainers(containers);
 
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(probe, store, bootstrap)
+                DataContext = viewModel
             };
         }
 

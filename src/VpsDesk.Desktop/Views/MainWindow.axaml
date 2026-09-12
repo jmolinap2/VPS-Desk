@@ -82,7 +82,11 @@
         <views:FilesView DataContext="{Binding FilesModule}" />
       </Grid>
 
-      <Grid IsVisible="{Binding IsPendingOperationsPage}" Margin="24">
+      <Grid IsVisible="{Binding IsSecurityPage}">
+        <views:SecurityView DataContext="{Binding SecurityModule}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsPendingUtilityPage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />

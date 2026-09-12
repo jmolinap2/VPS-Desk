@@ -1,0 +1,149 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        x:Class="VpsDesk.Desktop.Views.MainWindow"
+        Title="VPS Desk"
+        Width="1440"
+        Height="900"
+        MinWidth="1180"
+        MinHeight="720">
+  <Grid ColumnDefinitions="224,*" RowDefinitions="64,*">
+    <Border Grid.RowSpan="2" Background="#0E1219" BorderBrush="#202734" BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="72,60,*">
+        <StackPanel Margin="20,18,12,12">
+          <TextBlock Text="VPS Desk" FontSize="22" FontWeight="SemiBold" />
+          <TextBlock Text="Linux operations client" FontSize="11" Foreground="#8290A3" />
+        </StackPanel>
+        <Border Grid.Row="1" Margin="12,4" Padding="12,8" Background="#151B25" CornerRadius="8">
+          <StackPanel>
+            <TextBlock Text="{Binding SelectedServerName}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConnectionStatus}" FontSize="11" Foreground="#8290A3" />
+          </StackPanel>
+        </Border>
+        <ScrollViewer Grid.Row="2">
+          <StackPanel Margin="4,12">
+            <Button Classes="nav" Content="Servers" />
+            <Button Classes="nav" Content="Dashboard" Background="#1A2635" />
+            <Button Classes="nav" Content="Containers" />
+            <Button Classes="nav" Content="Deployments" />
+            <Button Classes="nav" Content="Logs" />
+            <Button Classes="nav" Content="Storage" />
+            <Button Classes="nav" Content="Files" />
+            <Button Classes="nav" Content="Terminal" />
+            <Button Classes="nav" Content="Security" />
+            <Border Height="1" Background="#202734" Margin="12,12" />
+            <Button Classes="nav" Content="Settings" />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+
+    <Border Grid.Column="1" Background="#0D1118" BorderBrush="#202734" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" Margin="24,0">
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="Dashboard" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Text="Overview of the selected Linux VPS" FontSize="11" Foreground="#8290A3" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
+            <TextBlock Text="HOSTINGER · CERTIFIED" FontSize="11" FontWeight="SemiBold" />
+          </Border>
+          <Border Background="#1A2230" CornerRadius="14" Padding="10,5">
+            <TextBlock Text="SSH OFFLINE" FontSize="11" FontWeight="SemiBold" />
+          </Border>
+          <Button Content="Refresh" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Column="1" Grid.Row="1">
+      <StackPanel Margin="24" Spacing="18">
+        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="CPU" Foreground="#8290A3" />
+              <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuUsage}" Height="6" />
+              <TextBlock Text="Load 1 / 5 / 15" FontSize="11" Foreground="#66758A" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="MEMORY" Foreground="#8290A3" />
+              <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}" Height="6" />
+              <TextBlock Text="Awaiting connection" FontSize="11" Foreground="#66758A" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="2" Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="DISK" Foreground="#8290A3" />
+              <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}" FontSize="30" FontWeight="SemiBold" />
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding DiskUsage}" Height="6" />
+              <TextBlock Text="Root filesystem" FontSize="11" Foreground="#66758A" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="3" Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="UPTIME" Foreground="#8290A3" />
+              <TextBlock Text="{Binding Uptime}" FontSize="30" FontWeight="SemiBold" />
+              <TextBlock Text="Network RX/TX pending" FontSize="11" Foreground="#66758A" Margin="0,14,0,0" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid ColumnDefinitions="2*,*" ColumnSpacing="14" MinHeight="360">
+          <Border Classes="card">
+            <Grid RowDefinitions="Auto,*">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" />
+                  <TextBlock Text="CPU and memory · waiting for live telemetry" FontSize="11" Foreground="#8290A3" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                  <Button Content="5m" />
+                  <Button Content="15m" />
+                  <Button Content="1h" />
+                </StackPanel>
+              </Grid>
+              <lvc:CartesianChart Grid.Row="1" Margin="0,18,0,0" LegendPosition="Top">
+                <lvc:CartesianChart.Series>
+                  <lvc:XamlLineSeries SeriesName="CPU" Values="{Binding CpuSeries}" Fill="{x:Null}" GeometrySize="0" />
+                  <lvc:XamlLineSeries SeriesName="Memory" Values="{Binding MemorySeries}" Fill="{x:Null}" GeometrySize="0" />
+                </lvc:CartesianChart.Series>
+              </lvc:CartesianChart>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Classes="card">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Services" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="Detected capabilities and services will appear here after connecting." TextWrapping="Wrap" Foreground="#8290A3" />
+              <Border Background="#0E131B" CornerRadius="8" Padding="12">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Docker" Margin="10,0" />
+                  <TextBlock Grid.Column="2" Text="Unknown" Foreground="#8290A3" />
+                </Grid>
+              </Border>
+              <Border Background="#0E131B" CornerRadius="8" Padding="12">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Ellipse Width="9" Height="9" Fill="#66758A" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="Nginx" Margin="10,0" />
+                  <TextBlock Grid.Column="2" Text="Unknown" Foreground="#8290A3" />
+                </Grid>
+              </Border>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Recent activity" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="No operations recorded in this new profile." Foreground="#8290A3" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Window>

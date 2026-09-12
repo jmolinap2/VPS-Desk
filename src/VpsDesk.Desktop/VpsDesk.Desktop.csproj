@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
+    <ProjectReference Include="../VpsDesk.Application/VpsDesk.Application.csproj" />
+    <ProjectReference Include="../VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
+  </ItemGroup>
+</Project>

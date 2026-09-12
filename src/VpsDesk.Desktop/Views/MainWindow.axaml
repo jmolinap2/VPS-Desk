@@ -74,7 +74,11 @@
         <views:StorageView DataContext="{Binding StorageModule}" />
       </Grid>
 
-      <Grid IsVisible="{Binding IsRemainingPlaceholderPage}" Margin="24">
+      <Grid IsVisible="{Binding IsFilesPage}">
+        <views:FilesView DataContext="{Binding FilesModule}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsPendingModulePage}" Margin="24">
         <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding HeaderTitle}" FontSize="20" FontWeight="SemiBold" />

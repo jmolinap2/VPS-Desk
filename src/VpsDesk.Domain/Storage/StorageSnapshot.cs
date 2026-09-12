@@ -8,6 +8,7 @@ public sealed record StorageSnapshot(
     IReadOnlyList<DockerDiskUsage> DockerUsage,
     IReadOnlyList<DockerImageInfo> Images,
     IReadOnlyList<DockerVolumeInfo> Volumes,
+    IReadOnlyList<HeavyDirectoryInfo> HeavyDirectories,
     DateTimeOffset CollectedAtUtc);
 
 public sealed record DockerDiskUsage(

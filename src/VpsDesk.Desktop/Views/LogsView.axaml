@@ -6,37 +6,37 @@
   <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
-        <TextBlock Text="Log center" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="Read Docker logs and systemd journal entries directly over SSH." Foreground="#8290A3" FontSize="11" />
+        <TextBlock Text="{DynamicResource Logs_Title}" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Logs_Subtitle}" Foreground="#8290A3" FontSize="11" />
       </StackPanel>
-      <TextBlock Grid.Column="1" Text="{Binding LastLoaded, StringFormat=Last loaded {0}}" Foreground="#8290A3" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding LastLoaded}" Foreground="#8290A3" VerticalAlignment="Center" />
     </Grid>
 
     <Border Grid.Row="1" Classes="card">
       <Grid ColumnDefinitions="1.05*,1.55*,0.65*,Auto" ColumnSpacing="12">
         <StackPanel>
-          <TextBlock Text="Source type" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Logs_SourceType}" Foreground="#8290A3" FontSize="11" />
           <ComboBox ItemsSource="{Binding SourceTypes}" SelectedItem="{Binding SelectedSourceType}" />
         </StackPanel>
         <StackPanel Grid.Column="1">
-          <TextBlock Text="Source" Foreground="#8290A3" FontSize="11" />
-          <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" PlaceholderText="Choose a source" />
+          <TextBlock Text="{DynamicResource Logs_Source}" Foreground="#8290A3" FontSize="11" />
+          <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" PlaceholderText="{DynamicResource Logs_SourcePlaceholder}" />
         </StackPanel>
         <StackPanel Grid.Column="2">
-          <TextBlock Text="Tail lines" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Logs_TailLines}" Foreground="#8290A3" FontSize="11" />
           <NumericUpDown Minimum="20" Maximum="5000" Increment="50" Value="{Binding TailLines}" />
         </StackPanel>
         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-          <Button Content="Refresh sources" Command="{Binding RefreshSourcesCommand}" IsEnabled="{Binding !IsBusy}" />
-          <Button Content="Load logs" Command="{Binding LoadLogsCommand}" IsEnabled="{Binding !IsBusy}" />
+          <Button Content="{DynamicResource Logs_RefreshSources}" Command="{Binding RefreshSourcesCommand}" IsEnabled="{Binding !IsBusy}" />
+          <Button Content="{DynamicResource Logs_Load}" Command="{Binding LoadLogsCommand}" IsEnabled="{Binding !IsBusy}" />
         </StackPanel>
       </Grid>
     </Border>
 
     <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" RowSpacing="10">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBox Text="{Binding SearchText}" PlaceholderText="Filter loaded lines..." />
-        <Button Grid.Column="1" Content="Clear" Command="{Binding ClearLogsCommand}" Margin="10,0,0,0" />
+        <TextBox Text="{Binding SearchText}" PlaceholderText="{DynamicResource Logs_FilterPlaceholder}" />
+        <Button Grid.Column="1" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearLogsCommand}" Margin="10,0,0,0" />
       </Grid>
 
       <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">

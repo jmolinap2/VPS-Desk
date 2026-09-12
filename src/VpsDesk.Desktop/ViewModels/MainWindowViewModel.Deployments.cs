@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using VpsDesk.Application.Activity;
 using VpsDesk.Application.Deployments;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
@@ -21,6 +22,7 @@ public partial class MainWindowViewModel
         IDeploymentDiscoveryService discoveryService,
         IPostDeployVerificationService postDeployVerificationService,
         DeploymentProfileStore deploymentProfileStore,
+        IOperationHistoryStore historyStore,
         ServerProfile? bootstrapServer,
         string? remoteRepositoryPath,
         string? composeFile)
@@ -39,6 +41,8 @@ public partial class MainWindowViewModel
             remoteRepositoryPath,
             composeFile);
 
+        _deploymentsModule.InitializeHistory(historyStore);
+        _deploymentsModule.HistoryChanged += async (_, _) => await RefreshRecentActivityAsync();
         _deploymentsModule.LoadForServer(_server);
 
         PropertyChanged += HandleDeploymentsNavigation;
@@ -59,10 +63,15 @@ public partial class MainWindowViewModel
                 _deploymentsModule?.LoadForServer(_server);
                 _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
             }
+            else if (SelectedPage == "Dashboard")
+            {
+                _ = RefreshRecentActivityAsync();
+            }
         }
         else if (e.PropertyName == nameof(SelectedServerName))
         {
             _deploymentsModule?.LoadForServer(_server);
+            _ = RefreshRecentActivityAsync();
             if (SelectedPage == "Deployments")
             {
                 _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();

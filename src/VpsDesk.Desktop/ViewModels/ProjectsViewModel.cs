@@ -101,8 +101,18 @@ public partial class ProjectsViewModel : ObservableObject
             }
 
             // Backward-compatible migration: preserve the deployment path/options that existed
-            // before Project became a first-class concept. Nothing from deployments.json is discarded.
-            var imported = _store.ImportLegacyProfile(_deploymentProfiles.Find(server.Id));
+            // before Project became a first-class concept. The old record is promoted to the
+            // project id instead of copied, so removing a project later cannot resurrect it.
+            var legacyProfile = _deploymentProfiles.Find(server.Id);
+            var imported = _store.ImportLegacyProfile(legacyProfile);
+            if (legacyProfile?.ProjectId is null && imported is not null)
+            {
+                _deploymentProfiles.PromoteLegacyProfile(
+                    server.Id,
+                    imported.RemoteRepositoryPath,
+                    imported.Id);
+            }
+
             foreach (var project in _store.List(server.Id)) AssociatedProjects.Add(project);
 
             SelectedProject = _store.GetSelected(server.Id)
@@ -234,6 +244,7 @@ public partial class ProjectsViewModel : ObservableObject
             DateTimeOffset.UtcNow);
 
         _store.Upsert(workspace, select: true);
+        _deploymentProfiles.PromoteLegacyProfile(server.Id, workspace.RemoteRepositoryPath, workspace.Id);
         ReloadAssociated(server.Id, workspace.Id);
         StatusMessage = item.AlreadyAssociated
             ? $"Proyecto '{workspace.Name}' actualizado y seleccionado."

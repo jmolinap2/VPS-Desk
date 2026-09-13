@@ -64,9 +64,9 @@
 
             <Border Height="1" Background="#202734" Margin="12,10" />
             <TextBlock Text="PROYECTO" FontSize="8" FontWeight="Bold" Foreground="#56657A" Margin="14,2,0,5" />
-            <Button Classes="nav" Classes.active="{Binding IsProjectsPage}" Content="Proyectos" Command="{Binding NavigateCommand}" CommandParameter="Projects" />
-            <Button Classes="nav" Classes.active="{Binding IsDeploymentsPage}" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" IsEnabled="{Binding HasActiveProject}" />
-            <Button Classes="nav" Classes.active="{Binding IsEnvironmentPage}" Content="{DynamicResource Nav_Environment}" Command="{Binding NavigateCommand}" CommandParameter="Environment" IsEnabled="{Binding HasActiveProject}" />
+            <Button Classes="nav" Classes.active="{Binding IsProjectsPage}" Content="{Binding LocalizedProjectsNavigationLabel}" Command="{Binding NavigateCommand}" CommandParameter="Projects" />
+            <Button Classes="nav" Classes.active="{Binding IsDeploymentsPage}" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" />
+            <Button Classes="nav" Classes.active="{Binding IsEnvironmentPage}" Content="{DynamicResource Nav_Environment}" Command="{Binding NavigateCommand}" CommandParameter="Environment" />
 
             <Border Height="1" Background="#202734" Margin="12,12" />
             <Button Classes="nav" Classes.active="{Binding IsSettingsPage}" Content="{DynamicResource Nav_Settings}" Command="{Binding NavigateCommand}" CommandParameter="Settings" />

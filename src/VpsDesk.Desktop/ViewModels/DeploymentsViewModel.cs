@@ -19,6 +19,7 @@ public partial class DeploymentsViewModel : ObservableObject
     private readonly string? _bootstrapRemoteRepositoryPath;
     private readonly string? _bootstrapComposeFile;
     private bool _isLoadingProfile;
+    private Guid? _activeProjectId;
 
     public ObservableCollection<PreflightCheckResult> Checks { get; } = new();
     public ObservableCollection<DeploymentStepResult> Steps { get; } = new();
@@ -47,6 +48,8 @@ public partial class DeploymentsViewModel : ObservableObject
     [ObservableProperty] private string _statusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
     [ObservableProperty] private string _lastChecked = "Never";
     [ObservableProperty] private string _deploymentOutput = string.Empty;
+
+    public Guid? ActiveProjectId => _activeProjectId;
 
     public DeploymentsViewModel(
         IDeploymentPreflightService preflight,
@@ -154,6 +157,7 @@ public partial class DeploymentsViewModel : ObservableObject
 
     public void LoadForServer(ServerProfile? server)
     {
+        _activeProjectId = null;
         _isLoadingProfile = true;
         try
         {
@@ -179,13 +183,44 @@ public partial class DeploymentsViewModel : ObservableObject
             StatusMessage = server is null
                 ? "Selecciona y activa un servidor para usar despliegues."
                 : saved is null
-                    ? "Configura este servidor una vez; VPS Desk guardará sus opciones de despliegue localmente."
-                    : $"Perfil de despliegue cargado para {server.Name}. Detecta o valida antes de desplegar.";
+                    ? "Selecciona un proyecto o indica una ruta. VPS Desk también puede detectar proyectos automáticamente."
+                    : $"Configuración heredada cargada para {server.Name}. Puedes asociarla como proyecto sin perder sus opciones.";
         }
         finally
         {
             _isLoadingProfile = false;
+            OnPropertyChanged(nameof(ActiveProjectId));
         }
+    }
+
+    public async Task LoadForProjectAsync(ServerProfile server, ProjectWorkspace project)
+    {
+        _activeProjectId = project.Id;
+        _isLoadingProfile = true;
+        try
+        {
+            Reset();
+            var saved = _profileStore.Find(server.Id, project.Id);
+
+            RemoteRepositoryPath = saved?.RemoteRepositoryPath ?? project.RemoteRepositoryPath;
+            Branch = saved?.Branch ?? project.Branch;
+            ComposeFile = saved?.ComposeFile ?? project.ComposeFile;
+            RequireEnvironmentFile = saved?.RequireEnvironmentFile ?? true;
+            EnvironmentFileName = saved?.EnvironmentFileName ?? project.EnvironmentFileName;
+            PullImages = saved?.PullImages ?? true;
+            BuildImages = saved?.BuildImages ?? true;
+            CleanBuildCache = saved?.CleanBuildCache ?? true;
+            HttpHealthUrls = string.Empty;
+            LoadProjectPreferences(saved);
+            StatusMessage = $"Proyecto activo: {project.Name}. Detectando rama, Compose y capacidades declaradas por el proyecto...";
+        }
+        finally
+        {
+            _isLoadingProfile = false;
+            OnPropertyChanged(nameof(ActiveProjectId));
+        }
+
+        await DiscoverRemoteOptionsAsync();
     }
 
     public void RemoveForServer(Guid serverId) => _profileStore.Remove(serverId);

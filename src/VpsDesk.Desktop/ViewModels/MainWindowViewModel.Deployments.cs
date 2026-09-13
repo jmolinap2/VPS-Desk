@@ -14,7 +14,18 @@ public partial class MainWindowViewModel
         => _deploymentsModule ?? throw new InvalidOperationException("Deployments module has not been initialized.");
 
     public bool IsDeploymentsPage => SelectedPage == "Deployments";
-    public bool IsPendingOperationsPage => !IsDashboardPage && !IsServersPage && !IsContainersPage && !IsDeploymentsPage && !IsLogsPage && !IsStoragePage && !IsFilesPage;
+    public bool IsPendingOperationsPage => !IsDashboardPage
+                                           && !IsServersPage
+                                           && !IsContainersPage
+                                           && !IsProjectsPage
+                                           && !IsDeploymentsPage
+                                           && !IsEnvironmentPage
+                                           && !IsLogsPage
+                                           && !IsStoragePage
+                                           && !IsFilesPage
+                                           && !IsTerminalPage
+                                           && !IsSecurityPage
+                                           && !IsSettingsPage;
 
     public void InitializeDeployments(
         IDeploymentPreflightService preflightService,
@@ -60,7 +71,12 @@ public partial class MainWindowViewModel
 
             if (SelectedPage == "Deployments")
             {
-                _deploymentsModule?.LoadForServer(_server);
+                // Project activation already loaded the correct path/profile. Do not fall back to
+                // the old server-only profile when simply navigating between pages.
+                if (_activeProject is null)
+                {
+                    _deploymentsModule?.LoadForServer(_server);
+                }
                 _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
             }
             else if (SelectedPage == "Dashboard")
@@ -72,7 +88,7 @@ public partial class MainWindowViewModel
         {
             _deploymentsModule?.LoadForServer(_server);
             _ = RefreshRecentActivityAsync();
-            if (SelectedPage == "Deployments")
+            if (SelectedPage == "Deployments" && _activeProject is null)
             {
                 _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
             }

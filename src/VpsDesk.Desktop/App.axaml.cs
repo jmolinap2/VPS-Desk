@@ -37,6 +37,7 @@ public partial class App : Avalonia.Application
             var bootstrap = BootstrapServerProfileLoader.Load();
             var store = new ServerProfileStore();
             var deploymentProfileStore = new DeploymentProfileStore();
+            var projectWorkspaceStore = new ProjectWorkspaceStore();
             var operationHistoryStore = new SqliteOperationHistoryStore();
             var ssh = new SshNetCommandExecutor();
             var terminal = new SshNetInteractiveTerminalService();
@@ -68,6 +69,7 @@ public partial class App : Avalonia.Application
                 bootstrap.RemoteRepositoryPath,
                 bootstrap.ComposeFile);
             viewModel.DeploymentsModule.InitializeProjectRecipes(recipes);
+            viewModel.InitializeProjects(discovery, recipes, projectWorkspaceStore, deploymentProfileStore);
             viewModel.InitializeLogs(containers, logs);
             viewModel.InitializeStorage(storage);
             viewModel.InitializeFiles(files);

@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace VpsDesk.Desktop.Services;
 
 /// <summary>
-/// Non-sensitive deployment settings remembered for a specific server profile.
+/// Non-sensitive deployment settings remembered for a specific server/project workspace.
 /// Secrets remain in the server session and are never written by this store.
 /// </summary>
 public sealed record DeploymentProfile(
@@ -19,7 +19,8 @@ public sealed record DeploymentProfile(
     string? DeploymentTargetId = null,
     string? MigrationModeId = null,
     bool? RunMigrations = null,
-    bool? MigrationOnly = null);
+    bool? MigrationOnly = null,
+    Guid? ProjectId = null);
 
 public sealed record DeploymentProfileStoreSnapshot(IReadOnlyList<DeploymentProfile> Profiles);
 
@@ -41,12 +42,19 @@ public sealed class DeploymentProfileStore
     }
 
     public DeploymentProfile? Find(Guid serverId)
-        => Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId);
+        => Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId && profile.ProjectId is null)
+           ?? Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId);
+
+    public DeploymentProfile? Find(Guid serverId, Guid projectId)
+        => Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId && profile.ProjectId == projectId);
+
+    public IReadOnlyList<DeploymentProfile> List(Guid serverId)
+        => Load().Profiles.Where(profile => profile.ServerId == serverId).ToArray();
 
     public void Upsert(DeploymentProfile profile)
     {
         var profiles = Load().Profiles
-            .Where(existing => existing.ServerId != profile.ServerId)
+            .Where(existing => !SameIdentity(existing, profile))
             .Append(profile)
             .ToArray();
 
@@ -60,6 +68,26 @@ public sealed class DeploymentProfileStore
             .ToArray();
 
         Save(profiles);
+    }
+
+    public void RemoveProject(Guid serverId, Guid projectId)
+    {
+        var profiles = Load().Profiles
+            .Where(profile => !(profile.ServerId == serverId && profile.ProjectId == projectId))
+            .ToArray();
+        Save(profiles);
+    }
+
+    private static bool SameIdentity(DeploymentProfile left, DeploymentProfile right)
+    {
+        if (left.ServerId != right.ServerId) return false;
+        if (left.ProjectId is not null || right.ProjectId is not null)
+        {
+            return left.ProjectId == right.ProjectId;
+        }
+
+        return NormalizePath(left.RemoteRepositoryPath)
+            .Equals(NormalizePath(right.RemoteRepositoryPath), StringComparison.Ordinal);
     }
 
     private DeploymentProfileStoreSnapshot Load()
@@ -93,5 +121,12 @@ public sealed class DeploymentProfileStore
         var temporaryPath = _filePath + ".tmp";
         File.WriteAllText(temporaryPath, json);
         File.Move(temporaryPath, _filePath, overwrite: true);
+    }
+
+    private static string NormalizePath(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Length > 1) trimmed = trimmed.TrimEnd('/');
+        return trimmed;
     }
 }

@@ -46,7 +46,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         client.Connect();
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var command = client.CreateCommand(request.Command);
+        using var command = client.CreateCommand(NormalizeRemoteCommand(request.Command));
         command.CommandTimeout = request.Timeout;
         var stdout = command.Execute();
         var stderr = command.Error ?? string.Empty;
@@ -55,4 +55,9 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
 
         return new SshCommandResult(exitCode, stdout ?? string.Empty, stderr, stopwatch.Elapsed, false, false);
     }
+
+    private static string NormalizeRemoteCommand(string command)
+        => command
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal);
 }

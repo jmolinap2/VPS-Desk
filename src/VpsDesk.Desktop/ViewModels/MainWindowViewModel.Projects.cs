@@ -1,6 +1,8 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using VpsDesk.Application.Deployments;
 using VpsDesk.Desktop.Services;
+using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -37,8 +39,9 @@ public partial class MainWindowViewModel
             () => _activeSecret,
             ActivateProjectContextAsync);
 
-        _projectsModule.LoadForServer();
+        Servers.CollectionChanged += HandleServersCollectionChanged;
         PropertyChanged += HandleProjectsNavigation;
+        _projectsModule.LoadForServer();
 
         OnPropertyChanged(nameof(ProjectsModule));
         NotifyProjectContextChanged();
@@ -61,6 +64,15 @@ public partial class MainWindowViewModel
             _activeProject = null;
             _projectsModule?.LoadForServer();
             NotifyProjectContextChanged();
+        }
+    }
+
+    private void HandleServersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action != NotifyCollectionChangedAction.Remove || e.OldItems is null) return;
+        foreach (var removed in e.OldItems.OfType<ServerProfile>())
+        {
+            RemoveProjectsForServer(removed.Id);
         }
     }
 

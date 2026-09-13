@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using VpsDesk.Desktop.ViewModels;
@@ -10,6 +11,7 @@ public partial class MainWindow : Window
     {
         Interval = TimeSpan.FromSeconds(10)
     };
+    private MainWindowViewModel? _viewModel;
 
     public MainWindow()
     {
@@ -35,7 +37,13 @@ public partial class MainWindow : Window
 
         Opened += async (_, _) =>
         {
-            if (DataContext is MainWindowViewModel vm && vm.RefreshCommand.CanExecute(null))
+            if (DataContext is not MainWindowViewModel vm) return;
+
+            _viewModel = vm;
+            ApplyTelemetryInterval(vm.SettingsModule.RefreshIntervalSeconds);
+            vm.SettingsModule.PropertyChanged += SettingsOnPropertyChanged;
+
+            if (vm.RefreshCommand.CanExecute(null))
             {
                 await vm.RefreshCommand.ExecuteAsync(null);
             }
@@ -43,6 +51,26 @@ public partial class MainWindow : Window
             _telemetryTimer.Start();
         };
 
-        Closed += (_, _) => _telemetryTimer.Stop();
+        Closed += async (_, _) =>
+        {
+            _telemetryTimer.Stop();
+            if (_viewModel != null)
+            {
+                _viewModel.SettingsModule.PropertyChanged -= SettingsOnPropertyChanged;
+                await _viewModel.DisposeTerminalAsync();
+            }
+        };
     }
+
+    private void SettingsOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsViewModel.RefreshIntervalSeconds)
+            && sender is SettingsViewModel settings)
+        {
+            ApplyTelemetryInterval(settings.RefreshIntervalSeconds);
+        }
+    }
+
+    private void ApplyTelemetryInterval(int seconds)
+        => _telemetryTimer.Interval = TimeSpan.FromSeconds(Math.Clamp(seconds, 5, 60));
 }

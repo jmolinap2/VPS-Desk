@@ -33,5 +33,17 @@
       <Setter Property="CornerRadius" Value="12" />
       <Setter Property="Padding" Value="18" />
     </Style>
+    <Style Selector="ListBox TextBlock[Text=Success]">
+      <Setter Property="Foreground" Value="#34D399" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox TextBlock[Text=Warning]">
+      <Setter Property="Foreground" Value="#FBBF24" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox TextBlock[Text=Failed]">
+      <Setter Property="Foreground" Value="#F87171" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
   </Application.Styles>
 </Application>

@@ -4,5 +4,6 @@
     <ProjectReference Include="../VpsDesk.Application/VpsDesk.Application.csproj" />
     <PackageReference Include="SSH.NET" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 </Project>

@@ -6,9 +6,21 @@ public partial class ProjectsViewModel
     {
         _store.RemoveForServer(serverId);
         var activeServer = _serverAccessor();
-        if (activeServer?.Id == serverId)
+        if (activeServer?.Id != serverId) return;
+
+        _suppressSelection = true;
+        try
         {
-            LoadForServer();
+            AssociatedProjects.Clear();
+            DiscoveredProjects.Clear();
+            SelectedProject = null;
+            SelectedDiscovery = null;
+            StatusMessage = "El servidor se eliminó. Sus asociaciones locales de proyectos también se retiraron.";
+        }
+        finally
+        {
+            _suppressSelection = false;
+            NotifyProjectState();
         }
     }
 }

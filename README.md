@@ -43,6 +43,16 @@ Hostinger es el primer entorno probado de forma directa, pero el núcleo de VPS 
 | Terminal | 🚧 | En desarrollo |
 | Settings | 🚧 | En desarrollo |
 
+## Capturas
+
+<div align="center">
+
+<img src="docs/assets/screenshot-panel.png" alt="Panel de métricas de VPS Desk" width="32%" />
+<img src="docs/assets/screenshot-terminal.png" alt="Terminal SSH interactiva de VPS Desk" width="32%" />
+<img src="docs/assets/screenshot-deployments.png" alt="Flujo de despliegues de VPS Desk" width="32%" />
+
+</div>
+
 ## Recetas de proyecto
 
 VPS Desk funciona **sin recetas**. Si detecta un proyecto Git con Docker Compose, puede descubrir sus servicios y ofrecer un despliegue genérico.

@@ -86,6 +86,47 @@ public sealed class SftpRemoteFileService : IRemoteFileService
         }, cancellationToken);
     }
 
+    public async Task<string?> CreateBackupAsync(
+        ServerProfile server,
+        string remotePath,
+        string? secret,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(remotePath))
+        {
+            throw new ArgumentException("Remote path is required.", nameof(remotePath));
+        }
+
+        return await Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(20)));
+            SshConnectionFactory.ApplyHostKeyPolicy(client, server);
+            client.Connect();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!client.Exists(remotePath))
+            {
+                client.Disconnect();
+                return null;
+            }
+
+            var attributes = client.GetAttributes(remotePath);
+            if (attributes.IsDirectory)
+            {
+                throw new InvalidOperationException("A directory cannot be backed up as a text file.");
+            }
+
+            var backupPath = $"{remotePath}.vpsdesk-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}.bak";
+            using var stream = new MemoryStream();
+            client.DownloadFile(remotePath, stream);
+            stream.Position = 0;
+            client.UploadFile(stream, backupPath, false);
+            client.Disconnect();
+            return backupPath;
+        }, cancellationToken);
+    }
+
     public async Task WriteTextAsync(
         ServerProfile server,
         string remotePath,

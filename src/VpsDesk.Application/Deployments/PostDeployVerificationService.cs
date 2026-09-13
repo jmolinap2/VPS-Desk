@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Domain.Servers;
 
@@ -20,7 +21,8 @@ public sealed record PostDeployVerificationRequest(
     ServerProfile Server,
     string RemoteRepositoryPath,
     string ComposeFile,
-    IReadOnlyList<string> HttpHealthUrls);
+    IReadOnlyList<string> HttpHealthUrls,
+    IReadOnlyList<string>? Services = null);
 
 public sealed record PostDeployVerificationResult(
     IReadOnlyList<PostDeployCheckResult> Checks,
@@ -38,12 +40,10 @@ public interface IPostDeployVerificationService
         CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// Verifies the real state after a Compose deployment. A successful shell exit code alone
-/// is not enough: containers may be restarting/unhealthy and HTTP endpoints may still fail.
-/// </summary>
 public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPostDeployVerificationService
 {
+    private static readonly Regex SafeServiceName = new("^[A-Za-z0-9][A-Za-z0-9_.-]*$", RegexOptions.Compiled);
+
     public async Task<PostDeployVerificationResult> VerifyAsync(
         PostDeployVerificationRequest request,
         string? secret,
@@ -69,11 +69,12 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
     {
         var repo = DeploymentPreflightService.ShellQuote(request.RemoteRepositoryPath.Trim().TrimEnd('/'));
         var compose = DeploymentPreflightService.ShellQuote(request.ComposeFile.Trim());
+        var services = BuildServiceArguments(request.Services);
 
         var command =
             $"REPO={repo}; COMPOSE={compose}; " +
             "cd \"$REPO\" || exit 9; " +
-            "IDS=\"$(docker compose -f \"$COMPOSE\" ps -aq)\"; " +
+            $"IDS=\"$(docker compose -f \"$COMPOSE\" ps -aq{services})\"; " +
             "if [ -z \"$IDS\" ]; then echo __VPSDESK_NO_CONTAINERS__; exit 0; fi; " +
             "docker inspect --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $IDS";
 
@@ -103,7 +104,9 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 "compose-state",
                 "Docker Compose containers",
                 PostDeployCheckStatus.Failed,
-                "The selected Compose project has no containers after deployment."));
+                request.Services is { Count: > 0 }
+                    ? "No running/stopped containers were found for the selected deployment target."
+                    : "The selected Compose project has no containers after deployment."));
             return;
         }
 
@@ -140,6 +143,29 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 status,
                 detail));
         }
+    }
+
+    private static string BuildServiceArguments(IReadOnlyList<string>? services)
+    {
+        if (services is null || services.Count == 0) return string.Empty;
+
+        var values = services
+            .Where(service => !string.IsNullOrWhiteSpace(service))
+            .Select(service => service.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var service in values)
+        {
+            if (!SafeServiceName.IsMatch(service))
+            {
+                throw new InvalidOperationException($"Invalid Docker Compose service name: '{service}'.");
+            }
+        }
+
+        return values.Length == 0
+            ? string.Empty
+            : " " + string.Join(" ", values.Select(DeploymentPreflightService.ShellQuote));
     }
 
     private async Task VerifyHttpAsync(

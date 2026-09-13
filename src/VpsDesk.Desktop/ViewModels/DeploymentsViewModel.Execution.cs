@@ -177,6 +177,7 @@ public partial class DeploymentsViewModel
         CancelPendingDeploy();
         Checks.Clear();
         PostChecks.Clear();
+        BeginPreflightModal();
         StatusMessage = "Ejecutando prevuelo remoto del despliegue...";
 
         try

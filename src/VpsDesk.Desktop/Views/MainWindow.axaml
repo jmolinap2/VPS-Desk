@@ -88,17 +88,16 @@
         <views:FilesView DataContext="{Binding FilesModule}" />
       </Grid>
 
+      <Grid IsVisible="{Binding IsTerminalPage}">
+        <views:TerminalView DataContext="{Binding TerminalModule}" />
+      </Grid>
+
       <Grid IsVisible="{Binding IsSecurityPage}">
         <views:SecurityView DataContext="{Binding SecurityModule}" />
       </Grid>
 
-      <Grid IsVisible="{Binding IsPendingUtilityPage}" Margin="24">
-        <Border Classes="card" HorizontalAlignment="Stretch" VerticalAlignment="Top">
-          <StackPanel Spacing="10">
-            <TextBlock Text="{Binding LocalizedHeaderTitle}" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="{DynamicResource Shell_PendingModule}" TextWrapping="Wrap" Foreground="#8290A3" />
-          </StackPanel>
-        </Border>
+      <Grid IsVisible="{Binding IsSettingsPage}">
+        <views:SettingsView DataContext="{Binding SettingsModule}" />
       </Grid>
     </Grid>
   </Grid>

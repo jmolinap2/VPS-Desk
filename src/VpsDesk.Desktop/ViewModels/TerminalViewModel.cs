@@ -120,7 +120,7 @@ public partial class TerminalViewModel : ObservableObject, IAsyncDisposable
     }
 
     [RelayCommand(CanExecute = nameof(CanSend))]
-    public async Task SendCommandAsync()
+    public async Task SendAsync()
     {
         if (_session == null || !IsConnected) return;
         var command = CommandText;

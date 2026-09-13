@@ -20,6 +20,21 @@ public sealed record DeploymentStepResult(
     string Output,
     TimeSpan Duration);
 
+public enum DeploymentProgressState
+{
+    Started,
+    Completed
+}
+
+public sealed record DeploymentProgressUpdate(
+    string Code,
+    string Label,
+    DeploymentProgressState State,
+    bool? Succeeded = null,
+    int? ExitCode = null,
+    string? Output = null,
+    TimeSpan? Duration = null);
+
 public sealed record ComposeDeploymentResult(
     IReadOnlyList<DeploymentStepResult> Steps,
     DateTimeOffset StartedAt,
@@ -33,6 +48,8 @@ public sealed record ComposeDeploymentResult(
 
 public interface IComposeDeploymentService
 {
+    event Action<DeploymentProgressUpdate>? ProgressChanged;
+
     Task<ComposeDeploymentResult> ExecuteAsync(
         ComposeDeploymentRequest request,
         string? secret,
@@ -41,6 +58,8 @@ public interface IComposeDeploymentService
 
 public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : IComposeDeploymentService
 {
+    public event Action<DeploymentProgressUpdate>? ProgressChanged;
+
     public async Task<ComposeDeploymentResult> ExecuteAsync(
         ComposeDeploymentRequest request,
         string? secret,
@@ -96,6 +115,11 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
         foreach (var step in commands)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                step.Code,
+                step.Label,
+                DeploymentProgressState.Started));
+
             var result = await ssh.ExecuteAsync(
                 new SshCommandRequest(request.Server, step.Command, step.Timeout),
                 secret,
@@ -103,13 +127,23 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
             var output = CombineOutput(result.StandardOutput, result.StandardError);
             var sanitized = LogSanitizer.Sanitize(output);
-            steps.Add(new DeploymentStepResult(
+            var stepResult = new DeploymentStepResult(
                 step.Code,
                 step.Label,
                 result.Succeeded,
                 result.ExitCode,
                 sanitized,
-                result.Duration));
+                result.Duration);
+            steps.Add(stepResult);
+
+            ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                step.Code,
+                step.Label,
+                DeploymentProgressState.Completed,
+                stepResult.Succeeded,
+                stepResult.ExitCode,
+                stepResult.Output,
+                stepResult.Duration));
 
             if (!result.Succeeded) break;
         }

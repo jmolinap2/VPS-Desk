@@ -15,7 +15,11 @@ public sealed record DeploymentProfile(
     string EnvironmentFileName,
     bool PullImages,
     bool BuildImages,
-    bool? CleanBuildCache = null);
+    bool? CleanBuildCache = null,
+    string? DeploymentTargetId = null,
+    string? MigrationModeId = null,
+    bool? RunMigrations = null,
+    bool? MigrationOnly = null);
 
 public sealed record DeploymentProfileStoreSnapshot(IReadOnlyList<DeploymentProfile> Profiles);
 

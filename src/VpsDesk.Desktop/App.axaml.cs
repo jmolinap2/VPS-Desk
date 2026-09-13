@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -28,11 +29,16 @@ public partial class App : Avalonia.Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var appSettingsStore = new AppSettingsStore();
+            var appSettings = appSettingsStore.Load();
+            ApplyLanguagePreference(appSettings.Language);
+
             var bootstrap = BootstrapServerProfileLoader.Load();
             var store = new ServerProfileStore();
             var deploymentProfileStore = new DeploymentProfileStore();
             var operationHistoryStore = new SqliteOperationHistoryStore();
             var ssh = new SshNetCommandExecutor();
+            var terminal = new SshNetInteractiveTerminalService();
             var probe = new LinuxServerProbeService(ssh);
             var containers = new DockerContainerService(ssh);
             var logs = new LinuxRemoteLogService(ssh);
@@ -63,6 +69,8 @@ public partial class App : Avalonia.Application
             viewModel.InitializeStorage(storage);
             viewModel.InitializeFiles(files);
             viewModel.InitializeSecurity(security);
+            viewModel.InitializeTerminal(terminal);
+            viewModel.InitializeSettings(appSettingsStore, appSettings, ApplyLanguagePreference);
 
             desktop.MainWindow = new MainWindow
             {
@@ -71,5 +79,16 @@ public partial class App : Avalonia.Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void ApplyLanguagePreference(string preference)
+    {
+        var culture = preference switch
+        {
+            "es-ES" => "es-ES",
+            "en-US" => "en-US",
+            _ => CultureInfo.InstalledUICulture.Name
+        };
+        LocalizationService.Current.ApplyCulture(this, culture);
     }
 }

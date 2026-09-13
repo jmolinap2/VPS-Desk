@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
+using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
@@ -13,6 +15,7 @@ public partial class FilesViewModel : ObservableObject
     private readonly Func<ServerProfile?> _serverAccessor;
     private readonly Func<string?> _secretAccessor;
     private DateTimeOffset? _lastRefreshUtc;
+    private string _originalEditorContent = string.Empty;
 
     public ObservableCollection<RemoteFileEntry> Entries { get; } = new();
 
@@ -26,9 +29,19 @@ public partial class FilesViewModel : ObservableObject
     [ObservableProperty] private bool _hasOpenTextFile;
     [ObservableProperty] private bool _hasPendingSave;
     [ObservableProperty] private string _pendingSaveMessage = string.Empty;
+    [ObservableProperty] private bool _isEditorDirty;
+    [ObservableProperty] private bool _isEditorValid = true;
+    [ObservableProperty] private string _editorValidationMessage = string.Empty;
+    [ObservableProperty] private string _editorFileType = "TEXT";
+    [ObservableProperty] private int _editorLineCount;
+    [ObservableProperty] private int _editorCharacterCount;
+    [ObservableProperty] private bool _createBackupBeforeSave = true;
+    [ObservableProperty] private string _lastBackupPath = string.Empty;
+    [ObservableProperty] private bool _isSensitiveFile;
 
     public bool CanGoParent => CurrentPath != "/";
     public bool HasSelection => SelectedEntry is not null;
+    public bool CanSaveEditor => HasOpenTextFile && IsEditorDirty && IsEditorValid && !IsBusy;
 
     public FilesViewModel(
         IRemoteFileService files,
@@ -48,6 +61,19 @@ public partial class FilesViewModel : ObservableObject
         OnPropertyChanged(nameof(HasSelection));
     }
 
+    partial void OnEditorContentChanged(string value)
+    {
+        EditorCharacterCount = value.Length;
+        EditorLineCount = value.Length == 0 ? 1 : value.Count(character => character == '\n') + 1;
+        IsEditorDirty = HasOpenTextFile && !string.Equals(_originalEditorContent, value, StringComparison.Ordinal);
+        ValidateEditorContentCore();
+    }
+
+    partial void OnIsBusyChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
+    partial void OnHasOpenTextFileChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
+    partial void OnIsEditorDirtyChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
+    partial void OnIsEditorValidChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
+
     public async Task RefreshIfNeededAsync()
     {
         if (_lastRefreshUtc == null || DateTimeOffset.UtcNow - _lastRefreshUtc > TimeSpan.FromSeconds(20))
@@ -61,9 +87,7 @@ public partial class FilesViewModel : ObservableObject
         CurrentPath = "/";
         Entries.Clear();
         SelectedEntry = null;
-        EditorPath = string.Empty;
-        EditorContent = string.Empty;
-        HasOpenTextFile = false;
+        ClearEditorState();
         LastUpdated = "Never";
         StatusMessage = "Select an active server, then browse files.";
         _lastRefreshUtc = null;
@@ -188,15 +212,69 @@ public partial class FilesViewModel : ObservableObject
             }
 
             EditorPath = entry.FullPath;
-            EditorContent = content;
+            EditorFileType = DetermineFileType(entry.FullPath);
+            IsSensitiveFile = IsPotentiallySensitive(entry.FullPath);
+            _originalEditorContent = content;
             HasOpenTextFile = true;
-            StatusMessage = $"Opened {entry.Name}. Text editing is limited to UTF-8 files up to 2 MB.";
+            EditorContent = content;
+            IsEditorDirty = false;
+            LastBackupPath = string.Empty;
+            ValidateEditorContentCore();
+            StatusMessage = $"Opened {entry.Name}. Changes remain local until you confirm Save.";
             CancelPendingSave();
         }
         catch (Exception ex)
         {
             HasOpenTextFile = false;
             StatusMessage = $"Unable to open file: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void ValidateEditor()
+    {
+        ValidateEditorContentCore();
+        StatusMessage = IsEditorValid
+            ? $"Validation passed for {Path.GetFileName(EditorPath)}."
+            : EditorValidationMessage;
+    }
+
+    [RelayCommand]
+    private async Task ReloadEditorAsync()
+    {
+        if (!HasOpenTextFile || string.IsNullOrWhiteSpace(EditorPath) || IsBusy) return;
+        if (IsEditorDirty)
+        {
+            StatusMessage = "Reload blocked because there are unsaved local changes. Save or close the editor first.";
+            return;
+        }
+
+        var server = _serverAccessor();
+        if (server == null) return;
+
+        IsBusy = true;
+        try
+        {
+            var content = await _files.ReadTextAsync(server, EditorPath, _secretAccessor());
+            if (content == null)
+            {
+                StatusMessage = "The remote file no longer exists.";
+                return;
+            }
+
+            _originalEditorContent = content;
+            EditorContent = content;
+            IsEditorDirty = false;
+            ValidateEditorContentCore();
+            StatusMessage = $"Reloaded {EditorPath} from the VPS.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Unable to reload file: {ex.Message}";
         }
         finally
         {
@@ -213,11 +291,27 @@ public partial class FilesViewModel : ObservableObject
             return;
         }
 
+        if (!IsEditorDirty)
+        {
+            StatusMessage = "There are no local changes to save.";
+            return;
+        }
+
+        ValidateEditorContentCore();
+        if (!IsEditorValid)
+        {
+            StatusMessage = $"Save blocked: {EditorValidationMessage}";
+            return;
+        }
+
         HasPendingSave = true;
         var productionWarning = _serverAccessor()?.Environment == ServerEnvironment.Production
             ? " This is a Production server; saving replaces the remote file contents."
             : " Saving replaces the remote file contents.";
-        PendingSaveMessage = $"Confirm save to '{EditorPath}'.{productionWarning}";
+        var backupNote = CreateBackupBeforeSave
+            ? " A timestamped .bak copy will be created first."
+            : " Backup creation is disabled for this save.";
+        PendingSaveMessage = $"Confirm save to '{EditorPath}'.{productionWarning}{backupNote}";
     }
 
     [RelayCommand]
@@ -232,12 +326,48 @@ public partial class FilesViewModel : ObservableObject
             return;
         }
 
+        ValidateEditorContentCore();
+        if (!IsEditorValid)
+        {
+            StatusMessage = $"Save blocked: {EditorValidationMessage}";
+            CancelPendingSave();
+            return;
+        }
+
         IsBusy = true;
-        StatusMessage = $"Saving {EditorPath} over SFTP...";
+        StatusMessage = $"Checking remote version of {EditorPath}...";
         try
         {
+            // Optimistic concurrency: do not silently overwrite a file modified on the VPS
+            // after the user opened it in VPS Desk.
+            var remoteCurrent = await _files.ReadTextAsync(server, EditorPath, _secretAccessor());
+            if (remoteCurrent == null)
+            {
+                StatusMessage = "Save cancelled because the remote file no longer exists.";
+                CancelPendingSave();
+                return;
+            }
+
+            if (!string.Equals(remoteCurrent, _originalEditorContent, StringComparison.Ordinal))
+            {
+                StatusMessage = "Save blocked: the file changed on the VPS after you opened it. Close/reopen or reload it before editing again.";
+                CancelPendingSave();
+                return;
+            }
+
+            LastBackupPath = string.Empty;
+            if (CreateBackupBeforeSave)
+            {
+                LastBackupPath = await _files.CreateBackupAsync(server, EditorPath, _secretAccessor()) ?? string.Empty;
+            }
+
+            StatusMessage = $"Saving {EditorPath} over SFTP...";
             await _files.WriteTextAsync(server, EditorPath, EditorContent, _secretAccessor());
-            StatusMessage = $"Saved {EditorPath}.";
+            _originalEditorContent = EditorContent;
+            IsEditorDirty = false;
+            StatusMessage = string.IsNullOrWhiteSpace(LastBackupPath)
+                ? $"Saved {EditorPath}."
+                : $"Saved {EditorPath}. Backup: {LastBackupPath}";
             CancelPendingSave();
             _lastRefreshUtc = null;
         }
@@ -257,9 +387,13 @@ public partial class FilesViewModel : ObservableObject
     [RelayCommand]
     private void CloseEditor()
     {
-        EditorPath = string.Empty;
-        EditorContent = string.Empty;
-        HasOpenTextFile = false;
+        if (IsEditorDirty)
+        {
+            StatusMessage = "Editor has unsaved changes. Save them before closing, or undo the edits manually.";
+            return;
+        }
+
+        ClearEditorState();
         CancelPendingSave();
         StatusMessage = "Editor closed. No remote changes were made.";
     }
@@ -272,10 +406,103 @@ public partial class FilesViewModel : ObservableObject
         await RefreshAsync();
     }
 
+    private void ValidateEditorContentCore()
+    {
+        if (!HasOpenTextFile)
+        {
+            IsEditorValid = true;
+            EditorValidationMessage = string.Empty;
+            return;
+        }
+
+        try
+        {
+            switch (EditorFileType)
+            {
+                case "JSON":
+                    using (JsonDocument.Parse(EditorContent, new JsonDocumentOptions
+                    {
+                        AllowTrailingCommas = true,
+                        CommentHandling = JsonCommentHandling.Skip
+                    }))
+                    {
+                    }
+                    EditorValidationMessage = "JSON válido.";
+                    break;
+                case "XML":
+                    XDocument.Parse(EditorContent, LoadOptions.PreserveWhitespace);
+                    EditorValidationMessage = "XML válido.";
+                    break;
+                default:
+                    EditorValidationMessage = "Texto UTF-8. Este tipo no requiere validación estructural.";
+                    break;
+            }
+
+            IsEditorValid = true;
+        }
+        catch (JsonException ex)
+        {
+            IsEditorValid = false;
+            EditorValidationMessage = $"JSON inválido · línea {(ex.LineNumber ?? 0) + 1}, posición {(ex.BytePositionInLine ?? 0) + 1}: {ex.Message}";
+        }
+        catch (Exception ex) when (EditorFileType == "XML")
+        {
+            IsEditorValid = false;
+            EditorValidationMessage = $"XML inválido: {ex.Message}";
+        }
+    }
+
+    private void ClearEditorState()
+    {
+        EditorPath = string.Empty;
+        _originalEditorContent = string.Empty;
+        HasOpenTextFile = false;
+        EditorContent = string.Empty;
+        EditorFileType = "TEXT";
+        EditorValidationMessage = string.Empty;
+        IsEditorValid = true;
+        IsEditorDirty = false;
+        EditorLineCount = 0;
+        EditorCharacterCount = 0;
+        LastBackupPath = string.Empty;
+        IsSensitiveFile = false;
+    }
+
     private void CancelPendingSave()
     {
         HasPendingSave = false;
         PendingSaveMessage = string.Empty;
+    }
+
+    private static string DetermineFileType(string path)
+    {
+        var extension = Path.GetExtension(path).ToLowerInvariant();
+        return extension switch
+        {
+            ".json" => "JSON",
+            ".xml" or ".config" => "XML",
+            ".yml" or ".yaml" => "YAML",
+            ".ini" => "INI",
+            ".env" => "ENV",
+            ".cs" => "C#",
+            ".js" => "JS",
+            ".ts" => "TS",
+            ".html" => "HTML",
+            ".css" => "CSS",
+            ".md" => "Markdown",
+            _ => "TEXT"
+        };
+    }
+
+    private static bool IsPotentiallySensitive(string path)
+    {
+        var fileName = Path.GetFileName(path);
+        return fileName.Equals(".env", StringComparison.OrdinalIgnoreCase)
+               || fileName.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase)
+               || fileName.Contains("secret", StringComparison.OrdinalIgnoreCase)
+               || fileName.EndsWith(".pem", StringComparison.OrdinalIgnoreCase)
+               || fileName.EndsWith(".key", StringComparison.OrdinalIgnoreCase)
+               || fileName.EndsWith(".pfx", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizePath(string path)

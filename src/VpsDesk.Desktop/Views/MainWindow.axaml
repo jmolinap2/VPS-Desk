@@ -5,6 +5,7 @@
         x:Class="VpsDesk.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="VPS Desk"
+        Icon="avares://VpsDesk.Desktop/Assets/vps-desk.ico"
         Width="1080"
         Height="820"
         MinWidth="900"

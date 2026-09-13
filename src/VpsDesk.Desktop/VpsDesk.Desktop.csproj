@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>Assets\vps-desk.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
@@ -15,5 +16,6 @@
     <None Update="Localization/Languages/**/*.json"
           CopyToOutputDirectory="PreserveNewest"
           CopyToPublishDirectory="PreserveNewest" />
+    <AvaloniaResource Include="Assets/vps-desk.ico" />
   </ItemGroup>
 </Project>

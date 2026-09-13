@@ -72,6 +72,10 @@
         <views:DeploymentsView DataContext="{Binding DeploymentsModule}" />
       </Grid>
 
+      <Grid IsVisible="{Binding IsEnvironmentPage}">
+        <views:EnvironmentView DataContext="{Binding FilesModule}" />
+      </Grid>
+
       <Grid IsVisible="{Binding IsLogsPage}">
         <views:LogsView DataContext="{Binding LogsModule}" />
       </Grid>
@@ -80,7 +84,7 @@
         <views:StorageView DataContext="{Binding StorageModule}" />
       </Grid>
 
-      <Grid IsVisible="{Binding IsFileWorkspacePage}">
+      <Grid IsVisible="{Binding IsFilesPage}">
         <views:FilesView DataContext="{Binding FilesModule}" />
       </Grid>
 

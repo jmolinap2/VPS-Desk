@@ -7,6 +7,7 @@ using VpsDesk.Desktop.Localization;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Desktop.ViewModels;
 using VpsDesk.Desktop.Views;
+using VpsDesk.Infrastructure.Deployments;
 using VpsDesk.Infrastructure.Docker;
 using VpsDesk.Infrastructure.Logs;
 using VpsDesk.Infrastructure.Monitoring;
@@ -47,6 +48,7 @@ public partial class App : Avalonia.Application
             var preflight = new DeploymentPreflightService(ssh);
             var deployment = new ComposeDeploymentService(ssh);
             var discovery = new DeploymentDiscoveryService(ssh);
+            var recipes = new RemoteProjectRecipeService(ssh);
             var postDeployVerification = new PostDeployVerificationService(ssh);
             var security = new LinuxSecurityAuditService(ssh);
 
@@ -65,6 +67,7 @@ public partial class App : Avalonia.Application
                 bootstrap.Profile,
                 bootstrap.RemoteRepositoryPath,
                 bootstrap.ComposeFile);
+            viewModel.DeploymentsModule.InitializeProjectRecipes(recipes);
             viewModel.InitializeLogs(containers, logs);
             viewModel.InitializeStorage(storage);
             viewModel.InitializeFiles(files);

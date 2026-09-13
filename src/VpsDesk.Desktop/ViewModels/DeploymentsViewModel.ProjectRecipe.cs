@@ -8,7 +8,7 @@ namespace VpsDesk.Desktop.ViewModels;
 
 public partial class DeploymentsViewModel
 {
-    private readonly IProjectRecipeService _recipeService;
+    private IProjectRecipeService? _recipeService;
     private ProjectRecipe? _activeRecipe;
     private bool _applyingProjectModel;
     private string? _preferredTargetId;
@@ -43,6 +43,9 @@ public partial class DeploymentsViewModel
         : "Sin migraciones";
 
     private bool ShouldExecuteMigrations => HasMigrationRecipe && (MigrationOnly || RunMigrations);
+
+    public void InitializeProjectRecipes(IProjectRecipeService recipeService)
+        => _recipeService = recipeService;
 
     partial void OnSelectedDeploymentTargetChanged(ProjectDeploymentTarget? value)
     {
@@ -137,6 +140,14 @@ public partial class DeploymentsViewModel
         if (string.IsNullOrWhiteSpace(RemoteRepositoryPath) || string.IsNullOrWhiteSpace(ComposeFile))
         {
             ResetProjectModel();
+            return;
+        }
+
+        if (_recipeService is null)
+        {
+            ResetProjectModel();
+            ProjectModelStatus = "El servicio de recetas de proyecto no está inicializado.";
+            IsProjectRecipeInvalid = true;
             return;
         }
 

@@ -14,7 +14,7 @@ public partial class FilesViewModel
 
         var projectPath = NormalizePath(remoteRepositoryPath);
         var envName = string.IsNullOrWhiteSpace(environmentFileName) ? ".env" : environmentFileName.Trim();
-        var fullPath = envName.StartsWith('/', StringComparison.Ordinal)
+        var fullPath = envName.StartsWith("/", StringComparison.Ordinal)
             ? NormalizePath(envName)
             : NormalizePath($"{projectPath}/{envName}");
 

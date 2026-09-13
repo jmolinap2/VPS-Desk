@@ -30,7 +30,7 @@ public sealed class RemoteProjectRecipeService(ISshCommandExecutor ssh) : IProje
             return new ProjectRecipeLoadResult(ProjectRecipeStatus.NotFound);
         }
 
-        var repo = DeploymentPreflightService.ShellQuote(remoteRepositoryPath.Trim().TrimEnd('/'));
+        var repo = ShellQuote(remoteRepositoryPath.Trim().TrimEnd('/'));
         var command = $$"""
             REPO={{repo}};
             for FILE in .vpsdesk.yml .vpsdesk.yaml; do
@@ -262,6 +262,9 @@ public sealed class RemoteProjectRecipeService(ISshCommandExecutor ssh) : IProje
             throw new InvalidOperationException($"{field} contiene el identificador duplicado '{duplicate}'.");
         }
     }
+
+    private static string ShellQuote(string value)
+        => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
 
     private sealed class RecipeDto
     {

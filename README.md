@@ -37,11 +37,11 @@ Hostinger es el primer entorno probado de forma directa, pero el núcleo de VPS 
 | Containers | ✅ | Inventario Docker y acciones Start / Stop / Restart con confirmación |
 | Deployments | ✅ | Git + Docker Compose, preflight, targets, recetas, migraciones y feedback de ejecución |
 | Logs | ✅ | Docker y systemd/journalctl con filtrado y sanitización |
-| Storage | ✅ | Uso de filesystem, Docker system df, imágenes y volúmenes en modo de observación |
-| Files | ✅ | Navegación SFTP, lectura y edición de archivos de texto con confirmación |
+| Storage | ✅ | Uso de filesystem, Docker system df, imágenes y volúmenes |
+| Files | ✅ | Navegación SFTP, lectura y edición segura de archivos de texto |
 | Security | ✅ | Auditoría de seguridad de solo lectura |
-| Terminal | 🚧 | En desarrollo |
-| Settings | 🚧 | En desarrollo |
+| Terminal | ✅ | Sesión SSH interactiva persistente |
+| Settings | ✅ | Preferencias locales, idioma, refresco y opciones de terminal |
 
 ## Capturas
 
@@ -197,7 +197,7 @@ dotnet restore VpsDesk.slnx
 dotnet run --project src/VpsDesk.Desktop/VpsDesk.Desktop.csproj
 ```
 
-La implementación actual está en `main`; ya no es necesario cambiar a `rewrite/avalonia-v2` para probar la v2.
+La implementación actual está en `main`.
 
 ## Arquitectura
 
@@ -242,10 +242,6 @@ Consulta también [`SECURITY.md`](SECURITY.md).
 ## CI
 
 Cada cambio relevante pasa por el workflow **Avalonia v2 CI**, que incluye controles de seguridad, validación de localización, restore, auditoría de dependencias, build Release y un smoke test gráfico. Los pushes configurados también pueden producir un build Windows x64 self-contained de prueba como artifact de GitHub Actions.
-
-## Código heredado
-
-Los scripts PowerShell/WPF existentes en la raíz se conservan temporalmente para no perder capacidades durante la migración. No representan la arquitectura objetivo de VPS Desk v2 y se retirarán cuando exista paridad funcional comprobada.
 
 ## Documentación
 

@@ -1,8 +1,17 @@
+using System.Text.RegularExpressions;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Application.Logging;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Application.Deployments;
+
+public sealed record DeploymentProjectOperationRequest(
+    string Code,
+    string Label,
+    string CommandTemplate,
+    string? Input = null,
+    int TimeoutSeconds = 600,
+    bool IsBlocking = true);
 
 public sealed record ComposeDeploymentRequest(
     ServerProfile Server,
@@ -11,7 +20,10 @@ public sealed record ComposeDeploymentRequest(
     string ComposeFile,
     bool PullImages = true,
     bool BuildImages = true,
-    bool CleanBuildCache = true);
+    bool CleanBuildCache = true,
+    bool DeployApplication = true,
+    IReadOnlyList<string>? Services = null,
+    DeploymentProjectOperationRequest? Operation = null);
 
 public sealed record DeploymentStepResult(
     string Code,
@@ -64,6 +76,9 @@ public interface IComposeDeploymentService
 
 public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : IComposeDeploymentService
 {
+    private static readonly Regex SafeServiceName = new("^[A-Za-z0-9][A-Za-z0-9_.-]*$", RegexOptions.Compiled);
+    private static readonly Regex UnresolvedToken = new("\\{\\{[^}]+\\}\\}", RegexOptions.Compiled);
+
     public event Action<DeploymentProgressUpdate>? ProgressChanged;
 
     public async Task<ComposeDeploymentResult> ExecuteAsync(
@@ -77,6 +92,8 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             throw new ArgumentException("Git branch is required.", nameof(request));
         if (string.IsNullOrWhiteSpace(request.ComposeFile))
             throw new ArgumentException("Compose file is required.", nameof(request));
+        if (!request.DeployApplication && request.Operation is null)
+            throw new ArgumentException("The request must deploy the application or execute a project operation.", nameof(request));
 
         var startedAt = DateTimeOffset.UtcNow;
         var steps = new List<DeploymentStepResult>();
@@ -85,6 +102,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
         var compose = DeploymentPreflightService.ShellQuote(request.ComposeFile.Trim());
         var remoteBranch = DeploymentPreflightService.ShellQuote("origin/" + request.Branch.Trim());
         var localRef = DeploymentPreflightService.ShellQuote("refs/heads/" + request.Branch.Trim());
+        var serviceArguments = BuildServiceArguments(request.Services);
 
         var previousCommit = await TryReadCommitAsync(request, repo, secret, cancellationToken);
 
@@ -97,34 +115,47 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90), true)
         };
 
-        if (request.PullImages)
+        if (request.DeployApplication && request.PullImages)
         {
             commands.Add((
                 "compose_pull",
                 "Pull container images",
-                $"cd -- {repo} && docker compose -f {compose} pull",
+                $"cd -- {repo} && docker compose -f {compose} pull{serviceArguments}",
                 TimeSpan.FromMinutes(5),
                 true));
         }
 
-        var buildFlag = request.BuildImages ? " --build" : string.Empty;
-        commands.Add((
-            "compose_up",
-            "Apply Docker Compose",
-            $"cd -- {repo} && docker compose -f {compose} up -d{buildFlag}",
-            TimeSpan.FromMinutes(10),
-            true));
+        if (request.DeployApplication)
+        {
+            var buildFlag = request.BuildImages ? " --build" : string.Empty;
+            commands.Add((
+                "compose_up",
+                "Apply Docker Compose",
+                $"cd -- {repo} && docker compose -f {compose} up -d{buildFlag}{serviceArguments}",
+                TimeSpan.FromMinutes(10),
+                true));
+        }
+
+        if (request.Operation is not null)
+        {
+            var operation = request.Operation;
+            commands.Add((
+                operation.Code,
+                operation.Label,
+                RenderOperationCommand(operation, request),
+                TimeSpan.FromSeconds(Math.Clamp(operation.TimeoutSeconds, 10, 3600)),
+                operation.IsBlocking));
+        }
+
         commands.Add((
             "compose_ps",
             "Read deployment status",
-            $"cd -- {repo} && docker compose -f {compose} ps",
+            $"cd -- {repo} && docker compose -f {compose} ps{serviceArguments}",
             TimeSpan.FromSeconds(45),
             true));
 
-        if (request.CleanBuildCache)
+        if (request.DeployApplication && request.CleanBuildCache)
         {
-            // Cache cleanup is useful maintenance but must never turn an otherwise healthy
-            // application deployment into a failed release. A failure is surfaced as a warning.
             commands.Add((
                 "build_cache_prune",
                 "Clean Docker build cache",
@@ -188,6 +219,54 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             DateTimeOffset.UtcNow,
             previousCommit,
             deployedCommit);
+    }
+
+    private static string BuildServiceArguments(IReadOnlyList<string>? services)
+    {
+        if (services is null || services.Count == 0) return string.Empty;
+
+        var normalized = services
+            .Where(service => !string.IsNullOrWhiteSpace(service))
+            .Select(service => service.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var service in normalized)
+        {
+            if (!SafeServiceName.IsMatch(service))
+            {
+                throw new InvalidOperationException($"Invalid Docker Compose service name: '{service}'.");
+            }
+        }
+
+        return normalized.Length == 0
+            ? string.Empty
+            : " " + string.Join(" ", normalized.Select(DeploymentPreflightService.ShellQuote));
+    }
+
+    private static string RenderOperationCommand(
+        DeploymentProjectOperationRequest operation,
+        ComposeDeploymentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(operation.Code) || string.IsNullOrWhiteSpace(operation.Label))
+            throw new InvalidOperationException("Project operation code and label are required.");
+        if (string.IsNullOrWhiteSpace(operation.CommandTemplate))
+            throw new InvalidOperationException($"Project operation '{operation.Label}' has no command template.");
+
+        var command = operation.CommandTemplate
+            .Replace("{{compose}}", DeploymentPreflightService.ShellQuote(request.ComposeFile.Trim()), StringComparison.Ordinal)
+            .Replace("{{repository}}", DeploymentPreflightService.ShellQuote(request.RemoteRepositoryPath.Trim().TrimEnd('/')), StringComparison.Ordinal)
+            .Replace("{{branch}}", DeploymentPreflightService.ShellQuote(request.Branch.Trim()), StringComparison.Ordinal)
+            .Replace("{{input}}", DeploymentPreflightService.ShellQuote(operation.Input ?? string.Empty), StringComparison.Ordinal);
+
+        var unresolved = UnresolvedToken.Match(command);
+        if (unresolved.Success)
+        {
+            throw new InvalidOperationException(
+                $"Project operation '{operation.Label}' contains unsupported template token {unresolved.Value}.");
+        }
+
+        return $"cd -- {DeploymentPreflightService.ShellQuote(request.RemoteRepositoryPath.Trim().TrimEnd('/'))} && {command}";
     }
 
     private async Task<string?> TryReadCommitAsync(

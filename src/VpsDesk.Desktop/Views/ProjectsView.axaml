@@ -96,9 +96,11 @@
                                  FontSize="10"
                                  FontFamily="Cascadia Mono,Consolas,monospace" />
                       <TextBlock Text="{Binding CapabilitySummary}" Foreground="#66758A" FontSize="10" />
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="{Binding Branch, StringFormat=Rama: {0}}" Foreground="#66758A" FontSize="9" />
-                        <TextBlock Text="{Binding ComposeFile, StringFormat=Compose: {0}}" Foreground="#66758A" FontSize="9" />
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="Rama:" Foreground="#66758A" FontSize="9" />
+                        <TextBlock Text="{Binding Branch}" Foreground="#8290A3" FontSize="9" />
+                        <TextBlock Text="· Compose:" Foreground="#66758A" FontSize="9" Margin="5,0,0,0" />
+                        <TextBlock Text="{Binding ComposeFile}" Foreground="#8290A3" FontSize="9" />
                       </StackPanel>
                     </StackPanel>
                     <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="5">

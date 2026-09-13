@@ -70,7 +70,11 @@ public sealed class SshNetInteractiveTerminalService : IInteractiveTerminalServi
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
-            _shell.SendWindowChangeRequest(columns, rows, Math.Max(columns * 8, 800), Math.Max(rows * 18, 600));
+
+            // The SSH.NET version currently pinned by VPS Desk does not expose a public
+            // window-change API on ShellStream. The PTY is created with a generous default
+            // size, and this method intentionally remains a no-op until the dependency
+            // exposes a supported resize operation.
             return Task.CompletedTask;
         }
 

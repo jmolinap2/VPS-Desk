@@ -3,8 +3,15 @@
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:deploy="using:VpsDesk.Application.Deployments"
              xmlns:activity="using:VpsDesk.Domain.Activity"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.DeploymentsView"
              x:DataType="vm:DeploymentsViewModel">
+  <UserControl.Resources>
+    <conv:DeploymentStatusMessageConverter x:Key="DeploymentStatusMessageConverter" />
+    <conv:PreflightStatusConverter x:Key="PreflightStatusConverter" />
+    <conv:PostflightStatusConverter x:Key="PostflightStatusConverter" />
+  </UserControl.Resources>
+
   <Grid Margin="24" RowDefinitions="Auto,*" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -138,7 +145,10 @@
                       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <StackPanel Spacing="3">
                           <TextBlock Text="Modelo del proyecto" FontWeight="SemiBold" />
-                          <TextBlock Text="{Binding ProjectModelStatus}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding ProjectModelStatus}"
+                                     Foreground="{Binding ProjectModelStatus, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}"
+                                     FontSize="11"
+                                     TextWrapping="Wrap" />
                         </StackPanel>
                         <Border Grid.Column="1"
                                 IsVisible="{Binding HasProjectRecipe}"
@@ -151,6 +161,46 @@
                           <TextBlock Text="{Binding ProjectRecipeFileName}" Foreground="#5EEAD4" FontSize="10" FontWeight="SemiBold" />
                         </Border>
                       </Grid>
+
+                      <Border IsVisible="{Binding !HasProjectRecipe}"
+                              Background="#101B2A"
+                              BorderBrush="#294A70"
+                              BorderThickness="1"
+                              CornerRadius="9"
+                              Padding="12">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+                          <Border Width="34" Height="34" CornerRadius="17" Background="#17304D" VerticalAlignment="Top">
+                            <TextBlock Text="V" Foreground="#7DD3FC" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text=".vpsdesk.yml · integración opcional del proyecto" FontWeight="SemiBold" Foreground="#B9DBFF" />
+                            <TextBlock Text="VPS Desk funciona sin este archivo. Si lo agregas en la raíz del repositorio, el propio proyecto puede describir sus objetivos de despliegue, migraciones y parámetros guiados sin acoplar VPS Desk a una arquitectura concreta."
+                                       Foreground="#8FB5D9" FontSize="11" TextWrapping="Wrap" />
+                            <TextBlock Text="Targets de despliegue · migraciones · parámetros · versionado con Git"
+                                       Foreground="#7DD3FC" FontSize="10" FontWeight="SemiBold" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+
+                      <Border IsVisible="{Binding HasProjectRecipe}"
+                              Background="#0D241F"
+                              BorderBrush="#0F766E"
+                              BorderThickness="1"
+                              CornerRadius="9"
+                              Padding="12">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+                          <Border Width="34" Height="34" CornerRadius="17" Background="#103D34" VerticalAlignment="Top">
+                            <TextBlock Text="✓" Foreground="#7EE7CD" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Integración VPS Desk activa" FontWeight="SemiBold" Foreground="#9AF0D8" />
+                            <TextBlock Text="Este repositorio enseña a VPS Desk cómo quiere ser operado. La receta viaja con Git y habilita una experiencia guiada para targets y migraciones; el prevuelo y la confirmación siguen siendo obligatorios antes de ejecutar cambios."
+                                       Foreground="#8FCABC" FontSize="11" TextWrapping="Wrap" />
+                            <TextBlock Text="La receta pertenece al proyecto; VPS Desk sigue siendo genérico."
+                                       Foreground="#5EEAD4" FontSize="10" FontWeight="SemiBold" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
 
                       <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
                         <StackPanel Spacing="6">
@@ -232,8 +282,28 @@
                             VerticalAlignment="Bottom" />
                   </Grid>
 
-                  <Border Grid.Row="5" Background="#0E131B" CornerRadius="8" Padding="10">
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+                  <Border Grid.Row="5"
+                          Background="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=background}"
+                          BorderBrush="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=border}"
+                          BorderThickness="1"
+                          CornerRadius="8"
+                          Padding="11">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                      <Border Width="25" Height="25" CornerRadius="13"
+                              BorderBrush="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=border}"
+                              BorderThickness="1">
+                        <TextBlock Text="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=glyph}"
+                                   Foreground="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding StatusMessage}"
+                                 Foreground="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}"
+                                 TextWrapping="Wrap"
+                                 VerticalAlignment="Center" />
+                    </Grid>
                   </Border>
                 </Grid>
               </Border>
@@ -405,8 +475,16 @@
       <Border Classes="card" Width="720" MaxHeight="650" HorizontalAlignment="Center" VerticalAlignment="Center">
         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <Border Width="42" Height="42" CornerRadius="21" Background="#102A24" BorderBrush="#0F766E" BorderThickness="1">
-              <TextBlock Text="✓" FontSize="20" FontWeight="Bold" Foreground="#5EEAD4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Border Width="42" Height="42" CornerRadius="21"
+                    Background="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=background}"
+                    BorderBrush="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=border}"
+                    BorderThickness="1">
+              <TextBlock Text="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=glyph}"
+                         FontSize="20"
+                         FontWeight="Bold"
+                         Foreground="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
             </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Deployments_PreflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
@@ -424,14 +502,38 @@
           <ListBox Grid.Row="2" ItemsSource="{Binding Checks}" MinHeight="120" MaxHeight="360">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="deploy:PreflightCheckResult">
-                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel>
+                <Border Background="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=background}"
+                        BorderBrush="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=border}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="0,3">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <Border Width="24" Height="24" CornerRadius="12"
+                            BorderBrush="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=border}"
+                            BorderThickness="1"
+                            VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=glyph}"
+                                 Foreground="{Binding Status, Converter={StaticResource PreflightStatusConverter}}"
+                                 FontWeight="Bold"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1">
                       <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Detail}" Foreground="#8290A3" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
-                    <Border Grid.Column="1" Background="#172033" CornerRadius="10" Padding="9,4" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="10" />
+                    <Border Grid.Column="2"
+                            Background="#101722"
+                            BorderBrush="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=border}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="9,4"
+                            VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=label}"
+                                 Foreground="{Binding Status, Converter={StaticResource PreflightStatusConverter}}"
+                                 FontWeight="SemiBold"
+                                 FontSize="10" />
                     </Border>
                   </Grid>
                 </Border>
@@ -487,14 +589,38 @@
           <ListBox Grid.Row="3" ItemsSource="{Binding PostChecks}" MinHeight="120" MaxHeight="360">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="deploy:PostDeployCheckResult">
-                <Border Background="#0E131B" CornerRadius="8" Padding="11" Margin="0,3">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel Spacing="2">
+                <Border Background="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=background}"
+                        BorderBrush="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=border}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="11"
+                        Margin="0,3">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <Border Width="24" Height="24" CornerRadius="12"
+                            BorderBrush="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=border}"
+                            BorderThickness="1"
+                            VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=glyph}"
+                                 Foreground="{Binding Status, Converter={StaticResource PostflightStatusConverter}}"
+                                 FontWeight="Bold"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2">
                       <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Detail}" Foreground="#8290A3" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
-                    <Border Grid.Column="1" Background="#172033" CornerRadius="10" Padding="9,4" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="10" />
+                    <Border Grid.Column="2"
+                            Background="#101722"
+                            BorderBrush="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=border}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="9,4"
+                            VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=label}"
+                                 Foreground="{Binding Status, Converter={StaticResource PostflightStatusConverter}}"
+                                 FontWeight="SemiBold"
+                                 FontSize="10" />
                     </Border>
                   </Grid>
                 </Border>

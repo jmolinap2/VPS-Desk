@@ -175,6 +175,7 @@ public partial class DeploymentsViewModel
         IsBusy = true;
         CanDeploy = false;
         CancelPendingDeploy();
+        Checks.Clear();
         PostChecks.Clear();
         StatusMessage = "Ejecutando prevuelo remoto del despliegue...";
 
@@ -191,8 +192,14 @@ public partial class DeploymentsViewModel
                     GetRequiredServices()),
                 _secretAccessor());
 
-            Checks.Clear();
-            foreach (var check in result.Checks) Checks.Add(check);
+            var totalChecks = Math.Max(1, result.Checks.Count);
+            for (var index = 0; index < result.Checks.Count; index++)
+            {
+                var check = result.Checks[index];
+                Checks.Add(check);
+                PreflightModalMessage = $"Validando {index + 1}/{totalChecks} · {check.Label}";
+                await Task.Delay(90);
+            }
 
             CanDeploy = result.CanProceed;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");

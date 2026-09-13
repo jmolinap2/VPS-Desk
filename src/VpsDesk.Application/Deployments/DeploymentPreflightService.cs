@@ -16,7 +16,8 @@ public sealed record DeploymentPreflightRequest(
     string? Branch,
     string? ComposeFile,
     bool RequireEnvironmentFile = true,
-    string EnvironmentFileName = ".env");
+    string EnvironmentFileName = ".env",
+    IReadOnlyList<string>? RequiredServices = null);
 
 public sealed record PreflightCheckResult(
     string Code,
@@ -115,7 +116,75 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
             checks.Add(Flag("envfile", $"Archivo {request.EnvironmentFileName} disponible", flags, true));
         }
 
+        var requiredServices = (request.RequiredServices ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (requiredServices.Length > 0
+            && !string.IsNullOrWhiteSpace(request.ComposeFile)
+            && flags.TryGetValue("COMPOSE_FILE", out var composeExists)
+            && composeExists == "1")
+        {
+            await AddComposeServiceChecksAsync(
+                request,
+                repo,
+                compose,
+                requiredServices,
+                secret,
+                checks,
+                cancellationToken);
+        }
+
         return new DeploymentPreflightResult(checks, DateTimeOffset.UtcNow);
+    }
+
+    private async Task AddComposeServiceChecksAsync(
+        DeploymentPreflightRequest request,
+        string quotedRepository,
+        string quotedCompose,
+        IReadOnlyList<string> requiredServices,
+        string? secret,
+        List<PreflightCheckResult> checks,
+        CancellationToken cancellationToken)
+    {
+        var command =
+            $"REPO={quotedRepository}; COMPOSE={quotedCompose}; cd \"$REPO\" || exit 9; " +
+            "docker compose -f \"$COMPOSE\" --profile '*' config --services";
+
+        var result = await ssh.ExecuteAsync(
+            new SshCommandRequest(request.Server, command, TimeSpan.FromSeconds(20)),
+            secret,
+            cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            checks.Add(new PreflightCheckResult(
+                "compose-services",
+                "Servicios Docker Compose",
+                PreflightCheckStatus.Failed,
+                string.IsNullOrWhiteSpace(result.StandardError)
+                    ? "No se pudieron resolver los servicios del archivo Compose seleccionado."
+                    : result.StandardError.Trim(),
+                true));
+            return;
+        }
+
+        var available = result.StandardOutput
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var service in requiredServices)
+        {
+            var exists = available.Contains(service);
+            checks.Add(new PreflightCheckResult(
+                $"compose-service:{service}",
+                $"Servicio Compose '{service}'",
+                exists ? PreflightCheckStatus.Passed : PreflightCheckStatus.Failed,
+                exists ? "Disponible en el proyecto Compose." : "El servicio requerido no existe en el archivo Compose seleccionado.",
+                true));
+        }
     }
 
     private static PreflightCheckResult Tool(

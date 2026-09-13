@@ -40,6 +40,7 @@ public partial class DeploymentsViewModel : ObservableObject
     [ObservableProperty] private string _environmentFileName = ".env";
     [ObservableProperty] private bool _pullImages = true;
     [ObservableProperty] private bool _buildImages = true;
+    [ObservableProperty] private bool _cleanBuildCache = true;
     [ObservableProperty] private string _httpHealthUrls = string.Empty;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _canDeploy;
@@ -169,6 +170,7 @@ public partial class DeploymentsViewModel : ObservableObject
             EnvironmentFileName = saved?.EnvironmentFileName ?? ".env";
             PullImages = saved?.PullImages ?? true;
             BuildImages = saved?.BuildImages ?? true;
+            CleanBuildCache = saved?.CleanBuildCache ?? true;
             HttpHealthUrls = string.Empty;
 
             StatusMessage = server is null
@@ -447,14 +449,16 @@ public partial class DeploymentsViewModel : ObservableObject
                     Branch.Trim(),
                     ComposeFile.Trim(),
                     PullImages,
-                    BuildImages),
+                    BuildImages,
+                    CleanBuildCache),
                 _secretAccessor());
 
             var output = new StringBuilder();
             foreach (var step in result.Steps)
             {
                 Steps.Add(step);
-                output.AppendLine($"[{(step.Succeeded ? "OK" : "FAILED")}] {step.Label} · exit {step.ExitCode} · {step.Duration.TotalSeconds:F1}s");
+                var marker = step.Succeeded ? "OK" : step.IsBlocking ? "FAILED" : "WARN";
+                output.AppendLine($"[{marker}] {step.Label} · exit {step.ExitCode} · {step.Duration.TotalSeconds:F1}s");
                 if (!string.IsNullOrWhiteSpace(step.Output))
                 {
                     output.AppendLine(step.Output.TrimEnd());
@@ -482,9 +486,10 @@ public partial class DeploymentsViewModel : ObservableObject
             foreach (var check in verification.Checks) PostChecks.Add(check);
 
             var elapsed = (result.FinishedAt - result.StartedAt).TotalSeconds;
+            var hasWarnings = result.HasWarnings || verification.HasWarnings;
             StatusMessage = verification.Passed
-                ? verification.HasWarnings
-                    ? $"Deployment completed in {elapsed:F1}s. Post-deploy verification passed with warnings."
+                ? hasWarnings
+                    ? $"Deployment completed in {elapsed:F1}s. The release is healthy, with maintenance/post-deploy warnings to review."
                     : $"Deployment completed in {elapsed:F1}s and post-deploy verification passed."
                 : $"Deployment commands completed in {elapsed:F1}s, but post-deploy verification found problems. Review the checks before considering the release healthy.";
         }
@@ -559,7 +564,8 @@ public partial class DeploymentsViewModel : ObservableObject
             RequireEnvironmentFile,
             EnvironmentFileName.Trim(),
             PullImages,
-            BuildImages));
+            BuildImages,
+            CleanBuildCache));
     }
 
     private bool IsBootstrapServer(ServerProfile server)

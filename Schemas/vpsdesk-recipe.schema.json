@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vpsdesk.dev/schemas/vpsdesk-recipe.schema.json",
+  "title": "VPS Desk project recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "project"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "defaultTarget": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target"
+          }
+        }
+      }
+    },
+    "migrations": {
+      "$ref": "#/$defs/migrations"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "services"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "services": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "migrationsDefault": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "migrations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modes"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaultMode": {
+          "$ref": "#/$defs/id"
+        },
+        "requiredServices": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/migrationMode"
+          }
+        }
+      }
+    },
+    "migrationMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "command"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Command executed from the remote project directory. Supported tokens: {{compose}}, {{repository}}, {{branch}}, {{input}}."
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label"],
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "placeholder": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

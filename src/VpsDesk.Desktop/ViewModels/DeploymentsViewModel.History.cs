@@ -112,7 +112,25 @@ public partial class DeploymentsViewModel
     }
 
     [RelayCommand]
-    private void ShowNewDeployment() => IsHistoryView = false;
+    private void ShowNewDeployment()
+    {
+        if (IsBusy) return;
+
+        IsHistoryView = false;
+        Checks.Clear();
+        Steps.Clear();
+        PostChecks.Clear();
+        _liveDeploymentOutput.Clear();
+        DeploymentOutput = string.Empty;
+        DeploymentProgressPercent = 0;
+        DeploymentProgressText = string.Empty;
+        CanDeploy = false;
+        IsPreflightModalOpen = false;
+        IsPostflightModalOpen = false;
+        IsDeploymentConfigurationExpanded = true;
+        CancelPendingDeploy();
+        StatusMessage = "Nuevo despliegue preparado. Revisa la configuración y ejecuta el prevuelo.";
+    }
 
     [RelayCommand]
     private async Task ShowHistoryAsync()

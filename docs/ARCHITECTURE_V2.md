@@ -72,7 +72,6 @@ Implementaciones técnicas:
 - JournalLogService.
 - LocalServerProfileRepository.
 - WindowsDpapiSecretVault.
-- LegacyPowerShellDeploymentAdapter.
 
 Toda ejecución SSH pasa por un único executor para centralizar timeout, cancelación, sanitización y trazabilidad.
 
@@ -214,14 +213,9 @@ Nunca invertir el orden: un secreto no debe entrar primero a un log persistente 
 
 ## Deployments
 
-El despliegue v2 soportará dos estrategias:
+El despliegue actual utiliza un pipeline nativo y genérico ejecutado por VPS Desk. El cliente PowerShell/WPF heredado y su ruta de ejecución fueron retirados de `main`; cualquier referencia histórica sigue disponible en Git.
 
-1. LegacyScript: reutiliza scripts PowerShell existentes.
-2. NativePipeline: pasos genéricos ejecutados por VPS Desk.
-
-Esto permite migrar sin perder la funcionalidad actual.
-
-Un NativePipeline puede incluir:
+El pipeline puede incluir:
 
 - preflight;
 - git pull/fetch;
@@ -231,6 +225,8 @@ Un NativePipeline puede incluir:
 - docker compose up;
 - health check;
 - rollback manual/automatizable posteriormente.
+
+Las recetas `.vpsdesk.yml` son opcionales y permiten que cada proyecto declare targets, servicios y migraciones sin introducir conocimiento específico del proyecto en el núcleo de VPS Desk.
 
 ## Persistencia
 

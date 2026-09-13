@@ -17,6 +17,12 @@ public interface IRemoteFileService
         string? secret,
         CancellationToken cancellationToken = default);
 
+    Task<string?> CreateBackupAsync(
+        ServerProfile server,
+        string remotePath,
+        string? secret,
+        CancellationToken cancellationToken = default);
+
     Task WriteTextAsync(
         ServerProfile server,
         string remotePath,

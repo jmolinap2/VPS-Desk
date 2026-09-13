@@ -10,7 +10,8 @@ public sealed record ComposeDeploymentRequest(
     string Branch,
     string ComposeFile,
     bool PullImages = true,
-    bool BuildImages = true);
+    bool BuildImages = true,
+    bool CleanBuildCache = true);
 
 public sealed record DeploymentStepResult(
     string Code,
@@ -18,7 +19,8 @@ public sealed record DeploymentStepResult(
     bool Succeeded,
     int ExitCode,
     string Output,
-    TimeSpan Duration);
+    TimeSpan Duration,
+    bool IsBlocking = true);
 
 public enum DeploymentProgressState
 {
@@ -33,7 +35,10 @@ public sealed record DeploymentProgressUpdate(
     bool? Succeeded = null,
     int? ExitCode = null,
     string? Output = null,
-    TimeSpan? Duration = null);
+    TimeSpan? Duration = null,
+    int StepIndex = 0,
+    int TotalSteps = 0,
+    bool IsBlocking = true);
 
 public sealed record ComposeDeploymentResult(
     IReadOnlyList<DeploymentStepResult> Steps,
@@ -42,8 +47,9 @@ public sealed record ComposeDeploymentResult(
     string? PreviousCommit,
     string? DeployedCommit)
 {
-    public bool Succeeded => Steps.Count > 0 && Steps.All(x => x.Succeeded);
-    public DeploymentStepResult? FailedStep => Steps.FirstOrDefault(x => !x.Succeeded);
+    public bool Succeeded => Steps.Count > 0 && Steps.Where(x => x.IsBlocking).All(x => x.Succeeded);
+    public bool HasWarnings => Steps.Any(x => !x.Succeeded && !x.IsBlocking);
+    public DeploymentStepResult? FailedStep => Steps.FirstOrDefault(x => x.IsBlocking && !x.Succeeded);
 }
 
 public interface IComposeDeploymentService
@@ -82,13 +88,13 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
         var previousCommit = await TryReadCommitAsync(request, repo, secret, cancellationToken);
 
-        var commands = new List<(string Code, string Label, string Command, TimeSpan Timeout)>
+        var commands = new List<(string Code, string Label, string Command, TimeSpan Timeout, bool IsBlocking)>
         {
-            ("fetch", "Fetch Git", $"git -C {repo} fetch --prune origin", TimeSpan.FromSeconds(60)),
+            ("fetch", "Fetch Git", $"git -C {repo} fetch --prune origin", TimeSpan.FromSeconds(60), true),
             ("checkout", "Checkout branch",
                 $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
-                TimeSpan.FromSeconds(45)),
-            ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90))
+                TimeSpan.FromSeconds(45), true),
+            ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90), true)
         };
 
         if (request.PullImages)
@@ -97,7 +103,8 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 "compose_pull",
                 "Pull container images",
                 $"cd -- {repo} && docker compose -f {compose} pull",
-                TimeSpan.FromMinutes(5)));
+                TimeSpan.FromMinutes(5),
+                true));
         }
 
         var buildFlag = request.BuildImages ? " --build" : string.Empty;
@@ -105,20 +112,39 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             "compose_up",
             "Apply Docker Compose",
             $"cd -- {repo} && docker compose -f {compose} up -d{buildFlag}",
-            TimeSpan.FromMinutes(10)));
+            TimeSpan.FromMinutes(10),
+            true));
         commands.Add((
             "compose_ps",
             "Read deployment status",
             $"cd -- {repo} && docker compose -f {compose} ps",
-            TimeSpan.FromSeconds(45)));
+            TimeSpan.FromSeconds(45),
+            true));
 
-        foreach (var step in commands)
+        if (request.CleanBuildCache)
         {
+            // Cache cleanup is useful maintenance but must never turn an otherwise healthy
+            // application deployment into a failed release. A failure is surfaced as a warning.
+            commands.Add((
+                "build_cache_prune",
+                "Clean Docker build cache",
+                "docker builder prune -f",
+                TimeSpan.FromMinutes(3),
+                false));
+        }
+
+        for (var index = 0; index < commands.Count; index++)
+        {
+            var step = commands[index];
+            var stepIndex = index + 1;
             cancellationToken.ThrowIfCancellationRequested();
             ProgressChanged?.Invoke(new DeploymentProgressUpdate(
                 step.Code,
                 step.Label,
-                DeploymentProgressState.Started));
+                DeploymentProgressState.Started,
+                StepIndex: stepIndex,
+                TotalSteps: commands.Count,
+                IsBlocking: step.IsBlocking));
 
             var result = await ssh.ExecuteAsync(
                 new SshCommandRequest(request.Server, step.Command, step.Timeout),
@@ -133,7 +159,8 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 result.Succeeded,
                 result.ExitCode,
                 sanitized,
-                result.Duration);
+                result.Duration,
+                step.IsBlocking);
             steps.Add(stepResult);
 
             ProgressChanged?.Invoke(new DeploymentProgressUpdate(
@@ -143,9 +170,12 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 stepResult.Succeeded,
                 stepResult.ExitCode,
                 stepResult.Output,
-                stepResult.Duration));
+                stepResult.Duration,
+                stepIndex,
+                commands.Count,
+                step.IsBlocking));
 
-            if (!result.Succeeded) break;
+            if (!result.Succeeded && step.IsBlocking) break;
         }
 
         var deployedCommit = steps.Any(x => x.Code == "pull" && x.Succeeded)

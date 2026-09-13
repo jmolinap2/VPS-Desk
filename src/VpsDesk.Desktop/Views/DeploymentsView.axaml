@@ -138,6 +138,9 @@
                     <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Bottom">
                       <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" />
                       <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" />
+                      <CheckBox Content="{DynamicResource Deployments_CleanBuildCache}"
+                                IsChecked="{Binding CleanBuildCache}"
+                                ToolTip.Tip="{DynamicResource Deployments_CleanBuildCacheTooltip}" />
                     </StackPanel>
                   </Grid>
 
@@ -205,12 +208,23 @@
                   </StackPanel>
                 </Grid>
 
-                <ProgressBar Grid.Row="1"
-                             IsVisible="{Binding IsDeploymentRunning}"
-                             IsIndeterminate="True"
-                             Height="4"
-                             Foreground="#14B8A6"
-                             Background="#17252B" />
+                <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="5" IsVisible="{Binding IsDeploymentRunning}">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding DeploymentProgressText}" Foreground="#9FB4C8" FontSize="10" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding DeploymentProgressPercent, StringFormat={}{0:F0}%}"
+                               Foreground="#5EEAD4"
+                               FontSize="10"
+                               FontWeight="SemiBold" />
+                  </Grid>
+                  <ProgressBar Grid.Row="1"
+                               Minimum="0"
+                               Maximum="100"
+                               Value="{Binding DeploymentProgressPercent}"
+                               Height="7"
+                               Foreground="#14B8A6"
+                               Background="#17252B" />
+                </Grid>
 
                 <TextBox Grid.Row="2"
                          Text="{Binding DeploymentOutput}"

@@ -30,6 +30,8 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private int _postflightFailedCount;
     [ObservableProperty] private bool _isDeploymentRunning;
     [ObservableProperty] private bool _isDeploymentConfigurationExpanded = true;
+    [ObservableProperty] private double _deploymentProgressPercent;
+    [ObservableProperty] private string _deploymentProgressText = string.Empty;
 
     public bool IsNewDeploymentView => !IsHistoryView;
     public bool IsDeploymentConfigurationCollapsed => !IsDeploymentConfigurationExpanded;
@@ -60,6 +62,8 @@ public partial class DeploymentsViewModel
             _observedDeploymentStartedAt = DateTimeOffset.UtcNow;
             IsDeploymentRunning = true;
             IsDeploymentConfigurationExpanded = false;
+            DeploymentProgressPercent = 0;
+            DeploymentProgressText = "Preparando despliegue...";
             _liveDeploymentOutput.Clear();
             DeploymentOutput = $"[{DateTime.Now:HH:mm:ss}] Iniciando despliegue...";
             _deployment.ProgressChanged -= OnDeploymentProgressChanged;
@@ -69,6 +73,8 @@ public partial class DeploymentsViewModel
         if (value.Contains("Verifying the real container", StringComparison.OrdinalIgnoreCase)
             || value.Contains("Verificando", StringComparison.OrdinalIgnoreCase) && value.Contains("contenedor", StringComparison.OrdinalIgnoreCase))
         {
+            DeploymentProgressPercent = 100;
+            DeploymentProgressText = "Comandos completados · verificando postvuelo";
             IsDeploymentRunning = false;
             _deployment.ProgressChanged -= OnDeploymentProgressChanged;
             BeginPostflightModal();
@@ -191,6 +197,13 @@ public partial class DeploymentsViewModel
     {
         Dispatcher.UIThread.Post(() =>
         {
+            var total = Math.Max(1, update.TotalSteps);
+            var completedBeforeCurrent = Math.Max(0, update.StepIndex - 1);
+            DeploymentProgressPercent = update.State == DeploymentProgressState.Completed
+                ? Math.Clamp(update.StepIndex * 100d / total, 0, 100)
+                : Math.Clamp(completedBeforeCurrent * 100d / total, 0, 100);
+            DeploymentProgressText = $"{Math.Max(1, update.StepIndex)}/{total} · {update.Label}";
+
             if (update.State == DeploymentProgressState.Started)
             {
                 if (_liveDeploymentOutput.Length > 0) _liveDeploymentOutput.AppendLine();
@@ -208,7 +221,7 @@ public partial class DeploymentsViewModel
                     }
                 }
 
-                var marker = update.Succeeded == true ? "✓" : "✕";
+                var marker = update.Succeeded == true ? "✓" : update.IsBlocking ? "✕" : "⚠";
                 var duration = update.Duration?.TotalSeconds ?? 0;
                 _liveDeploymentOutput.AppendLine($"{marker} exit {update.ExitCode ?? -1} · {duration:F1}s");
                 if (!string.IsNullOrWhiteSpace(update.Output))
@@ -227,9 +240,10 @@ public partial class DeploymentsViewModel
         var server = _serverAccessor();
         if (server is null) return;
 
-        var hasFailedStep = Steps.Any(x => !x.Succeeded);
+        var hasFailedStep = Steps.Any(x => x.IsBlocking && !x.Succeeded);
+        var hasMaintenanceWarning = Steps.Any(x => !x.IsBlocking && !x.Succeeded);
         var hasFailedPostCheck = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Failed);
-        var hasWarning = PostChecks.Any(x => x.Status == PostDeployCheckStatus.Warning);
+        var hasWarning = hasMaintenanceWarning || PostChecks.Any(x => x.Status == PostDeployCheckStatus.Warning);
         var statusLooksFailed = StatusMessage.Contains("failed", StringComparison.OrdinalIgnoreCase)
                                 || StatusMessage.Contains("fall", StringComparison.OrdinalIgnoreCase)
                                 || StatusMessage.Contains("problemas", StringComparison.OrdinalIgnoreCase);
@@ -240,10 +254,14 @@ public partial class DeploymentsViewModel
                 ? OperationOutcome.Warning
                 : OperationOutcome.Success;
 
-        var failedStep = Steps.FirstOrDefault(x => !x.Succeeded)?.Label;
+        var failedStep = Steps.FirstOrDefault(x => x.IsBlocking && !x.Succeeded)?.Label;
         var finishedAt = DateTimeOffset.UtcNow;
         var startedAt = _observedDeploymentStartedAt == default ? finishedAt : _observedDeploymentStartedAt;
         var details = new StringBuilder();
+        foreach (var step in Steps.Where(x => !x.IsBlocking && !x.Succeeded))
+        {
+            details.AppendLine($"[Warning] {step.Label}: exit {step.ExitCode}");
+        }
         foreach (var check in PostChecks)
         {
             details.AppendLine($"[{check.Status}] {check.Label}: {check.Detail}");

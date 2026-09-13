@@ -111,25 +111,27 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="14">
-        <Border Classes="card" Width="300">
+      <Grid Grid.Row="1" ColumnDefinitions="300,*" ColumnSpacing="14">
+        <Border Classes="card">
           <Grid RowDefinitions="Auto,*" RowSpacing="10">
             <StackPanel>
               <TextBlock Text="{DynamicResource Deployments_Process}" FontSize="16" FontWeight="SemiBold" />
               <TextBlock Text="{DynamicResource Deployments_ProcessHelp}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
             </StackPanel>
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding Steps}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="deploy:DeploymentStepResult">
-                  <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                      <TextBlock Text="{Binding Label}" />
-                      <TextBlock Grid.Column="1" Text="{Binding ExitCode, StringFormat=exit {0}}" Foreground="#66758A" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ScrollViewer Grid.Row="1">
+              <ItemsControl ItemsSource="{Binding Steps}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="deploy:DeploymentStepResult">
+                    <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBlock Text="{Binding Label}" />
+                        <TextBlock Grid.Column="1" Text="{Binding ExitCode, StringFormat=exit {0}}" Foreground="#66758A" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
           </Grid>
         </Border>
 
@@ -155,10 +157,8 @@
         </Border>
       </Grid>
 
-      <Border Grid.RowSpan="2"
-              Background="#B0000000"
-              IsVisible="{Binding HasPendingDeploy}">
-        <Border Classes="card" Width="600" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Border Grid.RowSpan="2" Background="#B0000000" IsVisible="{Binding HasPendingDeploy}">
+        <Border Classes="card" Width="620" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="14">
             <TextBlock Text="{DynamicResource Deployments_ConfirmTitle}" FontSize="20" FontWeight="SemiBold" />
             <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
@@ -229,11 +229,23 @@
     </Grid>
 
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsPreflightModalOpen}">
-      <Border Classes="card" Width="700" MaxHeight="620" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
-          <TextBlock Text="{DynamicResource Deployments_PreflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="1" Text="{Binding PreflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" />
-          <ListBox Grid.Row="2" ItemsSource="{Binding Checks}" MinHeight="180">
+      <Border Classes="card" Width="720" MaxHeight="650" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Border Width="42" Height="42" CornerRadius="21" Background="#102A24" BorderBrush="#0F766E" BorderThickness="1">
+              <TextBlock Text="✓" FontSize="20" FontWeight="Bold" Foreground="#5EEAD4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{DynamicResource Deployments_PreflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding PreflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+
+          <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
+            <TextBlock Text="SSH · Git · Docker · Compose · rama · archivos · entorno" Foreground="#8290A3" FontSize="11" TextAlignment="Center" />
+          </Border>
+
+          <ListBox Grid.Row="2" ItemsSource="{Binding Checks}" MinHeight="120" MaxHeight="360">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="deploy:PreflightCheckResult">
                 <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
@@ -242,38 +254,78 @@
                       <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="{Binding Status}" FontWeight="SemiBold" />
+                    <Border Grid.Column="1" Background="#172033" CornerRadius="10" Padding="9,4" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="10" />
+                    </Border>
                   </Grid>
                 </Border>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
+
           <Button Grid.Row="3" Content="{DynamicResource Common_Close}" Command="{Binding ClosePreflightModalCommand}" HorizontalAlignment="Right" IsEnabled="{Binding !IsBusy}" />
         </Grid>
       </Border>
     </Border>
 
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsPostflightModalOpen}">
-      <Border Classes="card" Width="700" MaxHeight="620" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
-          <TextBlock Text="{DynamicResource Deployments_PostflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="1" Text="{Binding PostflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" />
-          <ListBox Grid.Row="2" ItemsSource="{Binding PostChecks}" MinHeight="180">
+      <Border Classes="card" Width="760" MaxHeight="680" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+            <Border Width="48" Height="48" CornerRadius="24" Background="#102A24" BorderBrush="#0F766E" BorderThickness="1">
+              <TextBlock Text="✓" FontSize="24" FontWeight="Bold" Foreground="#5EEAD4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+              <TextBlock Text="{DynamicResource Deployments_PostflightModalTitle}" FontSize="21" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding PostflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" MaxWidth="620" />
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+            <Border Background="#102A24" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="OK" Foreground="#5EEAD4" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PostflightPassedCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="#2A2410" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="WARN" Foreground="#FBBF24" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PostflightWarningCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="#2A1215" CornerRadius="8" Padding="12">
+              <StackPanel>
+                <TextBlock Text="FAIL" Foreground="#F87171" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PostflightFailedCount}" FontSize="24" FontWeight="SemiBold" />
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <TextBlock Grid.Row="2" Text="{DynamicResource Deployments_PostDeployHelp}" Foreground="#66758A" FontSize="10" />
+
+          <ListBox Grid.Row="3" ItemsSource="{Binding PostChecks}" MinHeight="120" MaxHeight="360">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="deploy:PostDeployCheckResult">
-                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                <Border Background="#0E131B" CornerRadius="8" Padding="11" Margin="0,3">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel>
+                    <StackPanel Spacing="2">
                       <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding Detail}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="{Binding Status}" FontWeight="SemiBold" />
+                    <Border Grid.Column="1" Background="#172033" CornerRadius="10" Padding="9,4" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="10" />
+                    </Border>
                   </Grid>
                 </Border>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
-          <Button Grid.Row="3" Content="{DynamicResource Common_Close}" Command="{Binding ClosePostflightModalCommand}" HorizontalAlignment="Right" IsEnabled="{Binding !IsBusy}" />
+
+          <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+            <TextBlock Text="El postvuelo queda abierto para revisión manual antes de continuar." Foreground="#66758A" FontSize="10" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="{DynamicResource Common_Close}" Command="{Binding ClosePostflightModalCommand}" IsEnabled="{Binding !IsBusy}" Padding="18,8" />
+          </Grid>
         </Grid>
       </Border>
     </Border>

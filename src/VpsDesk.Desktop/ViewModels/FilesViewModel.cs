@@ -28,6 +28,7 @@ public partial class FilesViewModel : ObservableObject
     [ObservableProperty] private string _pendingSaveMessage = string.Empty;
 
     public bool CanGoParent => CurrentPath != "/";
+    public bool HasSelection => SelectedEntry is not null;
 
     public FilesViewModel(
         IRemoteFileService files,
@@ -44,6 +45,7 @@ public partial class FilesViewModel : ObservableObject
     partial void OnSelectedEntryChanged(RemoteFileEntry? value)
     {
         if (HasPendingSave) CancelPendingSave();
+        OnPropertyChanged(nameof(HasSelection));
     }
 
     public async Task RefreshIfNeededAsync()
@@ -66,6 +68,7 @@ public partial class FilesViewModel : ObservableObject
         StatusMessage = "Select an active server, then browse files.";
         _lastRefreshUtc = null;
         CancelPendingSave();
+        OnPropertyChanged(nameof(HasSelection));
     }
 
     [RelayCommand]
@@ -96,7 +99,7 @@ public partial class FilesViewModel : ObservableObject
 
             _lastRefreshUtc = DateTimeOffset.UtcNow;
             LastUpdated = DateTimeOffset.Now.ToString("HH:mm:ss");
-            StatusMessage = $"{Entries.Count} entries · SFTP · read-only browsing until a text file is explicitly saved.";
+            StatusMessage = $"{Entries.Count} entries · SFTP · {CurrentPath}";
         }
         catch (Exception ex)
         {
@@ -126,6 +129,31 @@ public partial class FilesViewModel : ObservableObject
         _lastRefreshUtc = null;
         await RefreshAsync();
     }
+
+    [RelayCommand]
+    private Task GoRootAsync() => NavigateQuickAsync("/");
+
+    [RelayCommand]
+    private Task GoHomeAsync()
+    {
+        var username = _serverAccessor()?.Username?.Trim();
+        var path = string.Equals(username, "root", StringComparison.OrdinalIgnoreCase)
+            ? "/root"
+            : string.IsNullOrWhiteSpace(username) ? "/home" : $"/home/{username}";
+        return NavigateQuickAsync(path);
+    }
+
+    [RelayCommand]
+    private Task GoOptAsync() => NavigateQuickAsync("/opt");
+
+    [RelayCommand]
+    private Task GoEtcAsync() => NavigateQuickAsync("/etc");
+
+    [RelayCommand]
+    private Task GoVarLogAsync() => NavigateQuickAsync("/var/log");
+
+    [RelayCommand]
+    private Task GoSrvAsync() => NavigateQuickAsync("/srv");
 
     [RelayCommand]
     private async Task OpenSelectedAsync()
@@ -234,6 +262,14 @@ public partial class FilesViewModel : ObservableObject
         HasOpenTextFile = false;
         CancelPendingSave();
         StatusMessage = "Editor closed. No remote changes were made.";
+    }
+
+    private async Task NavigateQuickAsync(string path)
+    {
+        if (IsBusy) return;
+        CurrentPath = NormalizePath(path);
+        _lastRefreshUtc = null;
+        await RefreshAsync();
     }
 
     private void CancelPendingSave()

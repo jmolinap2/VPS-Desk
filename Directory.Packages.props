@@ -11,5 +11,6 @@
     <PackageVersion Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.1.0-dev-798" />
     <PackageVersion Include="SSH.NET" Version="2026.0.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 </Project>

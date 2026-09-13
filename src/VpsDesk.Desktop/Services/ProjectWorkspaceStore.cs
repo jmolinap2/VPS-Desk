@@ -28,7 +28,7 @@ public sealed record ProjectWorkspace(
 
 public sealed record ProjectWorkspaceStoreSnapshot(
     IReadOnlyList<ProjectWorkspace> Projects,
-    IReadOnlyDictionary<Guid, Guid>? SelectedProjectByServer = null);
+    Dictionary<Guid, Guid>? SelectedProjectByServer = null);
 
 public sealed class ProjectWorkspaceStore
 {
@@ -100,7 +100,7 @@ public sealed class ProjectWorkspaceStore
             .Append(normalizedProject)
             .ToArray();
 
-        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? new Dictionary<Guid, Guid>());
+        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? []);
         if (select) selected[normalizedProject.ServerId] = normalizedProject.Id;
         Save(new ProjectWorkspaceStoreSnapshot(projects, selected));
     }
@@ -110,7 +110,7 @@ public sealed class ProjectWorkspaceStore
         var snapshot = Load();
         if (!snapshot.Projects.Any(project => project.ServerId == serverId && project.Id == projectId)) return;
 
-        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? new Dictionary<Guid, Guid>())
+        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? [])
         {
             [serverId] = projectId
         };
@@ -124,7 +124,7 @@ public sealed class ProjectWorkspaceStore
         if (removed is null) return;
 
         var projects = snapshot.Projects.Where(project => project.Id != projectId).ToArray();
-        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? new Dictionary<Guid, Guid>());
+        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? []);
         if (selected.TryGetValue(removed.ServerId, out var selectedId) && selectedId == projectId)
         {
             selected.Remove(removed.ServerId);
@@ -138,7 +138,7 @@ public sealed class ProjectWorkspaceStore
     {
         var snapshot = Load();
         var projects = snapshot.Projects.Where(project => project.ServerId != serverId).ToArray();
-        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? new Dictionary<Guid, Guid>());
+        var selected = new Dictionary<Guid, Guid>(snapshot.SelectedProjectByServer ?? []);
         selected.Remove(serverId);
         Save(new ProjectWorkspaceStoreSnapshot(projects, selected));
     }
@@ -169,14 +169,14 @@ public sealed class ProjectWorkspaceStore
     {
         try
         {
-            if (!File.Exists(_filePath)) return new ProjectWorkspaceStoreSnapshot([], new Dictionary<Guid, Guid>());
+            if (!File.Exists(_filePath)) return new ProjectWorkspaceStoreSnapshot([], []);
             var json = File.ReadAllText(_filePath);
             return JsonSerializer.Deserialize<ProjectWorkspaceStoreSnapshot>(json, JsonOptions)
-                   ?? new ProjectWorkspaceStoreSnapshot([], new Dictionary<Guid, Guid>());
+                   ?? new ProjectWorkspaceStoreSnapshot([], []);
         }
         catch
         {
-            return new ProjectWorkspaceStoreSnapshot([], new Dictionary<Guid, Guid>());
+            return new ProjectWorkspaceStoreSnapshot([], []);
         }
     }
 

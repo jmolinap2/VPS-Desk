@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Activity;
@@ -14,6 +15,7 @@ public partial class DeploymentsViewModel
     private bool _deploymentObserved;
     private bool _historyRecordedForCurrentRun;
     private DateTimeOffset _observedDeploymentStartedAt;
+    private readonly StringBuilder _liveDeploymentOutput = new();
 
     public ObservableCollection<OperationHistoryEntry> DeploymentHistory { get; } = new();
 
@@ -26,12 +28,18 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private int _postflightPassedCount;
     [ObservableProperty] private int _postflightWarningCount;
     [ObservableProperty] private int _postflightFailedCount;
+    [ObservableProperty] private bool _isDeploymentRunning;
+    [ObservableProperty] private bool _isDeploymentConfigurationExpanded = true;
 
     public bool IsNewDeploymentView => !IsHistoryView;
+    public bool IsDeploymentConfigurationCollapsed => !IsDeploymentConfigurationExpanded;
     public event EventHandler? HistoryChanged;
 
     partial void OnIsHistoryViewChanged(bool value)
         => OnPropertyChanged(nameof(IsNewDeploymentView));
+
+    partial void OnIsDeploymentConfigurationExpandedChanged(bool value)
+        => OnPropertyChanged(nameof(IsDeploymentConfigurationCollapsed));
 
     partial void OnStatusMessageChanged(string value)
     {
@@ -50,11 +58,19 @@ public partial class DeploymentsViewModel
             _deploymentObserved = true;
             _historyRecordedForCurrentRun = false;
             _observedDeploymentStartedAt = DateTimeOffset.UtcNow;
+            IsDeploymentRunning = true;
+            IsDeploymentConfigurationExpanded = false;
+            _liveDeploymentOutput.Clear();
+            DeploymentOutput = $"[{DateTime.Now:HH:mm:ss}] Iniciando despliegue...";
+            _deployment.ProgressChanged -= OnDeploymentProgressChanged;
+            _deployment.ProgressChanged += OnDeploymentProgressChanged;
         }
 
         if (value.Contains("Verifying the real container", StringComparison.OrdinalIgnoreCase)
             || value.Contains("Verificando", StringComparison.OrdinalIgnoreCase) && value.Contains("contenedor", StringComparison.OrdinalIgnoreCase))
         {
+            IsDeploymentRunning = false;
+            _deployment.ProgressChanged -= OnDeploymentProgressChanged;
             BeginPostflightModal();
         }
     }
@@ -72,6 +88,9 @@ public partial class DeploymentsViewModel
         {
             CompletePostflightModalFromChecks();
         }
+
+        IsDeploymentRunning = false;
+        _deployment.ProgressChanged -= OnDeploymentProgressChanged;
 
         if (_deploymentObserved && !_historyRecordedForCurrentRun)
         {
@@ -97,6 +116,10 @@ public partial class DeploymentsViewModel
     }
 
     [RelayCommand]
+    private void ToggleDeploymentConfiguration()
+        => IsDeploymentConfigurationExpanded = !IsDeploymentConfigurationExpanded;
+
+    [RelayCommand]
     private void ClosePreflightModal()
     {
         if (!IsBusy) IsPreflightModalOpen = false;
@@ -105,7 +128,11 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private void ClosePostflightModal()
     {
-        if (!IsBusy) IsPostflightModalOpen = false;
+        if (!IsBusy)
+        {
+            IsPostflightModalOpen = false;
+            IsDeploymentConfigurationExpanded = true;
+        }
     }
 
     public async Task RefreshHistoryAsync()
@@ -158,6 +185,40 @@ public partial class DeploymentsViewModel
             : PostflightWarningCount > 0
                 ? "El despliegue terminó con advertencias de postvuelo. Conviene revisarlas antes de cerrar."
                 : "Despliegue verificado. Los contenedores y comprobaciones configuradas respondieron correctamente.";
+    }
+
+    private void OnDeploymentProgressChanged(DeploymentProgressUpdate update)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (update.State == DeploymentProgressState.Started)
+            {
+                if (_liveDeploymentOutput.Length > 0) _liveDeploymentOutput.AppendLine();
+                _liveDeploymentOutput.AppendLine($"[{DateTime.Now:HH:mm:ss}] ▶ {update.Label}");
+                _liveDeploymentOutput.Append("Ejecutando...");
+            }
+            else
+            {
+                if (_liveDeploymentOutput.Length > 0)
+                {
+                    var text = _liveDeploymentOutput.ToString();
+                    if (text.EndsWith("Ejecutando...", StringComparison.Ordinal))
+                    {
+                        _liveDeploymentOutput.Length -= "Ejecutando...".Length;
+                    }
+                }
+
+                var marker = update.Succeeded == true ? "✓" : "✕";
+                var duration = update.Duration?.TotalSeconds ?? 0;
+                _liveDeploymentOutput.AppendLine($"{marker} exit {update.ExitCode ?? -1} · {duration:F1}s");
+                if (!string.IsNullOrWhiteSpace(update.Output))
+                {
+                    _liveDeploymentOutput.AppendLine(update.Output.TrimEnd());
+                }
+            }
+
+            DeploymentOutput = _liveDeploymentOutput.ToString().TrimEnd();
+        });
     }
 
     private async Task RecordObservedDeploymentAsync()

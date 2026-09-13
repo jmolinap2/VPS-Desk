@@ -45,8 +45,8 @@
                FontSize="{Binding FontSize}"
                Background="Transparent"
                BorderThickness="0"
-               HorizontalScrollBarVisibility="Auto"
-               VerticalScrollBarVisibility="Auto" />
+               ScrollViewer.HorizontalScrollBarVisibility="Auto"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" />
     </Border>
 
     <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
@@ -54,7 +54,7 @@
       <TextBox x:Name="CommandInput"
                Grid.Column="1"
                Text="{Binding CommandText}"
-               Watermark="Escribe un comando y presiona Enter..."
+               PlaceholderText="Escribe un comando y presiona Enter..."
                FontFamily="Consolas"
                FontSize="{Binding FontSize}"
                KeyDown="CommandInput_OnKeyDown"

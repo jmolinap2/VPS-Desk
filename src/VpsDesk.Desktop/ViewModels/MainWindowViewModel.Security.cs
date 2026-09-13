@@ -11,7 +11,7 @@ public partial class MainWindowViewModel
         => _securityModule ?? throw new InvalidOperationException("Security module has not been initialized.");
 
     public bool IsSecurityPage => SelectedPage == "Security";
-    public bool IsPendingUtilityPage => !IsDashboardPage && !IsServersPage && !IsContainersPage && !IsDeploymentsPage && !IsLogsPage && !IsStoragePage && !IsFilesPage && !IsSecurityPage;
+    public bool IsPendingUtilityPage => !IsDashboardPage && !IsServersPage && !IsContainersPage && !IsDeploymentsPage && !IsLogsPage && !IsStoragePage && !IsFilesPage && !IsEnvironmentPage && !IsSecurityPage;
 
     public void InitializeSecurity(ISecurityAuditService securityAuditService)
     {

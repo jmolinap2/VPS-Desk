@@ -42,8 +42,11 @@ public sealed class DeploymentProfileStore
     }
 
     public DeploymentProfile? Find(Guid serverId)
-        => Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId && profile.ProjectId is null)
-           ?? Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId);
+    {
+        var profiles = Load().Profiles;
+        return profiles.FirstOrDefault(profile => profile.ServerId == serverId && profile.ProjectId is null)
+               ?? profiles.FirstOrDefault(profile => profile.ServerId == serverId);
+    }
 
     public DeploymentProfile? Find(Guid serverId, Guid projectId)
         => Load().Profiles.FirstOrDefault(profile => profile.ServerId == serverId && profile.ProjectId == projectId);
@@ -58,6 +61,29 @@ public sealed class DeploymentProfileStore
             .Append(profile)
             .ToArray();
 
+        Save(profiles);
+    }
+
+    /// <summary>
+    /// Converts the old server-only deployment record into a project-scoped record without
+    /// dropping any previously saved branch, Compose, target or migration preferences.
+    /// </summary>
+    public void PromoteLegacyProfile(Guid serverId, string remoteRepositoryPath, Guid projectId)
+    {
+        var snapshot = Load();
+        var normalizedPath = NormalizePath(remoteRepositoryPath);
+        var legacy = snapshot.Profiles.FirstOrDefault(profile =>
+            profile.ServerId == serverId
+            && profile.ProjectId is null
+            && NormalizePath(profile.RemoteRepositoryPath).Equals(normalizedPath, StringComparison.Ordinal));
+        if (legacy is null) return;
+
+        var promoted = legacy with { ProjectId = projectId };
+        var profiles = snapshot.Profiles
+            .Where(profile => !ReferenceEquals(profile, legacy)
+                              && !(profile.ServerId == serverId && profile.ProjectId == projectId))
+            .Append(promoted)
+            .ToArray();
         Save(profiles);
     }
 

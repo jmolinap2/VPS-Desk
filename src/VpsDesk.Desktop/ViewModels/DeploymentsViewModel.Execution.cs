@@ -442,6 +442,7 @@ public partial class DeploymentsViewModel
             SelectedDeploymentTarget?.Id,
             SelectedMigrationMode?.Id,
             RunMigrations,
-            MigrationOnly));
+            MigrationOnly,
+            _activeProjectId));
     }
 }

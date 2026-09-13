@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             x:Class="VpsDesk.Desktop.Views.EnvironmentView"
+             x:DataType="vm:FilesViewModel">
+  <Grid Margin="24" RowDefinitions="Auto,*" RowSpacing="14">
+    <Border Classes="card">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+        <StackPanel Spacing="5">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{DynamicResource Files_EnvManagerTitle}" FontSize="18" FontWeight="SemiBold" />
+            <Border Background="#10251F" CornerRadius="10" Padding="8,3" IsVisible="{Binding IsEnvironmentFile}">
+              <TextBlock Text=".ENV" Foreground="#5EEAD4" FontSize="9" FontWeight="Bold" />
+            </Border>
+            <Border Background="#2A2410" CornerRadius="10" Padding="8,3" IsVisible="{Binding IsEditorDirty}">
+              <TextBlock Text="{DynamicResource Files_Unsaved}" Foreground="#F4D37A" FontSize="9" FontWeight="Bold" />
+            </Border>
+          </StackPanel>
+          <TextBlock Text="{Binding EditorPath}" FontFamily="Cascadia Mono,Consolas,monospace" Foreground="#A9B8CA" FontSize="11" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding StatusMessage}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsEnvironmentFile}">
+          <Button Content="{DynamicResource Files_Reload}" Command="{Binding ReloadEditorCommand}" IsEnabled="{Binding !IsBusy}" />
+          <Button Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEnvironmentVariablesCommand}" />
+          <Button Content="{DynamicResource Files_Save}" Command="{Binding RequestSaveCommand}" IsEnabled="{Binding CanSaveEditor}" Background="#0F766E" Foreground="White" FontWeight="SemiBold" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <Border Classes="card" IsVisible="{Binding !IsEnvironmentFile}" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{DynamicResource Nav_Environment}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding StatusMessage}" Foreground="#A9B8CA" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource Header_Environment}" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Grid IsVisible="{Binding IsEnvironmentFile}" RowDefinitions="Auto,*" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="{DynamicResource Files_EnvVariables}" Command="{Binding OpenEnvironmentManagerCommand}" Background="#16233A" Foreground="#D8E7FF" />
+            <Button Content="{DynamicResource Files_EnvRawFile}" Command="{Binding CloseEnvironmentManagerCommand}" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <TextBlock Text="{Binding EnvironmentVariables.Count, StringFormat={}{0} variables}" Foreground="#8290A3" FontSize="10" VerticalAlignment="Center" />
+            <CheckBox Content="{DynamicResource Files_BackupBeforeSave}" IsChecked="{Binding CreateBackupBeforeSave}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Classes="card" Padding="16" ClipToBounds="True">
+          <Grid>
+            <Grid IsVisible="{Binding IsEnvironmentManagerOpen}" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel>
+                  <TextBlock Text="{DynamicResource Files_EnvManagerTitle}" FontSize="16" FontWeight="SemiBold" />
+                  <TextBlock Text="{DynamicResource Files_EnvManagerHelp}" Foreground="#8290A3" FontSize="10" TextWrapping="Wrap" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" Content="{DynamicResource Files_EnvRevealSecrets}" IsChecked="{Binding RevealEnvironmentSecrets}" VerticalAlignment="Center" />
+              </Grid>
+
+              <Grid Grid.Row="1" ColumnDefinitions="0.9*,1.5*,Auto" ColumnSpacing="8" Margin="8,0">
+                <TextBlock Text="{DynamicResource Files_EnvName}" Foreground="#66758A" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="1" Text="{DynamicResource Files_EnvValue}" Foreground="#66758A" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="2" Text="" Width="90" />
+              </Grid>
+
+              <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="EnvVariablesList" ItemsSource="{Binding EnvironmentVariables}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:EnvironmentVariableRow">
+                      <Border Background="#0E131B" BorderBrush="#182131" BorderThickness="1" CornerRadius="7" Padding="9" Margin="0,0,0,6">
+                        <Grid ColumnDefinitions="0.9*,1.5*,Auto" ColumnSpacing="8">
+                          <TextBox Text="{Binding Key}" IsReadOnly="{Binding IsReadOnly}" FontFamily="Cascadia Mono,Consolas,monospace" />
+                          <Grid Grid.Column="1">
+                            <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" PasswordChar="●" IsVisible="{Binding IsValueMasked}" FontFamily="Cascadia Mono,Consolas,monospace" />
+                            <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" IsVisible="{Binding !IsValueMasked}" FontFamily="Cascadia Mono,Consolas,monospace" />
+                          </Grid>
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Border Background="#2A2410" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsSecret}">
+                              <TextBlock Text="{DynamicResource Files_EnvSecret}" Foreground="#FBBF24" FontSize="8.5" FontWeight="SemiBold" />
+                            </Border>
+                            <Button Content="{DynamicResource Common_Delete}"
+                                    Command="{Binding #EnvVariablesList.((vm:FilesViewModel)DataContext).RemoveEnvironmentVariableCommand}"
+                                    CommandParameter="{Binding}"
+                                    IsEnabled="{Binding !IsReadOnly}"
+                                    Padding="8,4" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+
+              <Border Grid.Row="3" Background="#101922" CornerRadius="7" Padding="9" IsVisible="{Binding !IsEditorReadOnly}">
+                <Grid ColumnDefinitions="0.9*,1.5*,Auto" ColumnSpacing="8">
+                  <TextBox Text="{Binding NewEnvironmentKey}" PlaceholderText="NUEVA_VARIABLE" FontFamily="Cascadia Mono,Consolas,monospace" />
+                  <TextBox Grid.Column="1" Text="{Binding NewEnvironmentValue}" PlaceholderText="valor" FontFamily="Cascadia Mono,Consolas,monospace" />
+                  <Button Grid.Column="2" Content="{DynamicResource Files_EnvAdd}" Command="{Binding AddEnvironmentVariableCommand}" Background="#16233A" Foreground="#7DB2FF" />
+                </Grid>
+              </Border>
+
+              <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="{Binding EnvironmentManagerMessage}" Foreground="#5EEAD4" FontSize="10" TextWrapping="Wrap" IsVisible="{Binding EnvironmentManagerValid}" />
+                  <TextBlock Text="{Binding EnvironmentManagerMessage}" Foreground="#F87171" FontSize="10" TextWrapping="Wrap" IsVisible="{Binding !EnvironmentManagerValid}" />
+                  <TextBlock Text="{Binding LastBackupPath}" Foreground="#66758A" FontSize="9" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEnvironmentVariablesCommand}" VerticalAlignment="Center" />
+              </Grid>
+            </Grid>
+
+            <Grid IsVisible="{Binding IsRawEditorVisible}" RowDefinitions="Auto,*" RowSpacing="10">
+              <Border Background="#141B26" BorderBrush="#232D3D" BorderThickness="1" CornerRadius="8" Padding="10">
+                <TextBlock Text="{DynamicResource Files_SensitiveWarning}" Foreground="#F4D37A" FontSize="10" TextWrapping="Wrap" />
+              </Border>
+              <TextBox Grid.Row="1"
+                       Text="{Binding EditorContent}"
+                       IsReadOnly="{Binding IsEditorReadOnly}"
+                       AcceptsReturn="True"
+                       TextWrapping="NoWrap"
+                       FontFamily="Cascadia Mono,Consolas,monospace"
+                       FontSize="13"
+                       Background="#080B10"
+                       BorderBrush="#202A38"
+                       BorderThickness="1"
+                       Padding="16"
+                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <Border Background="#B0000000" IsVisible="{Binding HasPendingSave}">
+        <Border Classes="card" Width="660" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Files_ConfirmSave}" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding PendingSaveMessage}" TextWrapping="Wrap" />
+            <Border Background="#101922" CornerRadius="8" Padding="10">
+              <TextBlock Text="{DynamicResource Files_ConflictProtection}" Foreground="#8FA5BA" FontSize="10" TextWrapping="Wrap" />
+            </Border>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+              <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSaveCommand}" />
+              <Button Content="{DynamicResource Files_Save}" Command="{Binding ConfirmSaveCommand}" Background="#0F766E" Foreground="White" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

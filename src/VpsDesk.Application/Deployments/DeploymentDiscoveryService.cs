@@ -24,10 +24,17 @@ public interface IDeploymentDiscoveryService
         string remoteRepositoryPath,
         string? secret,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<string>> DiscoverServicesAsync(
+        ServerProfile server,
+        string remoteRepositoryPath,
+        string composeFile,
+        string? secret,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Discovers deployable Git branches and Docker Compose files from the remote repository.
+/// Discovers deployable Git branches, Docker Compose files and services from the remote repository.
 /// This is capability-based and provider-agnostic; it does not assume Hostinger or Holos.
 /// </summary>
 public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeploymentDiscoveryService
@@ -39,8 +46,6 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
         string? secret,
         CancellationToken cancellationToken = default)
     {
-        // Search only conventional application roots. This avoids a costly and invasive scan of
-        // the entire VPS while covering the normal locations for Compose deployments.
         const string command = """
             bash -lc '
             set -o pipefail
@@ -135,8 +140,6 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
             secret,
             cancellationToken);
 
-        // grep returns 1 when there are simply no matches. Treat that as an empty list,
-        // not as a connection/discovery failure.
         var composeOutput = composeResult.StandardOutput;
         if (!composeResult.Succeeded && !string.IsNullOrWhiteSpace(composeResult.StandardError))
         {
@@ -154,6 +157,39 @@ public sealed class DeploymentDiscoveryService(ISshCommandExecutor ssh) : IDeplo
             branchLines.Where(line => !line.StartsWith(CurrentBranchPrefix, StringComparison.Ordinal)).ToArray(),
             SplitLines(composeOutput),
             string.IsNullOrWhiteSpace(currentBranch) ? null : currentBranch);
+    }
+
+    public async Task<IReadOnlyList<string>> DiscoverServicesAsync(
+        ServerProfile server,
+        string remoteRepositoryPath,
+        string composeFile,
+        string? secret,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(remoteRepositoryPath))
+            throw new ArgumentException("Remote repository path is required.", nameof(remoteRepositoryPath));
+        if (string.IsNullOrWhiteSpace(composeFile))
+            throw new ArgumentException("Compose file is required.", nameof(composeFile));
+
+        var repo = DeploymentPreflightService.ShellQuote(remoteRepositoryPath.Trim().TrimEnd('/'));
+        var compose = DeploymentPreflightService.ShellQuote(composeFile.Trim());
+        var command =
+            $"REPO={repo}; COMPOSE={compose}; cd \"$REPO\" || exit 9; " +
+            "docker compose -f \"$COMPOSE\" config --services";
+
+        var result = await ssh.ExecuteAsync(
+            new SshCommandRequest(server, command, TimeSpan.FromSeconds(20)),
+            secret,
+            cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(DescribeFailure(
+                result,
+                "Could not discover services from the selected Docker Compose file."));
+        }
+
+        return SplitLines(result.StandardOutput);
     }
 
     private static IReadOnlyList<string> SplitLines(string value)

@@ -43,6 +43,8 @@
                       <TextBlock Text="{Binding Branch}" Foreground="#8290A3" FontSize="11" />
                       <TextBlock Text="·" Foreground="#465468" FontSize="11" />
                       <TextBlock Text="{Binding ComposeFile}" Foreground="#8290A3" FontSize="11" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="·" Foreground="#465468" FontSize="11" />
+                      <TextBlock Text="{Binding SelectedTargetLabel}" Foreground="#5EEAD4" FontSize="11" />
                     </StackPanel>
                   </StackPanel>
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -71,7 +73,7 @@
                       BorderBrush="#202A38"
                       BorderThickness="0,1,0,0"
                       IsVisible="{Binding IsDeploymentConfigurationExpanded}">
-                <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <StackPanel ToolTip.Tip="{DynamicResource Deployments_RemoteRepositoryTooltip}">
                       <TextBlock Text="{DynamicResource Deployments_RemoteRepository}" Foreground="#8290A3" FontSize="11" />
@@ -129,27 +131,96 @@
                     </StackPanel>
                   </Grid>
 
-                  <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+                  <Border Grid.Row="2" Background="#0E131B" BorderBrush="#202A38" BorderThickness="1" CornerRadius="10" Padding="14">
+                    <StackPanel Spacing="12">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <StackPanel Spacing="3">
+                          <TextBlock Text="Modelo del proyecto" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding ProjectModelStatus}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Border Grid.Column="1"
+                                IsVisible="{Binding HasProjectRecipe}"
+                                Background="#102A24"
+                                BorderBrush="#0F766E"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="10,4"
+                                VerticalAlignment="Center">
+                          <TextBlock Text="{Binding ProjectRecipeFileName}" Foreground="#5EEAD4" FontSize="10" FontWeight="SemiBold" />
+                        </Border>
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                        <StackPanel Spacing="6">
+                          <TextBlock Text="Qué quieres ejecutar" Foreground="#8290A3" FontSize="11" />
+                          <StackPanel IsVisible="{Binding ShowDeploymentTarget}" Spacing="5">
+                            <TextBlock Text="Objetivo de despliegue" FontSize="11" />
+                            <ComboBox ItemsSource="{Binding AvailableTargets}"
+                                      SelectedItem="{Binding SelectedDeploymentTarget}"
+                                      PlaceholderText="Selecciona servicios">
+                              <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="deploy:ProjectDeploymentTarget">
+                                  <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                              </ComboBox.ItemTemplate>
+                            </ComboBox>
+                          </StackPanel>
+                          <CheckBox Content="Solo ejecutar migraciones"
+                                    IsChecked="{Binding MigrationOnly}"
+                                    IsVisible="{Binding HasMigrationRecipe}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="6" IsVisible="{Binding HasMigrationRecipe}">
+                          <TextBlock Text="Migraciones de base de datos" Foreground="#8290A3" FontSize="11" />
+                          <CheckBox Content="Ejecutar migraciones en este pase"
+                                    IsChecked="{Binding RunMigrations}"
+                                    IsEnabled="{Binding !MigrationOnly}" />
+                          <ComboBox ItemsSource="{Binding MigrationModes}"
+                                    SelectedItem="{Binding SelectedMigrationMode}"
+                                    IsVisible="{Binding ShowMigrationOptions}"
+                                    PlaceholderText="Selecciona el alcance">
+                            <ComboBox.ItemTemplate>
+                              <DataTemplate x:DataType="deploy:ProjectMigrationMode">
+                                <TextBlock Text="{Binding Label}" />
+                              </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                          </ComboBox>
+                          <StackPanel IsVisible="{Binding RequiresMigrationInput}" Spacing="4">
+                            <TextBlock Text="{Binding MigrationInputLabel}" Foreground="#8290A3" FontSize="10" />
+                            <TextBox Text="{Binding MigrationInput}" PlaceholderText="{Binding MigrationInputPlaceholder}" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+
+                  <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
                     <StackPanel>
                       <TextBlock Text="{DynamicResource Deployments_Safety}" FontWeight="SemiBold" Margin="0,0,0,6" />
                       <CheckBox Content="{DynamicResource Deployments_RequireEnv}" IsChecked="{Binding RequireEnvironmentFile}" />
                       <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" Margin="22,5,0,0" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Bottom">
-                      <CheckBox Content="{DynamicResource Deployments_PullImages}" IsChecked="{Binding PullImages}" />
-                      <CheckBox Content="{DynamicResource Deployments_BuildImages}" IsChecked="{Binding BuildImages}" />
+                      <CheckBox Content="{DynamicResource Deployments_PullImages}"
+                                IsChecked="{Binding PullImages}"
+                                IsEnabled="{Binding !MigrationOnly}" />
+                      <CheckBox Content="{DynamicResource Deployments_BuildImages}"
+                                IsChecked="{Binding BuildImages}"
+                                IsEnabled="{Binding !MigrationOnly}" />
                       <CheckBox Content="{DynamicResource Deployments_CleanBuildCache}"
                                 IsChecked="{Binding CleanBuildCache}"
+                                IsEnabled="{Binding !MigrationOnly}"
                                 ToolTip.Tip="{DynamicResource Deployments_CleanBuildCacheTooltip}" />
                     </StackPanel>
                   </Grid>
 
-                  <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <StackPanel>
                       <TextBlock Text="{DynamicResource Deployments_HealthUrls}" Foreground="#8290A3" FontSize="11" />
                       <TextBox Text="{Binding HttpHealthUrls}"
                                AcceptsReturn="True"
                                MinHeight="62"
+                               IsEnabled="{Binding !MigrationOnly}"
                                PlaceholderText="https://app.example.com/health" />
                     </StackPanel>
                     <Button Grid.Column="1"
@@ -159,7 +230,7 @@
                             VerticalAlignment="Bottom" />
                   </Grid>
 
-                  <Border Grid.Row="4" Background="#0E131B" CornerRadius="8" Padding="10">
+                  <Border Grid.Row="5" Background="#0E131B" CornerRadius="8" Padding="10">
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
                   </Border>
                 </Grid>
@@ -342,7 +413,7 @@
           </Grid>
 
           <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
-            <TextBlock Text="SSH · Git · Docker · Compose · rama · archivos · entorno"
+            <TextBlock Text="SSH · Git · Docker · Compose · objetivo · migraciones · entorno"
                        Foreground="#8290A3"
                        FontSize="11"
                        TextAlignment="Center" />

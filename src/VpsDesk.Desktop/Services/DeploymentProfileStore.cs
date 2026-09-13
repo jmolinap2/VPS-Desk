@@ -14,7 +14,8 @@ public sealed record DeploymentProfile(
     bool RequireEnvironmentFile,
     string EnvironmentFileName,
     bool PullImages,
-    bool BuildImages);
+    bool BuildImages,
+    bool? CleanBuildCache = null);
 
 public sealed record DeploymentProfileStoreSnapshot(IReadOnlyList<DeploymentProfile> Profiles);
 

@@ -2,8 +2,57 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:files="using:VpsDesk.Domain.Files"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.FilesView"
              x:DataType="vm:FilesViewModel">
+  <UserControl.Resources>
+    <conv:FileCategoryBrushConverter x:Key="CategoryBrush" />
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="Border.explorer-row">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.explorer-row:pointerover">
+      <Setter Property="Background" Value="#161C27" />
+    </Style>
+    <Style Selector="StackPanel.row-actions">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.explorer-row:pointerover StackPanel.row-actions">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.explorer-row:focus-within StackPanel.row-actions">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.row-action">
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="Button.row-action-edit">
+      <Setter Property="Background" Value="#16233A" />
+      <Setter Property="Foreground" Value="#7DB2FF" />
+    </Style>
+    <Style Selector="Border.editor-surface">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+        </Transitions>
+      </Setter>
+    </Style>
+  </UserControl.Styles>
+
   <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="12">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
@@ -40,7 +89,7 @@
         </Grid>
       </Border>
 
-      <Border Grid.Column="1" Classes="card" Padding="0" ClipToBounds="True" IsVisible="{Binding !HasOpenTextFile}">
+      <Border Grid.Column="1" Classes="card editor-surface" Padding="0" ClipToBounds="True" IsVisible="{Binding !HasOpenTextFile}">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
           <Grid Margin="16,14,16,9" ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel>
@@ -52,22 +101,101 @@
             </Border>
           </Grid>
 
-          <Grid Grid.Row="1" Margin="16,0,16,5" ColumnDefinitions="2.5*,0.7*,0.7*,1.15*" ColumnSpacing="14">
+          <Grid Grid.Row="1" Margin="16,0,16,5" ColumnDefinitions="2.1*,0.55*,0.6*,1.0*,1.6*" ColumnSpacing="10">
             <TextBlock Text="{DynamicResource Files_Name}" Foreground="#66758A" FontSize="10" FontWeight="SemiBold" />
             <TextBlock Grid.Column="1" Text="{DynamicResource Files_Type}" Foreground="#66758A" FontSize="10" FontWeight="SemiBold" />
             <TextBlock Grid.Column="2" Text="{DynamicResource Files_Size}" Foreground="#66758A" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
             <TextBlock Grid.Column="3" Text="{DynamicResource Files_Modified}" Foreground="#66758A" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
+            <TextBlock Grid.Column="4" Text="" />
           </Grid>
 
-          <ListBox Grid.Row="2" ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}" Margin="8,0">
+          <ListBox Grid.Row="2" x:Name="EntriesList" ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}" Margin="8,0">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="files:RemoteFileEntry">
-                <Border CornerRadius="6" Padding="11,8" Margin="0,1" Background="#0E131B">
-                  <Grid ColumnDefinitions="2.5*,0.7*,0.7*,1.15*" ColumnSpacing="14">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="1" Text="{Binding Kind}" Foreground="#8290A3" FontSize="10" VerticalAlignment="Center" />
+                <Border Classes="explorer-row" CornerRadius="6" Padding="10,8" Margin="0,1" Background="#0E131B" Focusable="True">
+                  <Grid ColumnDefinitions="2.1*,0.55*,0.6*,1.0*,1.6*" ColumnSpacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <Border Width="30" Height="30" CornerRadius="8"
+                              Background="{Binding Category, Converter={StaticResource CategoryBrush}, ConverterParameter=tint}">
+                        <Panel Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                          <!-- Directory -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsDirectory}">
+                            <Border Canvas.Left="1.5" Canvas.Top="3" Width="6" Height="2.3" CornerRadius="1.2,1.2,0,0"
+                                    Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                            <Border Canvas.Left="1.5" Canvas.Top="5" Width="13" Height="8.5" CornerRadius="1.2"
+                                    Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                          </Canvas>
+                          <!-- Script (play glyph) -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsScriptFile}">
+                            <Polygon Points="4,3 4,13 13,8" Fill="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                          </Canvas>
+                          <!-- Config (ring) -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsConfigFile}">
+                            <Ellipse Canvas.Left="2" Canvas.Top="2" Width="12" Height="12"
+                                     Fill="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                            <Ellipse Canvas.Left="5.2" Canvas.Top="5.2" Width="5.6" Height="5.6"
+                                     Fill="{Binding Category, Converter={StaticResource CategoryBrush}, ConverterParameter=tint}" />
+                          </Canvas>
+                          <!-- Image -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsImageFile}">
+                            <Border Canvas.Left="1.5" Canvas.Top="2" Width="13" Height="12" CornerRadius="1.2"
+                                    BorderBrush="{Binding Category, Converter={StaticResource CategoryBrush}}" BorderThickness="1.3" />
+                            <Ellipse Canvas.Left="4" Canvas.Top="4.5" Width="2.6" Height="2.6"
+                                     Fill="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                            <Polygon Points="2.5,12.5 7,7 9.5,10 12,7.5 13.5,12.5"
+                                     Fill="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                          </Canvas>
+                          <!-- Archive -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsArchiveFile}">
+                            <Border Canvas.Left="1.5" Canvas.Top="3" Width="13" Height="2.6" CornerRadius="1,1,0,0"
+                                    Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                            <Border Canvas.Left="2.3" Canvas.Top="6" Width="11.4" Height="7.5" CornerRadius="0,0,1,1"
+                                    BorderBrush="{Binding Category, Converter={StaticResource CategoryBrush}}" BorderThickness="1.2" />
+                            <Line StartPoint="8,6.5" EndPoint="8,11" Stroke="{Binding Category, Converter={StaticResource CategoryBrush}}" StrokeThickness="1.2" />
+                          </Canvas>
+                          <!-- Binary / unsupported -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsBinaryFile}">
+                            <Border Canvas.Left="3" Canvas.Top="1.5" Width="10" Height="13" CornerRadius="1"
+                                    BorderBrush="{Binding Category, Converter={StaticResource CategoryBrush}}" BorderThickness="1.3" />
+                            <Line StartPoint="3,14" EndPoint="13,1.5" Stroke="{Binding Category, Converter={StaticResource CategoryBrush}}" StrokeThickness="1.4" StrokeLineCap="Round" />
+                          </Canvas>
+                          <!-- Plain text (default) -->
+                          <Canvas Width="16" Height="16" IsVisible="{Binding IsPlainTextFile}">
+                            <Border Canvas.Left="3" Canvas.Top="1.5" Width="10" Height="13" CornerRadius="1"
+                                    BorderBrush="{Binding Category, Converter={StaticResource CategoryBrush}}" BorderThickness="1.3" />
+                            <Border Canvas.Left="5.2" Canvas.Top="6" Width="5.6" Height="1.3"
+                                    Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                            <Border Canvas.Left="5.2" Canvas.Top="9" Width="3.8" Height="1.3"
+                                    Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                          </Canvas>
+                        </Panel>
+                      </Border>
+                      <StackPanel VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="{DynamicResource Files_NoPreview}" Foreground="#5B6377" FontSize="9.5" IsVisible="{Binding HasNoPreview}" />
+                          <Border Background="#2A2410" CornerRadius="8" Padding="6,1" IsVisible="{Binding IsSensitive}">
+                            <TextBlock Text="{DynamicResource Files_Sensitive}" Foreground="#FBBF24" FontSize="8.5" FontWeight="SemiBold" />
+                          </Border>
+                        </StackPanel>
+                      </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1" Text="{Binding CategoryLabel}" Foreground="#8290A3" FontSize="10" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Text="{Binding SizeLabel}" Foreground="#A8B4C5" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="3" Text="{Binding LastWriteTimeUtc, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Foreground="#66758A" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" />
+
+                    <StackPanel Grid.Column="4" Classes="row-actions" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6" VerticalAlignment="Center">
+                      <Button Content="{DynamicResource Files_OpenFolder}" Classes="row-action" IsVisible="{Binding IsDirectory}"
+                              Command="{Binding #EntriesList.((vm:FilesViewModel)DataContext).PreviewEntryCommand}"
+                              CommandParameter="{Binding}" />
+                      <Button Content="{DynamicResource Files_View}" Classes="row-action" IsVisible="{Binding CanPreview}"
+                              Command="{Binding #EntriesList.((vm:FilesViewModel)DataContext).PreviewEntryCommand}"
+                              CommandParameter="{Binding}" />
+                      <Button Content="{DynamicResource Files_Edit}" Classes="row-action row-action-edit" IsVisible="{Binding CanEdit}"
+                              Command="{Binding #EntriesList.((vm:FilesViewModel)DataContext).EditEntryCommand}"
+                              CommandParameter="{Binding}" />
+                    </StackPanel>
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -85,7 +213,7 @@
         </Grid>
       </Border>
 
-      <Border Grid.Column="1" Classes="card" ClipToBounds="True" IsVisible="{Binding HasOpenTextFile}">
+      <Border Grid.Column="1" Classes="card editor-surface" ClipToBounds="True" IsVisible="{Binding HasOpenTextFile}">
         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
             <Button Content="←" Width="38" Command="{Binding CloseEditorCommand}" ToolTip.Tip="{DynamicResource Files_CloseEditor}" />
@@ -94,6 +222,9 @@
                 <TextBlock Text="{DynamicResource Files_TextEditor}" FontSize="17" FontWeight="SemiBold" />
                 <Border Background="#172033" CornerRadius="10" Padding="8,2">
                   <TextBlock Text="{Binding EditorFileType}" Foreground="#A8B4C5" FontSize="9" FontWeight="SemiBold" />
+                </Border>
+                <Border Background="#1B2431" CornerRadius="10" Padding="8,2" IsVisible="{Binding IsEditorReadOnly}">
+                  <TextBlock Text="{DynamicResource Files_ReadOnlyBadge}" Foreground="#8FA5BA" FontSize="9" FontWeight="SemiBold" />
                 </Border>
                 <Border Background="#2A2410" CornerRadius="10" Padding="8,2" IsVisible="{Binding IsEditorDirty}">
                   <TextBlock Text="{DynamicResource Files_Unsaved}" Foreground="#FBBF24" FontSize="9" FontWeight="SemiBold" />
@@ -107,10 +238,18 @@
               <Button Content="{DynamicResource Files_Save}" Command="{Binding RequestSaveCommand}" IsEnabled="{Binding CanSaveEditor}" Background="#0F766E" Foreground="White" />
             </WrapPanel>
           </Grid>
-          <Border Grid.Row="1" Background="#2A2410" BorderBrush="#6B5314" BorderThickness="1" CornerRadius="8" Padding="10" IsVisible="{Binding IsSensitiveFile}">
-            <TextBlock Text="{DynamicResource Files_SensitiveWarning}" Foreground="#F4D37A" FontSize="10" TextWrapping="Wrap" />
-          </Border>
-          <TextBox Grid.Row="2" Text="{Binding EditorContent}" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="13" Background="#080B10" BorderBrush="#202A38" BorderThickness="1" Padding="16" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          <StackPanel Grid.Row="1" Spacing="8">
+            <Border Background="#2A2410" BorderBrush="#6B5314" BorderThickness="1" CornerRadius="8" Padding="10" IsVisible="{Binding IsSensitiveFile}">
+              <TextBlock Text="{DynamicResource Files_SensitiveWarning}" Foreground="#F4D37A" FontSize="10" TextWrapping="Wrap" />
+            </Border>
+            <Border Background="#141B26" BorderBrush="#232D3D" BorderThickness="1" CornerRadius="8" Padding="10" IsVisible="{Binding IsEditorReadOnly}">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{DynamicResource Files_ReadOnlyBanner}" Foreground="#8FA5BA" FontSize="10" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="{DynamicResource Files_SwitchToEdit}" Command="{Binding SwitchToEditModeCommand}" Margin="10,0,0,0" />
+              </Grid>
+            </Border>
+          </StackPanel>
+          <TextBox Grid.Row="2" Text="{Binding EditorContent}" IsReadOnly="{Binding IsEditorReadOnly}" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="13" Background="#080B10" BorderBrush="#202A38" BorderThickness="1" Padding="16" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
           <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding EditorValidationMessage}" Foreground="#5EEAD4" FontSize="10" IsVisible="{Binding IsEditorValid}" TextWrapping="Wrap" />
@@ -139,6 +278,21 @@
             <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSaveCommand}" />
             <Button Content="{DynamicResource Files_Save}" Command="{Binding ConfirmSaveCommand}" Background="#0F766E" Foreground="White" />
           </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding HasImagePreview}">
+      <Border Classes="card" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding ImagePreviewName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="✕" Width="32" Command="{Binding CloseImagePreviewCommand}" />
+          </Grid>
+          <Border Background="#0E131B" CornerRadius="8" Padding="6">
+            <Image Source="{Binding ImagePreview}" Stretch="Uniform" MaxHeight="300" />
+          </Border>
+          <TextBlock Text="{Binding ImagePreviewMeta}" Foreground="#8290A3" FontSize="11" FontFamily="Cascadia Mono,Consolas,monospace" HorizontalAlignment="Center" />
         </StackPanel>
       </Border>
     </Border>

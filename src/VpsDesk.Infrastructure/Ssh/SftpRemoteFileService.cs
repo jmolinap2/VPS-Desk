@@ -9,6 +9,7 @@ namespace VpsDesk.Infrastructure.Ssh;
 public sealed class SftpRemoteFileService : IRemoteFileService
 {
     private const long MaxEditableTextBytes = 2 * 1024 * 1024;
+    private const long MaxPreviewBytes = 8 * 1024 * 1024;
 
     public async Task<IReadOnlyList<RemoteFileEntry>> ListAsync(
         ServerProfile server,
@@ -83,6 +84,51 @@ public sealed class SftpRemoteFileService : IRemoteFileService
             client.DownloadFile(remotePath, stream);
             client.Disconnect();
             return Encoding.UTF8.GetString(stream.ToArray());
+        }, cancellationToken);
+    }
+
+    public async Task<byte[]?> ReadBytesAsync(
+        ServerProfile server,
+        string remotePath,
+        string? secret,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(remotePath))
+        {
+            throw new ArgumentException("Remote path is required.", nameof(remotePath));
+        }
+
+        return await Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(15)));
+            SshConnectionFactory.ApplyHostKeyPolicy(client, server);
+            client.Connect();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!client.Exists(remotePath))
+            {
+                client.Disconnect();
+                return null;
+            }
+
+            var attributes = client.GetAttributes(remotePath);
+            if (attributes.IsDirectory)
+            {
+                client.Disconnect();
+                throw new InvalidOperationException("The selected path is a directory, not a file.");
+            }
+
+            if (attributes.Size > MaxPreviewBytes)
+            {
+                client.Disconnect();
+                throw new InvalidOperationException("Preview is limited to files of 8 MB or less in this version.");
+            }
+
+            using var stream = new MemoryStream();
+            client.DownloadFile(remotePath, stream);
+            client.Disconnect();
+            return stream.ToArray();
         }, cancellationToken);
     }
 

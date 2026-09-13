@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Xml.Linq;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
@@ -38,10 +39,15 @@ public partial class FilesViewModel : ObservableObject
     [ObservableProperty] private bool _createBackupBeforeSave = true;
     [ObservableProperty] private string _lastBackupPath = string.Empty;
     [ObservableProperty] private bool _isSensitiveFile;
+    [ObservableProperty] private bool _isEditorReadOnly;
+    [ObservableProperty] private Bitmap? _imagePreview;
+    [ObservableProperty] private bool _hasImagePreview;
+    [ObservableProperty] private string _imagePreviewName = string.Empty;
+    [ObservableProperty] private string _imagePreviewMeta = string.Empty;
 
     public bool CanGoParent => CurrentPath != "/";
     public bool HasSelection => SelectedEntry is not null;
-    public bool CanSaveEditor => HasOpenTextFile && IsEditorDirty && IsEditorValid && !IsBusy;
+    public bool CanSaveEditor => HasOpenTextFile && IsEditorDirty && IsEditorValid && !IsBusy && !IsEditorReadOnly;
 
     public FilesViewModel(
         IRemoteFileService files,
@@ -73,6 +79,7 @@ public partial class FilesViewModel : ObservableObject
     partial void OnHasOpenTextFileChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
     partial void OnIsEditorDirtyChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
     partial void OnIsEditorValidChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
+    partial void OnIsEditorReadOnlyChanged(bool value) => OnPropertyChanged(nameof(CanSaveEditor));
 
     public async Task RefreshIfNeededAsync()
     {
@@ -88,6 +95,7 @@ public partial class FilesViewModel : ObservableObject
         Entries.Clear();
         SelectedEntry = null;
         ClearEditorState();
+        CloseImagePreview();
         LastUpdated = "Never";
         StatusMessage = "Select an active server, then browse files.";
         _lastRefreshUtc = null;
@@ -185,14 +193,109 @@ public partial class FilesViewModel : ObservableObject
         var entry = SelectedEntry;
         if (entry == null) return;
 
-        if (entry.IsDirectory)
+        if (entry.IsDirectory) { await OpenDirectoryAsync(entry); return; }
+        if (entry.IsImageFile) { await LoadImagePreviewAsync(entry); return; }
+        if (entry.CanEdit) { await OpenFileAsync(entry, readOnly: false); return; }
+        StatusMessage = $"{entry.Name} no tiene vista previa disponible en VPS Desk.";
+    }
+
+    [RelayCommand]
+    private async Task PreviewEntryAsync(RemoteFileEntry? entry)
+    {
+        entry ??= SelectedEntry;
+        if (entry == null) return;
+
+        if (entry.IsDirectory) { await OpenDirectoryAsync(entry); return; }
+        if (entry.IsImageFile) { await LoadImagePreviewAsync(entry); return; }
+        if (!entry.CanPreview)
         {
-            CurrentPath = NormalizePath(entry.FullPath);
-            _lastRefreshUtc = null;
-            await RefreshAsync();
+            StatusMessage = $"{entry.Name} no tiene vista previa disponible en VPS Desk.";
             return;
         }
 
+        await OpenFileAsync(entry, readOnly: true);
+    }
+
+    [RelayCommand]
+    private async Task EditEntryAsync(RemoteFileEntry? entry)
+    {
+        entry ??= SelectedEntry;
+        if (entry == null) return;
+
+        if (entry.IsDirectory) { await OpenDirectoryAsync(entry); return; }
+        if (!entry.CanEdit)
+        {
+            StatusMessage = $"{entry.Name} no se puede editar como texto.";
+            return;
+        }
+
+        await OpenFileAsync(entry, readOnly: false);
+    }
+
+    [RelayCommand]
+    private void SwitchToEditMode()
+    {
+        if (!HasOpenTextFile || !IsEditorReadOnly) return;
+        IsEditorReadOnly = false;
+        StatusMessage = $"Editando {Path.GetFileName(EditorPath)}.";
+    }
+
+    [RelayCommand]
+    private void CloseImagePreview()
+    {
+        HasImagePreview = false;
+        ImagePreview?.Dispose();
+        ImagePreview = null;
+    }
+
+    private async Task OpenDirectoryAsync(RemoteFileEntry entry)
+    {
+        CurrentPath = NormalizePath(entry.FullPath);
+        _lastRefreshUtc = null;
+        await RefreshAsync();
+    }
+
+    private async Task LoadImagePreviewAsync(RemoteFileEntry entry)
+    {
+        var server = _serverAccessor();
+        if (server == null)
+        {
+            StatusMessage = "No active server.";
+            return;
+        }
+
+        IsBusy = true;
+        StatusMessage = $"Reading {entry.FullPath}...";
+        try
+        {
+            var bytes = await _files.ReadBytesAsync(server, entry.FullPath, _secretAccessor());
+            if (bytes == null)
+            {
+                StatusMessage = "The file no longer exists.";
+                return;
+            }
+
+            using var stream = new MemoryStream(bytes);
+            var bitmap = new Bitmap(stream);
+            ImagePreview?.Dispose();
+            ImagePreview = bitmap;
+            ImagePreviewName = entry.Name;
+            ImagePreviewMeta = $"{entry.SizeLabel} · {bitmap.PixelSize.Width}×{bitmap.PixelSize.Height}";
+            HasImagePreview = true;
+            StatusMessage = $"Previsualizando {entry.Name}.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Unable to preview image: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task OpenFileAsync(RemoteFileEntry entry, bool readOnly)
+    {
         var server = _serverAccessor();
         if (server == null)
         {
@@ -213,14 +316,17 @@ public partial class FilesViewModel : ObservableObject
 
             EditorPath = entry.FullPath;
             EditorFileType = DetermineFileType(entry.FullPath);
-            IsSensitiveFile = IsPotentiallySensitive(entry.FullPath);
+            IsSensitiveFile = entry.IsSensitive;
+            IsEditorReadOnly = readOnly;
             _originalEditorContent = content;
             HasOpenTextFile = true;
             EditorContent = content;
             IsEditorDirty = false;
             LastBackupPath = string.Empty;
             ValidateEditorContentCore();
-            StatusMessage = $"Opened {entry.Name}. Changes remain local until you confirm Save.";
+            StatusMessage = readOnly
+                ? $"Viendo {entry.Name} en modo solo lectura."
+                : $"Opened {entry.Name}. Changes remain local until you confirm Save.";
             CancelPendingSave();
         }
         catch (Exception ex)
@@ -466,6 +572,7 @@ public partial class FilesViewModel : ObservableObject
         EditorCharacterCount = 0;
         LastBackupPath = string.Empty;
         IsSensitiveFile = false;
+        IsEditorReadOnly = false;
     }
 
     private void CancelPendingSave()
@@ -492,17 +599,6 @@ public partial class FilesViewModel : ObservableObject
             ".md" => "Markdown",
             _ => "TEXT"
         };
-    }
-
-    private static bool IsPotentiallySensitive(string path)
-    {
-        var fileName = Path.GetFileName(path);
-        return fileName.Equals(".env", StringComparison.OrdinalIgnoreCase)
-               || fileName.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase)
-               || fileName.Contains("secret", StringComparison.OrdinalIgnoreCase)
-               || fileName.EndsWith(".pem", StringComparison.OrdinalIgnoreCase)
-               || fileName.EndsWith(".key", StringComparison.OrdinalIgnoreCase)
-               || fileName.EndsWith(".pfx", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizePath(string path)

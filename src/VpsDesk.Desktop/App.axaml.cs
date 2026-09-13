@@ -45,6 +45,7 @@ public partial class App : Avalonia.Application
             var security = new LinuxSecurityAuditService(ssh);
 
             var viewModel = new MainWindowViewModel(probe, store, bootstrap);
+            viewModel.InitializeNavigationState();
             LocalizationService.Current.CultureChanged += (_, _) => viewModel.RefreshLocalization();
             viewModel.InitializeActivity(operationHistoryStore);
             viewModel.InitializeContainers(containers);

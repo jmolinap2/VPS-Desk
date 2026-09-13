@@ -27,17 +27,18 @@
 
         <ScrollViewer Grid.Row="2">
           <StackPanel Margin="4,12">
-            <Button Classes="nav" Content="{DynamicResource Nav_Servers}" Command="{Binding NavigateCommand}" CommandParameter="Servers" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Dashboard}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Containers}" Command="{Binding NavigateCommand}" CommandParameter="Containers" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Logs}" Command="{Binding NavigateCommand}" CommandParameter="Logs" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Storage}" Command="{Binding NavigateCommand}" CommandParameter="Storage" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Files}" Command="{Binding NavigateCommand}" CommandParameter="Files" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Terminal}" Command="{Binding NavigateCommand}" CommandParameter="Terminal" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Security}" Command="{Binding NavigateCommand}" CommandParameter="Security" />
+            <Button Classes="nav" Classes.active="{Binding IsServersPage}" Content="{DynamicResource Nav_Servers}" Command="{Binding NavigateCommand}" CommandParameter="Servers" />
+            <Button Classes="nav" Classes.active="{Binding IsDashboardPage}" Content="{DynamicResource Nav_Dashboard}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" />
+            <Button Classes="nav" Classes.active="{Binding IsContainersPage}" Content="{DynamicResource Nav_Containers}" Command="{Binding NavigateCommand}" CommandParameter="Containers" />
+            <Button Classes="nav" Classes.active="{Binding IsDeploymentsPage}" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" />
+            <Button Classes="nav" Classes.active="{Binding IsEnvironmentPage}" Content="{DynamicResource Nav_Environment}" Command="{Binding NavigateCommand}" CommandParameter="Environment" />
+            <Button Classes="nav" Classes.active="{Binding IsLogsPage}" Content="{DynamicResource Nav_Logs}" Command="{Binding NavigateCommand}" CommandParameter="Logs" />
+            <Button Classes="nav" Classes.active="{Binding IsStoragePage}" Content="{DynamicResource Nav_Storage}" Command="{Binding NavigateCommand}" CommandParameter="Storage" />
+            <Button Classes="nav" Classes.active="{Binding IsFilesPage}" Content="{DynamicResource Nav_Files}" Command="{Binding NavigateCommand}" CommandParameter="Files" />
+            <Button Classes="nav" Classes.active="{Binding IsTerminalPage}" Content="{DynamicResource Nav_Terminal}" Command="{Binding NavigateCommand}" CommandParameter="Terminal" />
+            <Button Classes="nav" Classes.active="{Binding IsSecurityPage}" Content="{DynamicResource Nav_Security}" Command="{Binding NavigateCommand}" CommandParameter="Security" />
             <Border Height="1" Background="#202734" Margin="12,12" />
-            <Button Classes="nav" Content="{DynamicResource Nav_Settings}" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
+            <Button Classes="nav" Classes.active="{Binding IsSettingsPage}" Content="{DynamicResource Nav_Settings}" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -79,7 +80,7 @@
         <views:StorageView DataContext="{Binding StorageModule}" />
       </Grid>
 
-      <Grid IsVisible="{Binding IsFilesPage}">
+      <Grid IsVisible="{Binding IsFileWorkspacePage}">
         <views:FilesView DataContext="{Binding FilesModule}" />
       </Grid>
 

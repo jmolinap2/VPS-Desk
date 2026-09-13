@@ -13,7 +13,18 @@
       <Setter Property="Padding" Value="14,10" />
       <Setter Property="Margin" Value="8,2" />
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="3,0,0,0" />
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+    <Style Selector="Button.nav:pointerover">
+      <Setter Property="Background" Value="#141B25" />
+    </Style>
+    <Style Selector="Button.nav.active">
+      <Setter Property="Background" Value="#182334" />
+      <Setter Property="BorderBrush" Value="#38BDF8" />
+      <Setter Property="Foreground" Value="#F8FAFC" />
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Border.card">
       <Setter Property="Background" Value="#121720" />

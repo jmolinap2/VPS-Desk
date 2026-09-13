@@ -241,7 +241,7 @@ public partial class FilesViewModel
             };
             SubscribeEnvironmentRow(item);
             EnvironmentVariables.Add(item);
-            _environmentTemplate.Add(EnvironmentLineTemplate.Variable(raw, prefix, item));
+            _environmentTemplate.Add(EnvironmentLineTemplate.ForVariable(raw, prefix, item));
         }
 
         ValidateEnvironmentRows();
@@ -446,7 +446,7 @@ public partial class FilesViewModel
         public static EnvironmentLineTemplate Raw(string rawText)
             => new(rawText, string.Empty, null);
 
-        public static EnvironmentLineTemplate Variable(
+        public static EnvironmentLineTemplate ForVariable(
             string rawText,
             string prefix,
             EnvironmentVariableRow variable)

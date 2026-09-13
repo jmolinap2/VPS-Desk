@@ -59,7 +59,7 @@ public sealed class DeploymentStatusMessageConverter : IValueConverter
             return Tone.Error;
         }
 
-        if (ContainsAny(message, "advert", "warning", "conviene revisar", "cambió", "cambio", "revisa"))
+        if (ContainsAny(message, "advert", "warning", "warnings", "con advertencias", "configuración cambió"))
         {
             return Tone.Warning;
         }
@@ -115,6 +115,47 @@ public sealed class PreflightStatusConverter : IValueConverter
             (PreflightCheckStatus.Failed, "glyph") => "×",
             (PreflightCheckStatus.Failed, "label") => "FALLO",
             (PreflightCheckStatus.Failed, _) => FailedForeground,
+            (_, "background") => WarningBackground,
+            (_, "border") => WarningBorder,
+            (_, "glyph") => "!",
+            (_, "label") => "AVISO",
+            _ => WarningForeground
+        };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public sealed class PostflightStatusConverter : IValueConverter
+{
+    private static readonly IBrush PassedBackground = Brush.Parse("#0D241F");
+    private static readonly IBrush PassedBorder = Brush.Parse("#0F766E");
+    private static readonly IBrush PassedForeground = Brush.Parse("#7EE7CD");
+    private static readonly IBrush WarningBackground = Brush.Parse("#2A2410");
+    private static readonly IBrush WarningBorder = Brush.Parse("#A16207");
+    private static readonly IBrush WarningForeground = Brush.Parse("#FCD34D");
+    private static readonly IBrush FailedBackground = Brush.Parse("#2A1215");
+    private static readonly IBrush FailedBorder = Brush.Parse("#B91C1C");
+    private static readonly IBrush FailedForeground = Brush.Parse("#FCA5A5");
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var status = value is PostDeployCheckStatus typed ? typed : PostDeployCheckStatus.Warning;
+        var part = parameter as string ?? "foreground";
+
+        return (status, part) switch
+        {
+            (PostDeployCheckStatus.Passed, "background") => PassedBackground,
+            (PostDeployCheckStatus.Passed, "border") => PassedBorder,
+            (PostDeployCheckStatus.Passed, "glyph") => "✓",
+            (PostDeployCheckStatus.Passed, "label") => "OK",
+            (PostDeployCheckStatus.Passed, _) => PassedForeground,
+            (PostDeployCheckStatus.Failed, "background") => FailedBackground,
+            (PostDeployCheckStatus.Failed, "border") => FailedBorder,
+            (PostDeployCheckStatus.Failed, "glyph") => "×",
+            (PostDeployCheckStatus.Failed, "label") => "FALLO",
+            (PostDeployCheckStatus.Failed, _) => FailedForeground,
             (_, "background") => WarningBackground,
             (_, "border") => WarningBorder,
             (_, "glyph") => "!",

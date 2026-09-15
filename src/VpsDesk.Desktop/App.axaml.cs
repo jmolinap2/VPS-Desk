@@ -48,6 +48,7 @@ public partial class App : Avalonia.Application
             var files = new SftpRemoteFileService();
             var preflight = new DeploymentPreflightService(ssh);
             var deployment = new ComposeDeploymentService(ssh);
+            var gitUpdate = new GitRepositoryUpdateService(ssh);
             var discovery = new DeploymentDiscoveryService(ssh);
             var recipes = new RemoteProjectRecipeService(ssh);
             var postDeployVerification = new PostDeployVerificationService(ssh);
@@ -61,6 +62,7 @@ public partial class App : Avalonia.Application
             viewModel.InitializeDeployments(
                 preflight,
                 deployment,
+                gitUpdate,
                 discovery,
                 postDeployVerification,
                 deploymentProfileStore,

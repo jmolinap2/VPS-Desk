@@ -30,6 +30,7 @@ public partial class MainWindowViewModel
     public void InitializeDeployments(
         IDeploymentPreflightService preflightService,
         IComposeDeploymentService deploymentService,
+        IGitRepositoryUpdateService gitUpdateService,
         IDeploymentDiscoveryService discoveryService,
         IPostDeployVerificationService postDeployVerificationService,
         DeploymentProfileStore deploymentProfileStore,
@@ -43,6 +44,7 @@ public partial class MainWindowViewModel
         _deploymentsModule = new DeploymentsViewModel(
             preflightService,
             deploymentService,
+            gitUpdateService,
             discoveryService,
             postDeployVerificationService,
             () => _server,

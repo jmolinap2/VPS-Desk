@@ -127,6 +127,100 @@ public partial class DeploymentsViewModel
         => await RunPreflightCoreAsync();
 
     [RelayCommand]
+    public async Task PullSourceAsync()
+    {
+        if (IsBusy) return;
+
+        var server = _serverAccessor();
+        if (server == null)
+        {
+            StatusMessage = "No hay un servidor activo. Selecciónalo y conéctalo primero en Servidores.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
+        {
+            StatusMessage = "Indica o detecta primero la ruta remota del repositorio.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Branch))
+        {
+            StatusMessage = "Selecciona la rama Git que quieres actualizar.";
+            return;
+        }
+
+        CanDeploy = false;
+        CancelPendingDeploy();
+        Checks.Clear();
+        Steps.Clear();
+        PostChecks.Clear();
+        DeploymentOutput = string.Empty;
+        BeginOperationFeedback(
+            "Trayendo cambios",
+            $"Preparando conexión con la rama '{Branch.Trim()}'...");
+        IsBusy = true;
+        StatusMessage = $"Actualizando la rama '{Branch.Trim()}' sin desplegar contenedores...";
+
+        var succeeded = false;
+        var hasChanges = false;
+        _gitUpdate.ProgressChanged += OnGitUpdateProgressChanged;
+        try
+        {
+            var result = await _gitUpdate.PullAsync(
+                new GitRepositoryUpdateRequest(
+                    server,
+                    RemoteRepositoryPath.Trim(),
+                    Branch.Trim()),
+                _secretAccessor());
+
+            var output = new StringBuilder();
+            foreach (var step in result.Steps)
+            {
+                Steps.Add(step);
+                var marker = step.Succeeded ? "OK" : "FAILED";
+                output.AppendLine($"[{marker}] {step.Label} · exit {step.ExitCode} · {step.Duration.TotalSeconds:F1}s");
+                if (!string.IsNullOrWhiteSpace(step.Output))
+                {
+                    output.AppendLine(step.Output.TrimEnd());
+                }
+                output.AppendLine();
+            }
+            DeploymentOutput = output.ToString().TrimEnd();
+
+            if (!result.Succeeded)
+            {
+                StatusMessage = $"No se pudieron traer los cambios: falló '{result.FailedStep?.Label ?? "Git"}'. Revisa la salida sanitizada.";
+                CompleteOperationFeedback(false, $"No se completó la actualización: falló {result.FailedStep?.Label ?? "Git"}.");
+                return;
+            }
+
+            succeeded = true;
+            hasChanges = result.HasChanges;
+            StatusMessage = hasChanges
+                ? "Código actualizado correctamente. Volviendo a detectar la configuración del proyecto..."
+                : "El repositorio ya estaba actualizado. Volviendo a detectar la configuración del proyecto...";
+            CompleteOperationFeedback(
+                true,
+                hasChanges
+                    ? "Cambios recibidos correctamente. No se reinició ningún contenedor."
+                    : "El repositorio ya estaba actualizado. No se reinició ningún contenedor.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"No se pudieron traer los cambios: {ex.Message}";
+            CompleteOperationFeedback(false, "La actualización no pudo completarse. Revisa el terminal.");
+        }
+        finally
+        {
+            _gitUpdate.ProgressChanged -= OnGitUpdateProgressChanged;
+            IsBusy = false;
+        }
+
+        if (!succeeded) return;
+
+        await DiscoverRemoteOptionsAsync();
+    }
+
+    [RelayCommand]
     public async Task StartDeploymentAsync()
     {
         if (IsBusy) return;

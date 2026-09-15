@@ -10,6 +10,7 @@ public partial class DeploymentsViewModel : ObservableObject
 {
     private readonly IDeploymentPreflightService _preflight;
     private readonly IComposeDeploymentService _deployment;
+    private readonly IGitRepositoryUpdateService _gitUpdate;
     private readonly IDeploymentDiscoveryService _discovery;
     private readonly IPostDeployVerificationService _postDeployVerification;
     private readonly Func<ServerProfile?> _serverAccessor;
@@ -54,6 +55,7 @@ public partial class DeploymentsViewModel : ObservableObject
     public DeploymentsViewModel(
         IDeploymentPreflightService preflight,
         IComposeDeploymentService deployment,
+        IGitRepositoryUpdateService gitUpdate,
         IDeploymentDiscoveryService discovery,
         IPostDeployVerificationService postDeployVerification,
         Func<ServerProfile?> serverAccessor,
@@ -65,6 +67,7 @@ public partial class DeploymentsViewModel : ObservableObject
     {
         _preflight = preflight;
         _deployment = deployment;
+        _gitUpdate = gitUpdate;
         _discovery = discovery;
         _postDeployVerification = postDeployVerification;
         _serverAccessor = serverAccessor;

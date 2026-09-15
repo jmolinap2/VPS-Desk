@@ -13,10 +13,10 @@
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel>
         <TextBlock Text="{DynamicResource Storage_Title}" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="{DynamicResource Storage_Subtitle}" Foreground="#8290A3" FontSize="11" />
+        <TextBlock Text="{DynamicResource Storage_Subtitle}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <TextBlock Text="{Binding LastUpdated}" Foreground="#8290A3" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding LastUpdated}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
         <Button Content="{DynamicResource Storage_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
       </StackPanel>
     </Grid>
@@ -24,14 +24,14 @@
     <Grid Grid.Row="1" ColumnDefinitions="1.35*,*,*,*" ColumnSpacing="12">
       <Border Classes="card" ClipToBounds="True">
         <StackPanel Spacing="7">
-          <TextBlock Text="{DynamicResource Storage_RootFilesystem}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Storage_RootFilesystem}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" />
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
             <TextBlock Text="{Binding RootUsagePercent, StringFormat={}{0:F0}%}"
                        Foreground="{Binding RootUsagePercent, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
                        FontSize="30"
                        FontWeight="SemiBold" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-              <TextBlock Text="{Binding RootAvailable, StringFormat={}Libre: {0}}" Foreground="#66758A" FontSize="10" />
+              <TextBlock Text="{Binding RootAvailable, StringFormat={}Libre: {0}}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" />
             </StackPanel>
           </Grid>
           <Border Height="8" Background="#27303D" CornerRadius="4" ClipToBounds="True">
@@ -43,32 +43,32 @@
                          BorderThickness="0"
                          Height="8" />
           </Border>
-          <TextBlock Text="{Binding RootUsed, StringFormat={}Usado: {0}}" Foreground="#A8B4C5" FontSize="11" />
-          <TextBlock Text="{Binding RootTotal, StringFormat={}Total: {0}}" Foreground="#66758A" FontSize="10" />
+          <TextBlock Text="{Binding RootUsed, StringFormat={}Usado: {0}}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
+          <TextBlock Text="{Binding RootTotal, StringFormat={}Total: {0}}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" />
         </StackPanel>
       </Border>
 
       <Border Grid.Column="1" Classes="card" ClipToBounds="True">
         <StackPanel Spacing="5">
-          <TextBlock Text="{DynamicResource Storage_DockerImages}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Storage_DockerImages}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" />
           <TextBlock Text="{Binding ImageCount}" FontSize="30" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding ImagesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding ImagesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
 
       <Border Grid.Column="2" Classes="card" ClipToBounds="True">
         <StackPanel Spacing="5">
-          <TextBlock Text="{DynamicResource Storage_DockerVolumes}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Storage_DockerVolumes}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" />
           <TextBlock Text="{Binding VolumeCount}" FontSize="30" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding VolumesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding VolumesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
 
       <Border Grid.Column="3" Classes="card" ClipToBounds="True">
         <StackPanel Spacing="5">
-          <TextBlock Text="{DynamicResource Storage_BuildCache}" Foreground="#8290A3" FontSize="11" />
+          <TextBlock Text="{DynamicResource Storage_BuildCache}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" />
           <TextBlock Text="{Binding BuildCacheReclaimable}" FontSize="24" FontWeight="SemiBold" />
-          <TextBlock Text="{DynamicResource Storage_Reclaimable}" Foreground="#66758A" FontSize="10" />
+          <TextBlock Text="{DynamicResource Storage_Reclaimable}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" />
         </StackPanel>
       </Border>
     </Grid>
@@ -78,8 +78,8 @@
         <StackPanel MaxWidth="780" HorizontalAlignment="Left">
           <TextBlock Text="{DynamicResource Storage_CleanupTitle}" FontSize="15" FontWeight="SemiBold" />
           <TextBlock Text="{DynamicResource Storage_CleanupHelp}"
-                     Foreground="#66758A"
-                     FontSize="10"
+                     Foreground="{DynamicResource TextFaintBrush}"
+                     FontSize="11"
                      TextWrapping="Wrap" />
         </StackPanel>
 
@@ -92,10 +92,10 @@
                   Command="{Binding RequestUnusedImagesCleanupCommand}"
                   IsEnabled="{Binding !IsBusy}"
                   Margin="0,0,8,8" />
-          <Button Content="{DynamicResource Storage_CleanDockerSystem}"
+          <Button Content="Liberar espacio Docker"
                   Command="{Binding RequestDockerSystemCleanupCommand}"
                   IsEnabled="{Binding !IsBusy}"
-                  Background="#7F1D1D"
+                  Background="{DynamicResource DangerSurfaceBrush}"
                   Foreground="White"
                   Margin="0,0,8,8" />
         </WrapPanel>
@@ -107,18 +107,18 @@
         <Grid RowDefinitions="Auto,*" RowSpacing="10">
           <StackPanel>
             <TextBlock Text="{DynamicResource Storage_DockerUsage}" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="docker system df" Foreground="#66758A" FontSize="10" />
+            <TextBlock Text="docker system df" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" />
           </StackPanel>
           <ListBox Grid.Row="1" ItemsSource="{Binding DockerUsage}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="storage:DockerDiskUsage">
-                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                <Border Background="{DynamicResource SurfaceInsetBrush}" CornerRadius="8" Padding="10" Margin="0,3">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <StackPanel>
                       <TextBlock Text="{Binding Type}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Size}" Foreground="#A8B4C5" FontSize="11" />
+                      <TextBlock Text="{Binding Size}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="{Binding Reclaimable}" Foreground="#66758A" FontSize="10" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Reclaimable}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" VerticalAlignment="Center" />
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -128,18 +128,29 @@
       </Border>
 
       <Border Grid.Column="1" Classes="card">
-        <Grid RowDefinitions="Auto,*" RowSpacing="10">
-          <StackPanel>
-            <TextBlock Text="{DynamicResource Storage_HeavyDirectories}" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="{DynamicResource Storage_HeavyDirectoriesHelp}" Foreground="#66758A" FontSize="10" />
-          </StackPanel>
-          <ListBox Grid.Row="1" ItemsSource="{Binding HeavyDirectories}">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Storage_HeavyDirectories}" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Storage_HeavyDirectoriesHelp}" Foreground="{DynamicResource TextFaintBrush}" FontSize="11" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Content="Analizar ahora"
+                    Command="{Binding ScanHeavyDirectoriesCommand}"
+                    IsEnabled="{Binding !IsScanningHeavyDirectories}" />
+          </Grid>
+          <TextBlock Grid.Row="1"
+                     Text="{Binding HeavyDirectoriesStatus}"
+                     Foreground="{DynamicResource TextMutedBrush}"
+                     FontSize="11"
+                     TextWrapping="Wrap" />
+          <ListBox Grid.Row="2" ItemsSource="{Binding HeavyDirectories}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="storage:HeavyDirectoryInfo">
-                <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,3">
+                <Border Background="{DynamicResource SurfaceInsetBrush}" CornerRadius="8" Padding="10" Margin="0,3">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Text="{Binding Path}" FontFamily="Cascadia Mono,Consolas,monospace" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="1" Text="{Binding SizeLabel}" Foreground="#A8B4C5" />
+                    <TextBlock Grid.Column="1" Text="{Binding SizeLabel}" Foreground="{DynamicResource TextSecondaryBrush}" />
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -151,14 +162,14 @@
       <Border Grid.Column="2" Classes="card">
         <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
           <TextBlock Text="{DynamicResource Storage_CleanupOutput}" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+          <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" />
           <TextBox Grid.Row="2"
                    Text="{Binding CleanupOutput}"
                    IsReadOnly="True"
                    AcceptsReturn="True"
                    TextWrapping="NoWrap"
                    FontFamily="Cascadia Mono,Consolas,monospace"
-                   Background="#080B10"
+                   Background="{DynamicResource SurfaceInputBrush}"
                    BorderThickness="0"
                    Padding="12"
                    ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -172,11 +183,11 @@
         <StackPanel Spacing="14">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
             <Border Width="42" Height="42" CornerRadius="21" Background="#3A2412" BorderBrush="#A16207" BorderThickness="1">
-              <TextBlock Text="!" FontSize="22" FontWeight="Bold" Foreground="#FBBF24" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              <TextBlock Text="!" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <StackPanel Grid.Column="1">
               <TextBlock Text="{Binding PendingCleanupTitle}" FontSize="20" FontWeight="SemiBold" />
-              <TextBlock Text="{DynamicResource Storage_CleanupConfirmation}" Foreground="#8290A3" FontSize="11" />
+              <TextBlock Text="{DynamicResource Storage_CleanupConfirmation}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" />
             </StackPanel>
           </Grid>
           <TextBlock Text="{Binding PendingCleanupMessage}" TextWrapping="Wrap" />
@@ -184,11 +195,11 @@
                     IsChecked="{Binding IncludeUnusedVolumes}"
                     IsVisible="{Binding ShowIncludeVolumesOption}" />
           <Border Background="#15100D" BorderBrush="#4B3525" BorderThickness="1" CornerRadius="8" Padding="10">
-            <TextBlock Text="{DynamicResource Storage_CleanupSafety}" Foreground="#D6B98C" TextWrapping="Wrap" FontSize="11" />
+            <TextBlock Text="{DynamicResource Storage_CleanupSafety}" Foreground="#D6B98C" TextWrapping="Wrap" FontSize="12" />
           </Border>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelCleanupCommand}" />
-            <Button Content="{DynamicResource Storage_ConfirmCleanup}" Command="{Binding ConfirmCleanupCommand}" Background="#7F1D1D" Foreground="White" FontWeight="SemiBold" />
+            <Button Content="{DynamicResource Storage_ConfirmCleanup}" Command="{Binding ConfirmCleanupCommand}" Background="{DynamicResource DangerSurfaceBrush}" Foreground="White" FontWeight="SemiBold" />
           </StackPanel>
         </StackPanel>
       </Border>

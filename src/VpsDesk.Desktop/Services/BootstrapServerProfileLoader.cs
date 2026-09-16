@@ -53,6 +53,13 @@ public static class BootstrapServerProfileLoader
         values.TryGetValue("REMOTE_REPO_PATH", out var remoteRepositoryPath);
         values.TryGetValue("COMPOSE_FILE", out var composeFile);
 
+        if (!string.IsNullOrWhiteSpace(keyPath)
+            && !Path.IsPathRooted(keyPath)
+            && envPath is not null)
+        {
+            keyPath = Path.GetFullPath(keyPath, Path.GetDirectoryName(envPath)!);
+        }
+
         var port = values.TryGetValue("SSH_PORT", out var portRaw) && int.TryParse(portRaw, out var parsedPort)
             ? parsedPort
             : 22;

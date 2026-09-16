@@ -3,4 +3,5 @@
   <Project Path="src/VpsDesk.Application/VpsDesk.Application.csproj" />
   <Project Path="src/VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
   <Project Path="src/VpsDesk.Desktop/VpsDesk.Desktop.csproj" />
+  <Project Path="src/VpsDesk.Installer/VpsDesk.Installer.csproj" />
 </Solution>

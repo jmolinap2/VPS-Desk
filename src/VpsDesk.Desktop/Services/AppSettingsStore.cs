@@ -1,4 +1,5 @@
 using System.Text.Json;
+using VpsDesk.Application.Runtime;
 
 namespace VpsDesk.Desktop.Services;
 
@@ -27,10 +28,7 @@ public sealed class AppSettingsStore
         PropertyNameCaseInsensitive = true
     };
 
-    public string SettingsPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "VPS Desk",
-        "settings.json");
+    public string SettingsPath { get; } = Path.Combine(VpsDeskDataPaths.RoamingRoot, "settings.json");
 
     public VpsDeskSettings Load()
     {

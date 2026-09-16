@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using VpsDesk.Application.Runtime;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.Services;
@@ -20,10 +21,7 @@ public sealed class ServerProfileStore
 
     public ServerProfileStore(string? filePath = null)
     {
-        _filePath = filePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "VPS Desk",
-            "servers.json");
+        _filePath = filePath ?? Path.Combine(VpsDeskDataPaths.RoamingRoot, "servers.json");
     }
 
     public ServerProfileStoreSnapshot Load()

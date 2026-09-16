@@ -10,6 +10,9 @@ VPS-Desk-win-x64/
 !.env.example
 *.env.local
 
+# Generated distributions may contain the user's real .env and SSH private key.
+/app/clinical-care/appointments/
+
 # Logs generados en runtime
 migrator_logs.txt
 vps-desk.log
@@ -32,3 +35,4 @@ desktop.ini
 .vs/
 .idea/
 *.user
+tmp/

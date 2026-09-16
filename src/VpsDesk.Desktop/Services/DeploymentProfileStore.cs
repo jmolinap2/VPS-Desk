@@ -1,4 +1,5 @@
 using System.Text.Json;
+using VpsDesk.Application.Runtime;
 
 namespace VpsDesk.Desktop.Services;
 
@@ -35,10 +36,7 @@ public sealed class DeploymentProfileStore
 
     public DeploymentProfileStore(string? filePath = null)
     {
-        _filePath = filePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "VPS Desk",
-            "deployments.json");
+        _filePath = filePath ?? Path.Combine(VpsDeskDataPaths.RoamingRoot, "deployments.json");
     }
 
     public DeploymentProfile? Find(Guid serverId)

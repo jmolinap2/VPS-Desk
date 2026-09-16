@@ -1,4 +1,5 @@
 using System.Text.Json;
+using VpsDesk.Application.Runtime;
 
 namespace VpsDesk.Desktop.Services;
 
@@ -41,10 +42,7 @@ public sealed class ProjectWorkspaceStore
 
     public ProjectWorkspaceStore(string? filePath = null)
     {
-        _filePath = filePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "VPS Desk",
-            "projects.json");
+        _filePath = filePath ?? Path.Combine(VpsDeskDataPaths.RoamingRoot, "projects.json");
     }
 
     public IReadOnlyList<ProjectWorkspace> List(Guid serverId)

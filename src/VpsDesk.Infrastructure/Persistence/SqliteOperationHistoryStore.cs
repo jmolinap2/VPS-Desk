@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using VpsDesk.Application.Activity;
+using VpsDesk.Application.Runtime;
 using VpsDesk.Domain.Activity;
 
 namespace VpsDesk.Infrastructure.Persistence;
@@ -10,10 +11,7 @@ public sealed class SqliteOperationHistoryStore : IOperationHistoryStore
 
     public SqliteOperationHistoryStore(string? databasePath = null)
     {
-        var path = databasePath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "VPSDesk",
-            "vpsdesk.db");
+        var path = databasePath ?? Path.Combine(VpsDeskDataPaths.LocalRoot, "vpsdesk.db");
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         _connectionString = new SqliteConnectionStringBuilder

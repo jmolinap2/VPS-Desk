@@ -36,6 +36,20 @@
       </Border>
 
       <Border Classes="card">
+        <Grid RowDefinitions="Auto,Auto" RowSpacing="14">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Copia cifrada" FontSize="17" FontWeight="SemiBold" />
+            <TextBlock Text="Guarda perfiles, historial, .env y la llave SSH en un archivo protegido con contraseña."
+                       Foreground="#8290A3" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
+            <Button Content="Crear copia cifrada" Click="CreateEncryptedBackup_Click" />
+            <Button Content="Restaurar copia cifrada" Click="RestoreEncryptedBackup_Click" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Classes="card">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
           <StackPanel Spacing="4">
             <TextBlock Text="Edición remota" FontSize="17" FontWeight="SemiBold" />

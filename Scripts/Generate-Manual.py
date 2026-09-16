@@ -500,6 +500,18 @@ def make_manual(output_path: Path):
 
     story.append(PageBreak())
     story.append(Paragraph("5. Copias de seguridad y actualización", styles["h1"]))
+    story.append(Paragraph("Copia cifrada con contraseña", styles["h2"]))
+    story.append(step(1, "Abre <b>Configuración</b> y busca la sección <b>Copia cifrada</b>.", styles))
+    story.append(step(2, "Elige <b>Crear copia cifrada</b>, define dónde guardar el archivo <b>.vpsbackup</b> y crea una contraseña de al menos 12 caracteres.", styles))
+    story.append(step(3, "Guarda esa contraseña fuera de la USB. VPS Desk no la almacena ni puede recuperarla.", styles))
+    story.append(step(4, "Para recuperar una copia, usa <b>Restaurar copia cifrada</b>, selecciona el archivo, escribe su contraseña y reinicia VPS Desk.", styles))
+    story.append(
+        Paragraph(
+            "La copia incluye los perfiles, preferencias, historial, archivo <b>.env</b> y la carpeta <b>secrets</b>. "
+            "Su contenido se cifra localmente con AES-256-GCM y la contraseña se deriva con PBKDF2.",
+            styles["body"],
+        )
+    )
     story.append(Paragraph("Copia de seguridad portable", styles["h2"]))
     story.append(step(1, "Cierra VPS Desk.", styles))
     story.append(step(2, "Copia las carpetas <b>data</b> y <b>secrets</b>, además del archivo <b>.env</b>, a un almacenamiento cifrado.", styles))
@@ -562,14 +574,6 @@ def make_manual(output_path: Path):
         )
     )
     story.append(problems_table)
-    story.append(Spacer(1, 6 * mm))
-    story.append(
-        callout(
-            "<b>Regla práctica:</b> para transportar VPS Desk, conserva junta toda la carpeta. Para proteger el acceso al VPS, "
-            "trata la USB como si fuera una contraseña maestra.",
-            styles["callout"],
-        )
-    )
 
     doc.build(story)
 

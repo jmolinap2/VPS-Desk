@@ -29,6 +29,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public event EventHandler? PreferencesChanged;
 
+    public void SetBackupStatus(string message) => StatusMessage = message;
+
     public SettingsViewModel(
         AppSettingsStore store,
         VpsDeskSettings settings,

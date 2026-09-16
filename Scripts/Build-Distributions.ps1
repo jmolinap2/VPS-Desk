@@ -8,11 +8,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $deliveryRoot = Join-Path $repoRoot "app\clinical-care\appointments"
 $stagingRoot = Join-Path $repoRoot "obj\distribution-staging"
 $portableRoot = Join-Path $deliveryRoot "portable"
-$installerRoot = Join-Path $deliveryRoot "installer"
-$installedPayload = Join-Path $stagingRoot "installed"
-$payloadZip = Join-Path $stagingRoot "VpsDesk-payload.zip"
 $desktopProject = Join-Path $repoRoot "src\VpsDesk.Desktop\VpsDesk.Desktop.csproj"
-$installerProject = Join-Path $repoRoot "src\VpsDesk.Installer\VpsDesk.Installer.csproj"
 $sourceEnv = Join-Path $repoRoot ".env"
 
 if (-not (Test-Path -LiteralPath $sourceEnv -PathType Leaf)) {
@@ -29,17 +25,12 @@ foreach ($target in @($deliveryRoot, $stagingRoot)) {
     }
 }
 
-New-Item -ItemType Directory -Path $portableRoot, $installerRoot, $installedPayload -Force | Out-Null
+New-Item -ItemType Directory -Path $portableRoot -Force | Out-Null
 
 dotnet publish $desktopProject -c Release -r $Runtime --self-contained true `
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
     -o $portableRoot
 if ($LASTEXITCODE -ne 0) { throw "Falló la publicación portable." }
-
-dotnet publish $desktopProject -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-    -o $installedPayload
-if ($LASTEXITCODE -ne 0) { throw "Falló la publicación instalable." }
 
 function Copy-ConfiguredSecrets([string]$destination) {
     $envLines = Get-Content -LiteralPath $sourceEnv
@@ -72,7 +63,6 @@ function Copy-ConfiguredSecrets([string]$destination) {
 }
 
 Copy-ConfiguredSecrets $portableRoot
-Copy-ConfiguredSecrets $installedPayload
 Set-Content -LiteralPath (Join-Path $portableRoot "portable.mode") -Value "VPS Desk portable data mode" -Encoding ascii
 
 $portableData = Join-Path $portableRoot "data"
@@ -88,16 +78,6 @@ if (Test-Path -LiteralPath $localDatabase -PathType Leaf) {
 
 Compress-Archive -Path (Join-Path $portableRoot "*") `
     -DestinationPath (Join-Path $deliveryRoot "VPS-Desk-portable-win-x64.zip") -CompressionLevel Optimal
-Compress-Archive -Path (Join-Path $installedPayload "*") -DestinationPath $payloadZip -CompressionLevel Optimal
-
-dotnet publish $installerProject -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:PayloadZip=$payloadZip -o $installerRoot
-if ($LASTEXITCODE -ne 0) { throw "Falló la creación del instalador." }
-
-Get-ChildItem -LiteralPath $installerRoot -File |
-    Where-Object Name -ne "VPS-Desk-Setup.exe" |
-    Remove-Item -Force
 
 $readme = @'
 VPS DESK - ENTREGA PARA USB
@@ -109,14 +89,13 @@ PORTABLE
 
 También puedes descomprimir VPS-Desk-portable-win-x64.zip en cualquier PC Windows x64.
 
-INSTALABLE
-1. Abre la carpeta installer.
-2. Ejecuta VPS-Desk-Setup.exe.
-3. Confirma la instalación para el usuario actual.
-
 SEGURIDAD
 Esta entrega contiene secretos reales en .env y secrets/id_vpsdesk. Trátala como una
 credencial: cifra la USB, no compartas la carpeta y elimina copias que no necesites.
+
+MICROSOFT STORE
+El paquete para distribución se genera por separado con Build-Store-Package.ps1.
+Nunca incluye secretos, .env, llaves SSH, perfiles ni historial.
 '@
 Set-Content -LiteralPath (Join-Path $deliveryRoot "LEEME.txt") -Value $readme -Encoding utf8NoBOM
 

@@ -135,10 +135,11 @@ internal sealed class AndroidServersView : UserControl
         {
             _password.Text = await _secretStore.GetAsync(profile.SecretReference) ?? string.Empty;
             _rememberPassword.IsChecked = true;
+            AndroidRuntimeSecrets.Set(profile.Id, _password.Text);
         }
         else
         {
-            _password.Text = string.Empty;
+            _password.Text = AndroidRuntimeSecrets.Get(profile.Id) ?? string.Empty;
             _rememberPassword.IsChecked = false;
         }
     }
@@ -154,6 +155,7 @@ internal sealed class AndroidServersView : UserControl
         SetBusy(true);
         try
         {
+            AndroidRuntimeSecrets.Set(profile.Id, _password.Text);
             var secretReference = $"server:{profile.Id:N}:password";
             if (_rememberPassword.IsChecked == true && !string.IsNullOrEmpty(_password.Text))
             {
@@ -200,6 +202,7 @@ internal sealed class AndroidServersView : UserControl
             return;
         }
 
+        AndroidRuntimeSecrets.Set(profile.Id, _password.Text);
         var cancellationToken = BeginNetworkOperation(TimeSpan.FromSeconds(20));
         _status.Text = "Connecting...";
         try
@@ -239,6 +242,7 @@ internal sealed class AndroidServersView : UserControl
             return;
         }
 
+        AndroidRuntimeSecrets.Set(profile.Id, _password.Text);
         var cancellationToken = BeginNetworkOperation(TimeSpan.FromSeconds(20));
         _status.Text = "Checking SFTP...";
         try

@@ -59,3 +59,11 @@ jobs:
 
       - name: Build Android host
         run: dotnet build src/VpsDesk.Android/VpsDesk.Android.csproj --configuration Release --no-restore
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VPS-Desk-Android-foundation
+          path: src/VpsDesk.Android/bin/Release/net10.0-android/**/*.apk
+          if-no-files-found: error
+          retention-days: 14

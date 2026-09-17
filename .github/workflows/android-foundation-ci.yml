@@ -1,0 +1,61 @@
+name: Android Foundation CI
+
+on:
+  push:
+    branches:
+      - feat/mobile-foundation
+    paths:
+      - 'src/VpsDesk.Android/**'
+      - 'src/VpsDesk.Application/**'
+      - 'src/VpsDesk.Domain/**'
+      - 'src/VpsDesk.Infrastructure/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '.github/workflows/android-foundation-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/VpsDesk.Android/**'
+      - 'src/VpsDesk.Application/**'
+      - 'src/VpsDesk.Domain/**'
+      - 'src/VpsDesk.Infrastructure/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '.github/workflows/android-foundation-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android-build:
+    name: Build Android host
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Restore Android host
+        run: dotnet restore src/VpsDesk.Android/VpsDesk.Android.csproj
+
+      - name: Audit Android dependencies
+        shell: pwsh
+        run: |
+          $output = dotnet list src/VpsDesk.Android/VpsDesk.Android.csproj package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($output -match '(?im)^\s*>\s+\S+\s+\S+\s+\S+\s+(?:Low|Moderate|High|Critical)\b') {
+            Write-Error 'Vulnerable NuGet package detected in the Android dependency graph.'
+            exit 1
+          }
+
+      - name: Build Android host
+        run: dotnet build src/VpsDesk.Android/VpsDesk.Android.csproj --configuration Release --no-restore

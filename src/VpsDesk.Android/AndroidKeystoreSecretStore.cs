@@ -81,7 +81,8 @@ internal sealed class AndroidKeystoreSecretStore : ISecretStore
             ?? throw new CryptographicException("Android Keystore returned no ciphertext.");
         var payload = $"{Convert.ToBase64String(iv)}:{Convert.ToBase64String(cipherText)}";
 
-        using var editor = _preferences.Edit();
+        using var editor = _preferences.Edit()
+            ?? throw new InvalidOperationException("Android secure preferences editor is unavailable.");
         editor.PutString(key, payload);
         if (!editor.Commit())
         {
@@ -127,7 +128,8 @@ internal sealed class AndroidKeystoreSecretStore : ISecretStore
 
     private void RemoveValue(string key)
     {
-        using var editor = _preferences.Edit();
+        using var editor = _preferences.Edit()
+            ?? throw new InvalidOperationException("Android secure preferences editor is unavailable.");
         editor.Remove(key);
         editor.Apply();
     }

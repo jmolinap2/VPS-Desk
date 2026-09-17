@@ -21,7 +21,7 @@ internal sealed class AndroidServersView : UserControl
     private readonly TextBox _username = new() { Watermark = "Username" };
     private readonly TextBox _password = new() { Watermark = "Password", PasswordChar = '●' };
     private readonly TextBox _fingerprint = new() { Watermark = "Optional SHA256 host fingerprint" };
-    private readonly CheckBox _rememberPassword = new() { Content = "Remember password securely" };
+    private readonly Avalonia.Controls.CheckBox _rememberPassword = new() { Content = "Remember password securely" };
     private readonly TextBlock _status = new() { Text = "Loading server profiles...", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private readonly Avalonia.Controls.Button _saveButton = new() { Content = "Save server" };
     private readonly Avalonia.Controls.Button _testButton = new() { Content = "Test SSH" };

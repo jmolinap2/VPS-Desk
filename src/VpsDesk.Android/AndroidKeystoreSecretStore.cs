@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using Android.Content;
 using Android.Security.Keystore;

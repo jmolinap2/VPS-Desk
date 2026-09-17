@@ -124,6 +124,7 @@ internal sealed class AndroidServersView : UserControl
 
         var profile = _profiles[_serverPicker.SelectedIndex];
         _editingId = profile.Id;
+        await _profileStore.SaveAsync(_profiles, profile.Id);
         _name.Text = profile.Name;
         _host.Text = profile.Host;
         _port.Text = profile.Port.ToString();

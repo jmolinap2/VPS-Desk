@@ -1,17 +1,6 @@
 name: Android Foundation CI
 
 on:
-  push:
-    branches:
-      - feat/mobile-foundation
-    paths:
-      - 'src/VpsDesk.Android/**'
-      - 'src/VpsDesk.Application/**'
-      - 'src/VpsDesk.Domain/**'
-      - 'src/VpsDesk.Infrastructure/**'
-      - 'Directory.Build.props'
-      - 'Directory.Packages.props'
-      - '.github/workflows/android-foundation-ci.yml'
   pull_request:
     branches:
       - main

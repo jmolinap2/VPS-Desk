@@ -108,13 +108,13 @@ internal sealed class AndroidDashboardView : UserControl
             }
 
             var metrics = await _probe.ReadMetricsAsync(active, secret, _refreshCts.Token);
-            _cpu.Text = $"CPU {metrics.CpuPercent:N1}%";
+            _cpu.Text = $"CPU {metrics.CpuUsagePercent:N1}%";
             _memory.Text = $"Memory {FormatBytes(metrics.MemoryUsedBytes)} / {FormatBytes(metrics.MemoryTotalBytes)}";
             _disk.Text = $"Disk {FormatBytes(metrics.DiskUsedBytes)} / {FormatBytes(metrics.DiskTotalBytes)}";
             _load.Text = $"Load {metrics.Load1:N2} / {metrics.Load5:N2} / {metrics.Load15:N2}";
-            _network.Text = $"Network ↓ {FormatRate(metrics.NetworkReceiveBytesPerSecond)}  ↑ {FormatRate(metrics.NetworkTransmitBytesPerSecond)}";
+            _network.Text = $"Network ↓ {FormatRate(metrics.NetworkRxBytesPerSecond)}  ↑ {FormatRate(metrics.NetworkTxBytesPerSecond)}";
             _uptime.Text = $"Uptime {FormatDuration(metrics.Uptime)}";
-            _status.Text = $"Updated {metrics.CapturedAt.ToLocalTime():HH:mm:ss}.";
+            _status.Text = $"Updated {metrics.Timestamp.ToLocalTime():HH:mm:ss}.";
         }
         catch (OperationCanceledException)
         {

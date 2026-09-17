@@ -14,7 +14,7 @@ internal sealed class AndroidFilesView : UserControl
     private readonly ISecretStore _secretStore = new AndroidKeystoreSecretStore();
     private readonly IRemoteFileService _files = new SftpRemoteFileService();
 
-    private readonly TextBox _path = new() { Text = "/", Watermark = "Remote path" };
+    private readonly TextBox _path = new() { Text = "/", PlaceholderText = "Remote path" };
     private readonly StackPanel _entries = new() { Spacing = 6 };
     private readonly TextBlock _status = new()
     {

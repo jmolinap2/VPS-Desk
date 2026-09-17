@@ -14,7 +14,7 @@ public sealed class VpsDeskAndroidApp : Avalonia.Application
     {
         if (ApplicationLifetime is IActivityApplicationLifetime activityLifetime)
         {
-            activityLifetime.MainViewFactory = static () => new AndroidConnectivityView();
+            activityLifetime.MainViewFactory = static () => new AndroidServersView();
         }
 
         base.OnFrameworkInitializationCompleted();

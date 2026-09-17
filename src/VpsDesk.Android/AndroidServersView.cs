@@ -28,10 +28,12 @@ internal sealed class AndroidServersView : UserControl
     private readonly Avalonia.Controls.Button _testButton = new() { Content = "Test SSH" };
     private readonly Avalonia.Controls.Button _sftpButton = new() { Content = "Test SFTP" };
     private readonly Avalonia.Controls.Button _newButton = new() { Content = "New" };
+    private readonly Avalonia.Controls.Button _cancelButton = new() { Content = "Cancel operation", IsEnabled = false };
 
     private List<ServerProfile> _profiles = [];
     private Guid? _editingId;
     private bool _loadingSelection;
+    private CancellationTokenSource? _operationCts;
 
     public AndroidServersView()
     {
@@ -40,6 +42,7 @@ internal sealed class AndroidServersView : UserControl
         _testButton.Click += async (_, _) => await TestAsync();
         _sftpButton.Click += async (_, _) => await TestSftpAsync();
         _newButton.Click += (_, _) => ResetEditor();
+        _cancelButton.Click += (_, _) => _operationCts?.Cancel();
         AttachedToVisualTree += async (_, _) => await LoadProfilesAsync();
 
         Content = new ScrollViewer
@@ -76,6 +79,7 @@ internal sealed class AndroidServersView : UserControl
                         }
                     },
                     _sftpButton,
+                    _cancelButton,
                     _status
                 }
             }
@@ -195,17 +199,26 @@ internal sealed class AndroidServersView : UserControl
             return;
         }
 
-        SetBusy(true);
+        var cancellationToken = BeginNetworkOperation(TimeSpan.FromSeconds(20));
         _status.Text = "Connecting...";
         try
         {
             var result = await _ssh.ExecuteAsync(
                 new SshCommandRequest(profile, "printf 'VPS_DESK_ANDROID_OK\\n'; uname -s; uname -m", TimeSpan.FromSeconds(15)),
-                _password.Text);
+                _password.Text,
+                cancellationToken);
 
-            _status.Text = result.Succeeded
-                ? $"SSH OK ({result.Duration.TotalMilliseconds:N0} ms)\n{result.StandardOutput.Trim()}"
-                : $"SSH failed: {result.StandardError}";
+            _status.Text = result.Cancelled
+                ? "SSH test cancelled."
+                : result.TimedOut
+                    ? "SSH test timed out."
+                    : result.Succeeded
+                        ? $"SSH OK ({result.Duration.TotalMilliseconds:N0} ms)\n{result.StandardOutput.Trim()}"
+                        : $"SSH failed: {result.StandardError}";
+        }
+        catch (OperationCanceledException)
+        {
+            _status.Text = "SSH test cancelled.";
         }
         catch (Exception ex)
         {
@@ -213,7 +226,7 @@ internal sealed class AndroidServersView : UserControl
         }
         finally
         {
-            SetBusy(false);
+            EndNetworkOperation();
         }
     }
 
@@ -225,12 +238,11 @@ internal sealed class AndroidServersView : UserControl
             return;
         }
 
-        SetBusy(true);
+        var cancellationToken = BeginNetworkOperation(TimeSpan.FromSeconds(20));
         _status.Text = "Checking SFTP...";
         try
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            var entries = await _remoteFiles.ListAsync(profile, "/", _password.Text, timeout.Token);
+            var entries = await _remoteFiles.ListAsync(profile, "/", _password.Text, cancellationToken);
             var preview = string.Join(", ", entries.Take(5).Select(x => x.Name));
             _status.Text = $"SFTP OK. Root entries: {entries.Count}" +
                            (string.IsNullOrWhiteSpace(preview) ? string.Empty : $"\n{preview}");
@@ -245,7 +257,7 @@ internal sealed class AndroidServersView : UserControl
         }
         finally
         {
-            SetBusy(false);
+            EndNetworkOperation();
         }
     }
 
@@ -304,6 +316,23 @@ internal sealed class AndroidServersView : UserControl
         _serverPicker.ItemsSource = _profiles.Select(x => x.Name).ToArray();
         _serverPicker.SelectedIndex = selectedIndex;
         _loadingSelection = false;
+    }
+
+    private CancellationToken BeginNetworkOperation(TimeSpan timeout)
+    {
+        _operationCts?.Dispose();
+        _operationCts = new CancellationTokenSource(timeout);
+        _cancelButton.IsEnabled = true;
+        SetBusy(true);
+        return _operationCts.Token;
+    }
+
+    private void EndNetworkOperation()
+    {
+        _operationCts?.Dispose();
+        _operationCts = null;
+        _cancelButton.IsEnabled = false;
+        SetBusy(false);
     }
 
     private void SetBusy(bool busy)

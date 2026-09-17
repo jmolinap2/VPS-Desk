@@ -16,12 +16,12 @@ internal sealed class AndroidServersView : UserControl
     private readonly IRemoteFileService _remoteFiles = new SftpRemoteFileService();
 
     private readonly ComboBox _serverPicker = new();
-    private readonly TextBox _name = new() { Watermark = "Name" };
-    private readonly TextBox _host = new() { Watermark = "Host or IP" };
-    private readonly TextBox _port = new() { Text = "22", Watermark = "Port" };
-    private readonly TextBox _username = new() { Watermark = "Username" };
-    private readonly TextBox _password = new() { Watermark = "Password", PasswordChar = '●' };
-    private readonly TextBox _fingerprint = new() { Watermark = "Optional SHA256 host fingerprint" };
+    private readonly TextBox _name = new() { PlaceholderText = "Name" };
+    private readonly TextBox _host = new() { PlaceholderText = "Host or IP" };
+    private readonly TextBox _port = new() { Text = "22", PlaceholderText = "Port" };
+    private readonly TextBox _username = new() { PlaceholderText = "Username" };
+    private readonly TextBox _password = new() { PlaceholderText = "Password", PasswordChar = '●' };
+    private readonly TextBox _fingerprint = new() { PlaceholderText = "Optional SHA256 host fingerprint" };
     private readonly Avalonia.Controls.CheckBox _rememberPassword = new() { Content = "Remember password securely" };
     private readonly TextBlock _status = new() { Text = "Loading server profiles...", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private readonly Avalonia.Controls.Button _saveButton = new() { Content = "Save server" };

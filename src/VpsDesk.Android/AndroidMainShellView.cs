@@ -8,14 +8,14 @@ internal sealed class AndroidMainShellView : UserControl
 {
     private readonly ContentControl _contentHost = new();
     private readonly Avalonia.Controls.Button _dashboardButton = new() { Content = "Dashboard" };
-    private readonly Avalonia.Controls.Button _serversButton = new() { Content = "Servers" };
+    private readonly Avalonia.Controls.Button _moreButton = new() { Content = "More" };
     private readonly Avalonia.Controls.Button _containersButton = new() { Content = "Containers" };
     private readonly Avalonia.Controls.Button _logsButton = new() { Content = "Logs" };
 
     public AndroidMainShellView()
     {
         _dashboardButton.Click += (_, _) => ShowDashboard();
-        _serversButton.Click += (_, _) => ShowServers();
+        _moreButton.Click += (_, _) => ShowMore();
         _containersButton.Click += (_, _) => ShowContainers();
         _logsButton.Click += (_, _) => ShowLogs();
 
@@ -38,7 +38,7 @@ internal sealed class AndroidMainShellView : UserControl
                                 PlaceColumn(_dashboardButton, 0),
                                 PlaceColumn(_containersButton, 1),
                                 PlaceColumn(_logsButton, 2),
-                                PlaceColumn(_serversButton, 3)
+                                PlaceColumn(_moreButton, 3)
                             }
                         }
                     },
@@ -55,7 +55,7 @@ internal sealed class AndroidMainShellView : UserControl
         _dashboardButton.IsEnabled = false;
         _containersButton.IsEnabled = true;
         _logsButton.IsEnabled = true;
-        _serversButton.IsEnabled = true;
+        _moreButton.IsEnabled = true;
     }
 
     private void ShowContainers()
@@ -64,7 +64,7 @@ internal sealed class AndroidMainShellView : UserControl
         _dashboardButton.IsEnabled = true;
         _containersButton.IsEnabled = false;
         _logsButton.IsEnabled = true;
-        _serversButton.IsEnabled = true;
+        _moreButton.IsEnabled = true;
     }
 
     private void ShowLogs()
@@ -73,16 +73,16 @@ internal sealed class AndroidMainShellView : UserControl
         _dashboardButton.IsEnabled = true;
         _containersButton.IsEnabled = true;
         _logsButton.IsEnabled = false;
-        _serversButton.IsEnabled = true;
+        _moreButton.IsEnabled = true;
     }
 
-    private void ShowServers()
+    private void ShowMore()
     {
-        _contentHost.Content = new AndroidServersView();
+        _contentHost.Content = new AndroidMoreView();
         _dashboardButton.IsEnabled = true;
         _containersButton.IsEnabled = true;
         _logsButton.IsEnabled = true;
-        _serversButton.IsEnabled = false;
+        _moreButton.IsEnabled = false;
     }
 
     private static Control Place(Control control, int row)

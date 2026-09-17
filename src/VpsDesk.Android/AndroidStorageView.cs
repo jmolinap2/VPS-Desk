@@ -96,8 +96,9 @@ internal sealed class AndroidStorageView : UserControl
         try
         {
             var secret = string.IsNullOrWhiteSpace(active.SecretReference)
-                ? null
-                : await _secretStore.GetAsync(active.SecretReference, _loadCts.Token);
+                ? AndroidRuntimeSecrets.Get(active.Id)
+                : await _secretStore.GetAsync(active.SecretReference, _loadCts.Token)
+                  ?? AndroidRuntimeSecrets.Get(active.Id);
 
             if (string.IsNullOrWhiteSpace(secret) && active.AuthenticationType == SshAuthenticationType.Password)
             {

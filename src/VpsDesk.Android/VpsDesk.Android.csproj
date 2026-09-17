@@ -6,6 +6,7 @@
     <ApplicationId>io.github.jmolinap2.vpsdesk</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <AndroidPackageFormats>apk</AndroidPackageFormats>
   </PropertyGroup>
 
   <ItemGroup>

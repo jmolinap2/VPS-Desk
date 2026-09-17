@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>23.0</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ApplicationId>io.github.jmolinap2.vpsdesk</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
+    <ProjectReference Include="../VpsDesk.Application/VpsDesk.Application.csproj" />
+    <ProjectReference Include="../VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
+    <PackageReference Include="Avalonia.Android" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+</Project>

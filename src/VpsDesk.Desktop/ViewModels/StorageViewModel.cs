@@ -16,6 +16,7 @@ public partial class StorageViewModel : ObservableObject
     private readonly Func<string?> _secretAccessor;
     private readonly IOperationHistoryStore? _historyStore;
     private DateTimeOffset? _lastRefreshUtc;
+    private DateTimeOffset? _lastHeavyDirectoriesRefreshUtc;
     private StorageCleanupKind? _pendingCleanupKind;
 
     public ObservableCollection<DockerDiskUsage> DockerUsage { get; } = new();
@@ -24,11 +25,13 @@ public partial class StorageViewModel : ObservableObject
     public ObservableCollection<HeavyDirectoryInfo> HeavyDirectories { get; } = new();
 
     [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private bool _isScanningHeavyDirectories;
     [ObservableProperty] private double _rootUsagePercent;
     [ObservableProperty] private string _rootUsed = "--";
     [ObservableProperty] private string _rootTotal = "--";
     [ObservableProperty] private string _rootAvailable = "--";
     [ObservableProperty] private string _statusMessage = "Open Storage to inspect disk and Docker usage.";
+    [ObservableProperty] private string _heavyDirectoriesStatus = "Not analyzed yet.";
     [ObservableProperty] private string _lastUpdated = "Never";
     [ObservableProperty] private string _imagesReclaimable = "--";
     [ObservableProperty] private string _buildCacheReclaimable = "--";
@@ -60,7 +63,7 @@ public partial class StorageViewModel : ObservableObject
 
     public async Task RefreshIfNeededAsync()
     {
-        if (_lastRefreshUtc == null || DateTimeOffset.UtcNow - _lastRefreshUtc > TimeSpan.FromSeconds(20))
+        if (_lastRefreshUtc == null || DateTimeOffset.UtcNow - _lastRefreshUtc > TimeSpan.FromSeconds(30))
         {
             await RefreshAsync();
         }
@@ -81,8 +84,10 @@ public partial class StorageViewModel : ObservableObject
         HeavyDirectories.Clear();
         LastUpdated = "Never";
         StatusMessage = "Select an active server, then refresh storage.";
+        HeavyDirectoriesStatus = "Not analyzed yet.";
         CleanupOutput = string.Empty;
         _lastRefreshUtc = null;
+        _lastHeavyDirectoriesRefreshUtc = null;
         CancelCleanup();
         NotifyCollectionSummaries();
     }
@@ -99,12 +104,16 @@ public partial class StorageViewModel : ObservableObject
             return;
         }
 
+        var shouldScanHeavyDirectories =
+            _lastHeavyDirectoriesRefreshUtc == null ||
+            DateTimeOffset.UtcNow - _lastHeavyDirectoriesRefreshUtc > TimeSpan.FromMinutes(5);
+
         IsBusy = true;
-        StatusMessage = "Reading filesystem, Docker storage and large directories...";
+        StatusMessage = "Reading filesystem and Docker storage...";
 
         try
         {
-            var snapshot = await _storage.ReadAsync(server, _secretAccessor());
+            var snapshot = await _storage.ReadOverviewAsync(server, _secretAccessor());
             RootUsagePercent = Math.Clamp(snapshot.RootUsagePercent, 0, 100);
             RootUsed = FormatBytes(snapshot.RootUsedBytes);
             RootTotal = FormatBytes(snapshot.RootTotalBytes);
@@ -113,7 +122,6 @@ public partial class StorageViewModel : ObservableObject
             Replace(DockerUsage, snapshot.DockerUsage);
             Replace(Images, snapshot.Images);
             Replace(Volumes, snapshot.Volumes);
-            Replace(HeavyDirectories, snapshot.HeavyDirectories);
 
             ImagesReclaimable = FindReclaimable("Images");
             BuildCacheReclaimable = FindReclaimable("Build Cache");
@@ -122,17 +130,55 @@ public partial class StorageViewModel : ObservableObject
             _lastRefreshUtc = DateTimeOffset.UtcNow;
             LastUpdated = DateTimeOffset.Now.ToString("HH:mm:ss");
             StatusMessage = HasDockerStorage
-                ? $"Storage updated · {ImageCount} images · {VolumeCount} volumes · cleanup is guarded by confirmation."
+                ? $"Storage updated · {ImageCount} images · {VolumeCount} volumes."
                 : "Filesystem updated. Docker storage details are unavailable or Docker is not installed.";
             NotifyCollectionSummaries();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Unable to read storage: {ex.Message}";
+            shouldScanHeavyDirectories = false;
         }
         finally
         {
             IsBusy = false;
+        }
+
+        if (shouldScanHeavyDirectories)
+        {
+            await ScanHeavyDirectoriesAsync();
+        }
+    }
+
+    [RelayCommand]
+    public async Task ScanHeavyDirectoriesAsync()
+    {
+        if (IsScanningHeavyDirectories) return;
+        var server = _serverAccessor();
+        if (server == null)
+        {
+            HeavyDirectoriesStatus = "No active server. Choose one in Servers first.";
+            return;
+        }
+
+        IsScanningHeavyDirectories = true;
+        HeavyDirectoriesStatus = "Analyzing large directories in the background...";
+        try
+        {
+            var directories = await _storage.ReadHeavyDirectoriesAsync(server, _secretAccessor());
+            Replace(HeavyDirectories, directories);
+            _lastHeavyDirectoriesRefreshUtc = DateTimeOffset.UtcNow;
+            HeavyDirectoriesStatus = directories.Count == 0
+                ? "Analysis completed. No directory data was returned."
+                : $"Analysis completed at {DateTimeOffset.Now:HH:mm:ss} · {directories.Count} entries.";
+        }
+        catch (Exception ex)
+        {
+            HeavyDirectoriesStatus = $"Unable to analyze large directories: {ex.Message}";
+        }
+        finally
+        {
+            IsScanningHeavyDirectories = false;
         }
     }
 
@@ -229,7 +275,7 @@ public partial class StorageViewModel : ObservableObject
         {
             StorageCleanupKind.BuildCache => "Se eliminará únicamente caché de build de Docker que pueda reconstruirse.",
             StorageCleanupKind.UnusedImages => "Se eliminarán imágenes Docker no usadas por ningún contenedor.",
-            _ => "Se eliminarán contenedores detenidos, redes sin uso, imágenes sin uso y caché de build. Los volúmenes NO se eliminan salvo que marques la opción explícitamente."
+            _ => "Se liberará espacio eliminando contenedores detenidos, redes sin uso, imágenes sin uso y caché de build. Los volúmenes NO se eliminan salvo que marques la opción explícitamente."
         };
         PendingCleanupMessage = actionWarning + productionWarning;
     }
@@ -286,7 +332,7 @@ public partial class StorageViewModel : ObservableObject
     {
         StorageCleanupKind.BuildCache => "Limpiar caché de build",
         StorageCleanupKind.UnusedImages => "Limpiar imágenes no usadas",
-        StorageCleanupKind.DockerSystem => "Limpieza Docker completa",
+        StorageCleanupKind.DockerSystem => "Liberar espacio Docker",
         _ => "Limpieza de almacenamiento"
     };
 

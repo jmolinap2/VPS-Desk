@@ -2,11 +2,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="VpsDesk.Desktop.App"
              RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <SolidColorBrush x:Key="SurfaceWindowBrush" Color="#0B0E13" />
+    <SolidColorBrush x:Key="SurfaceSidebarBrush" Color="#0E1219" />
+    <SolidColorBrush x:Key="SurfaceHeaderBrush" Color="#0D1118" />
+    <SolidColorBrush x:Key="SurfaceCardBrush" Color="#121720" />
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="#151B25" />
+    <SolidColorBrush x:Key="SurfaceInsetBrush" Color="#0E131B" />
+    <SolidColorBrush x:Key="SurfaceInputBrush" Color="#080B10" />
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#202A38" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E8EDF5" />
+    <SolidColorBrush x:Key="TextStrongBrush" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A8B4C5" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#8290A3" />
+    <SolidColorBrush x:Key="TextFaintBrush" Color="#66758A" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#38BDF8" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#182334" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#34D399" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#F87171" />
+    <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#7F1D1D" />
+    <SolidColorBrush x:Key="ProjectAccentBrush" Color="#5EEAD4" />
+  </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window">
-      <Setter Property="Background" Value="#0B0E13" />
-      <Setter Property="Foreground" Value="#E8EDF5" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceWindowBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
     <Style Selector="Button.nav">
       <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -16,33 +39,35 @@
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="3,0,0,0" />
       <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="FontSize" Value="14" />
     </Style>
     <Style Selector="Button.nav:pointerover">
       <Setter Property="Background" Value="#141B25" />
     </Style>
     <Style Selector="Button.nav.active">
-      <Setter Property="Background" Value="#182334" />
-      <Setter Property="BorderBrush" Value="#38BDF8" />
-      <Setter Property="Foreground" Value="#F8FAFC" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextStrongBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="#121720" />
-      <Setter Property="BorderBrush" Value="#202A38" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="12" />
       <Setter Property="Padding" Value="18" />
     </Style>
     <Style Selector="ListBox TextBlock[Text=Success]">
-      <Setter Property="Foreground" Value="#34D399" />
+      <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="ListBox TextBlock[Text=Warning]">
-      <Setter Property="Foreground" Value="#FBBF24" />
+      <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="ListBox TextBlock[Text=Failed]">
-      <Setter Property="Foreground" Value="#F87171" />
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
   </Application.Styles>

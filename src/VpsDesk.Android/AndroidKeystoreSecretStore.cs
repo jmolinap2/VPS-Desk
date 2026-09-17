@@ -52,7 +52,7 @@ internal sealed class AndroidKeystoreSecretStore : ISecretStore
             using var cipher = Cipher.GetInstance(CipherTransformation)
                 ?? throw new InvalidOperationException("AES/GCM cipher is unavailable.");
             using var parameters = new GCMParameterSpec(GcmTagBits, iv);
-            cipher.Init(CipherMode.DecryptMode, secretKey, parameters);
+            cipher.Init(Javax.Crypto.CipherMode.DecryptMode, secretKey, parameters);
             var plainBytes = cipher.DoFinal(cipherText)
                 ?? throw new CryptographicException("Android Keystore returned no plaintext.");
 
@@ -74,7 +74,7 @@ internal sealed class AndroidKeystoreSecretStore : ISecretStore
         var secretKey = GetOrCreateSecretKey();
         using var cipher = Cipher.GetInstance(CipherTransformation)
             ?? throw new InvalidOperationException("AES/GCM cipher is unavailable.");
-        cipher.Init(CipherMode.EncryptMode, secretKey);
+        cipher.Init(Javax.Crypto.CipherMode.EncryptMode, secretKey);
 
         var iv = cipher.GetIV() ?? throw new CryptographicException("Android Keystore returned no IV.");
         var cipherText = cipher.DoFinal(Encoding.UTF8.GetBytes(value))

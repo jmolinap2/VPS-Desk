@@ -13,6 +13,7 @@ internal sealed class AndroidServersView : UserControl
     private readonly IServerProfileStore _profileStore = new JsonServerProfileStore(AndroidAppPaths.ServerProfilesFile);
     private readonly ISecretStore _secretStore = new AndroidKeystoreSecretStore();
     private readonly ISshCommandExecutor _ssh = new SshNetCommandExecutor();
+    private readonly IRemoteFileService _remoteFiles = new SftpRemoteFileService();
 
     private readonly ComboBox _serverPicker = new();
     private readonly TextBox _name = new() { Watermark = "Name" };
@@ -25,6 +26,7 @@ internal sealed class AndroidServersView : UserControl
     private readonly TextBlock _status = new() { Text = "Loading server profiles...", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private readonly Avalonia.Controls.Button _saveButton = new() { Content = "Save server" };
     private readonly Avalonia.Controls.Button _testButton = new() { Content = "Test SSH" };
+    private readonly Avalonia.Controls.Button _sftpButton = new() { Content = "Test SFTP" };
     private readonly Avalonia.Controls.Button _newButton = new() { Content = "New" };
 
     private List<ServerProfile> _profiles = [];
@@ -36,6 +38,7 @@ internal sealed class AndroidServersView : UserControl
         _serverPicker.SelectionChanged += async (_, _) => await LoadSelectedProfileAsync();
         _saveButton.Click += async (_, _) => await SaveAsync();
         _testButton.Click += async (_, _) => await TestAsync();
+        _sftpButton.Click += async (_, _) => await TestSftpAsync();
         _newButton.Click += (_, _) => ResetEditor();
         AttachedToVisualTree += async (_, _) => await LoadProfilesAsync();
 
@@ -72,6 +75,7 @@ internal sealed class AndroidServersView : UserControl
                             Place(_testButton, 2)
                         }
                     },
+                    _sftpButton,
                     _status
                 }
             }
@@ -213,6 +217,38 @@ internal sealed class AndroidServersView : UserControl
         }
     }
 
+    private async Task TestSftpAsync()
+    {
+        if (!TryCreateProfile(out var profile, out var error))
+        {
+            _status.Text = error;
+            return;
+        }
+
+        SetBusy(true);
+        _status.Text = "Checking SFTP...";
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var entries = await _remoteFiles.ListAsync(profile, "/", _password.Text, timeout.Token);
+            var preview = string.Join(", ", entries.Take(5).Select(x => x.Name));
+            _status.Text = $"SFTP OK. Root entries: {entries.Count}" +
+                           (string.IsNullOrWhiteSpace(preview) ? string.Empty : $"\n{preview}");
+        }
+        catch (OperationCanceledException)
+        {
+            _status.Text = "SFTP test timed out or was cancelled.";
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"SFTP failed: {ex.Message}";
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
     private bool TryCreateProfile(out ServerProfile profile, out string error)
     {
         profile = default!;
@@ -274,6 +310,7 @@ internal sealed class AndroidServersView : UserControl
     {
         _saveButton.IsEnabled = !busy;
         _testButton.IsEnabled = !busy;
+        _sftpButton.IsEnabled = !busy;
         _newButton.IsEnabled = !busy;
         _serverPicker.IsEnabled = !busy;
     }

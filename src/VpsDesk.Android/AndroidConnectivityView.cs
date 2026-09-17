@@ -15,7 +15,11 @@ public sealed class AndroidConnectivityView : UserControl
     private readonly TextBox _password = new() { Watermark = "Password", PasswordChar = '●' };
     private readonly TextBox _fingerprint = new() { Watermark = "Optional SHA256 host fingerprint" };
     private readonly TextBlock _status = new() { Text = "Android SSH compatibility spike ready." };
-    private readonly Button _testButton = new() { Content = "Test SSH", HorizontalAlignment = HorizontalAlignment.Stretch };
+    private readonly Avalonia.Controls.Button _testButton = new()
+    {
+        Content = "Test SSH",
+        HorizontalAlignment = HorizontalAlignment.Stretch
+    };
 
     public AndroidConnectivityView()
     {

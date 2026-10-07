@@ -11,8 +11,6 @@ En Partner Center, crea o asocia la aplicación y copia estos valores de la iden
 - `Package/Identity/Publisher` como `StorePublisher`.
 - El nombre público del editor como `PublisherDisplayName`.
 
-También necesitas el certificado de firma asociado a esa identidad. No lo subas al repositorio.
-
 ## Generación
 
 ```powershell
@@ -20,10 +18,14 @@ También necesitas el certificado de firma asociado a esa identidad. No lo subas
   -StoreIdentityName "IDENTIDAD_DE_PARTNER_CENTER" `
   -StorePublisher "CN=PUBLICADOR_DE_PARTNER_CENTER" `
   -PublisherDisplayName "Nombre del editor" `
-  -Version "1.0.0.0" `
-  -CertificatePath "C:\ruta\certificado.pfx" `
-  -CertificatePassword (Read-Host -AsSecureString)
+  -Version "1.0.0.0"
 ```
 
 El resultado se crea bajo `app/clinical-care/appointments/store/` y está ignorado por Git.
-Sin certificado el script puede generar un MSIX para validación, pero no debe subirse a Partner Center.
+
+Firma local opcional:
+
+```powershell
+-CertificatePath "C:\ruta\certificado.pfx" `
+-CertificatePassword (Read-Host -AsSecureString)
+```

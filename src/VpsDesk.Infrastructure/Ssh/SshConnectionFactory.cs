@@ -56,14 +56,18 @@ internal static class SshConnectionFactory
             throw new InvalidOperationException("Private key path is required.");
         }
 
-        if (!File.Exists(server.PrivateKeyPath))
+        var keyPath = Path.IsPathRooted(server.PrivateKeyPath)
+            ? server.PrivateKeyPath
+            : Path.GetFullPath(server.PrivateKeyPath, AppContext.BaseDirectory);
+
+        if (!File.Exists(keyPath))
         {
-            throw new FileNotFoundException("SSH private key was not found.", server.PrivateKeyPath);
+            throw new FileNotFoundException("SSH private key was not found.", keyPath);
         }
 
         var key = string.IsNullOrEmpty(passphrase)
-            ? new PrivateKeyFile(server.PrivateKeyPath)
-            : new PrivateKeyFile(server.PrivateKeyPath, passphrase);
+            ? new PrivateKeyFile(keyPath)
+            : new PrivateKeyFile(keyPath, passphrase);
 
         return new PrivateKeyAuthenticationMethod(server.Username, key);
     }

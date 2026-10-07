@@ -86,7 +86,7 @@ if (-not [string]::IsNullOrWhiteSpace($CertificatePath)) {
     if ($LASTEXITCODE -ne 0) { throw "Falló la firma del paquete MSIX." }
 }
 else {
-    Write-Warning "El MSIX está sin firmar. Para Partner Center, usa el certificado asociado a la identidad de Store."
+    Write-Warning "MSIX creado sin firma local."
 }
 
 Write-Host "Paquete MSIX limpio creado en: $packagePath"

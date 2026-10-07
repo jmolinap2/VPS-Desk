@@ -36,13 +36,19 @@ public partial class SettingsView : UserControl
 
         try
         {
-            settings.SetBackupStatus("Creando copia cifrada...");
-            await _backupService.CreateAsync(file.Path.LocalPath, password);
-            settings.SetBackupStatus("Copia cifrada creada correctamente. Guarda la contraseña en un lugar seguro.");
+            settings.BeginBackupOperation($"Iniciando creación. Destino seleccionado: {file.Path.LocalPath}");
+            var progress = new Progress<string>(settings.AppendBackupLog);
+            var result = await Task.Run(async () => await _backupService.CreateAsync(file.Path.LocalPath, password, progress).ConfigureAwait(false));
+            settings.AppendBackupLog($"ÉXITO: {result.FileCount} archivos cifrados ({FormatSize(result.SizeBytes)}). Guarda la contraseña en un lugar seguro.");
         }
         catch (Exception ex)
         {
+            settings.AppendBackupLog($"ERROR al crear copia: {ex}");
             settings.SetBackupStatus($"No se pudo crear la copia: {ex.Message}");
+        }
+        finally
+        {
+            settings.EndBackupOperation();
         }
     }
 
@@ -68,13 +74,27 @@ public partial class SettingsView : UserControl
 
         try
         {
-            settings.SetBackupStatus("Restaurando copia cifrada...");
-            await _backupService.RestoreAsync(file.Path.LocalPath, password);
-            settings.SetBackupStatus("Copia restaurada. Cierra y vuelve a abrir VPS Desk para cargar los datos restaurados.");
+            settings.BeginBackupOperation($"Iniciando restauración. Archivo: {file.Path.LocalPath}");
+            var progress = new Progress<string>(settings.AppendBackupLog);
+            var result = await Task.Run(async () => await _backupService.RestoreAsync(file.Path.LocalPath, password, progress).ConfigureAwait(false));
+            settings.AppendBackupLog($"ÉXITO: {result.TotalFiles} archivos aplicados (datos: {result.RoamingFiles + result.LocalFiles}, secretos: {result.SecretFiles}, .env: {(result.EnvironmentRestored ? "sí" : "no")}). Reinicia VPS Desk para cargar los datos.");
         }
         catch (Exception ex)
         {
-            settings.SetBackupStatus($"No se pudo restaurar la copia: {ex.Message}");
+            settings.AppendBackupLog($"ERROR al restaurar: {ex}");
+            settings.SetBackupStatus($"No se pudo restaurar la copia: {ex.Message}. Revisa el registro detallado.");
+        }
+        finally
+        {
+            settings.EndBackupOperation();
         }
     }
+
+    private static string FormatSize(long bytes)
+        => bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024d:F1} KB",
+            _ => $"{bytes / 1024d / 1024d:F1} MB"
+        };
 }

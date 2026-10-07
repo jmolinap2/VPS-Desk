@@ -94,7 +94,7 @@ public partial class MainWindowViewModel : ObservableObject
             _server = Servers.FirstOrDefault(x => x.Id == bootstrap.Profile.Id) ?? bootstrap.Profile;
             _activeSecret = bootstrap.Secret;
         }
-        else if (_server?.Id == bootstrap.Profile?.Id)
+        else if (_server?.Id == bootstrap.Profile?.Id || MatchesBootstrapConnection(_server, bootstrap.Profile))
         {
             _activeSecret = bootstrap.Secret;
         }
@@ -118,6 +118,14 @@ public partial class MainWindowViewModel : ObservableObject
             MemorySeries.Add(0);
         }
     }
+
+    private static bool MatchesBootstrapConnection(ServerProfile? profile, ServerProfile? bootstrap)
+        => profile != null
+           && bootstrap != null
+           && string.Equals(profile.Host, bootstrap.Host, StringComparison.OrdinalIgnoreCase)
+           && profile.Port == bootstrap.Port
+           && string.Equals(profile.Username, bootstrap.Username, StringComparison.Ordinal)
+           && profile.AuthenticationType == bootstrap.AuthenticationType;
 
     partial void OnSelectedPageChanged(string value)
     {

@@ -62,6 +62,63 @@ function Copy-ConfiguredSecrets([string]$destination) {
     Set-Content -LiteralPath (Join-Path $destination ".env") -Value $envLines -Encoding utf8NoBOM
 }
 
+function Get-EnvironmentValue([string]$name) {
+    $line = Get-Content -LiteralPath $sourceEnv |
+        Where-Object { $_ -match ("^\s*" + [regex]::Escape($name) + "\s*=") } |
+        Select-Object -First 1
+    if ($null -eq $line -or $line -notmatch '^\s*[^=]+\s*=\s*(.*)$') {
+        return $null
+    }
+
+    return $matches[1].Trim().Trim('"').Trim("'")
+}
+
+function Update-PortableSelectedServerProfile([string]$dataDirectory) {
+    $storePath = Join-Path $dataDirectory "servers.json"
+    if (-not (Test-Path -LiteralPath $storePath -PathType Leaf)) {
+        return
+    }
+
+    $snapshot = Get-Content -LiteralPath $storePath -Raw | ConvertFrom-Json
+    $profiles = @($snapshot.servers)
+    if ($profiles.Count -eq 0) {
+        return
+    }
+
+    $selected = $profiles | Where-Object { $_.id -eq $snapshot.selectedServerId } | Select-Object -First 1
+    if ($null -eq $selected) {
+        $selected = $profiles[0]
+    }
+
+    $serverHost = Get-EnvironmentValue "SERVER_HOST"
+    $user = Get-EnvironmentValue "SERVER_USER"
+    $name = Get-EnvironmentValue "SERVER_NAME"
+    $provider = Get-EnvironmentValue "SERVER_PROVIDER"
+    $port = Get-EnvironmentValue "SSH_PORT"
+    $fingerprint = Get-EnvironmentValue "SSH_HOST_FINGERPRINT"
+    $keyPath = Get-EnvironmentValue "SSH_KEY_PATH"
+
+    if (-not [string]::IsNullOrWhiteSpace($serverHost)) { $selected.host = $serverHost }
+    if (-not [string]::IsNullOrWhiteSpace($user)) { $selected.username = $user }
+    if (-not [string]::IsNullOrWhiteSpace($name)) { $selected.name = $name }
+    if (-not [string]::IsNullOrWhiteSpace($provider)) { $selected.providerLabel = $provider }
+    if ($port -as [int]) { $selected.port = [int]$port }
+    $selected.hostKeyFingerprintSha256 = $fingerprint
+
+    if (-not [string]::IsNullOrWhiteSpace($keyPath)) {
+        $selected.authenticationType = "PrivateKey"
+        # The SSH connection factory resolves this relative path from the executable.
+        $selected.privateKeyPath = "secrets/id_vpsdesk"
+    }
+    else {
+        $selected.authenticationType = "Password"
+        $selected.privateKeyPath = $null
+    }
+
+    $snapshot.selectedServerId = $selected.id
+    $snapshot | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $storePath -Encoding utf8NoBOM
+}
+
 Copy-ConfiguredSecrets $portableRoot
 Set-Content -LiteralPath (Join-Path $portableRoot "portable.mode") -Value "VPS Desk portable data mode" -Encoding ascii
 
@@ -75,6 +132,7 @@ if (Test-Path -LiteralPath $roamingData -PathType Container) {
 if (Test-Path -LiteralPath $localDatabase -PathType Leaf) {
     Copy-Item -LiteralPath $localDatabase -Destination (Join-Path $portableData "vpsdesk.db") -Force
 }
+Update-PortableSelectedServerProfile $portableData
 
 Compress-Archive -Path (Join-Path $portableRoot "*") `
     -DestinationPath (Join-Path $deliveryRoot "VPS-Desk-portable-win-x64.zip") -CompressionLevel Optimal

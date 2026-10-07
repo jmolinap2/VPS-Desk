@@ -36,3 +36,4 @@ desktop.ini
 .idea/
 *.user
 tmp/
+dist/installers/VPS-Desk-Personal-Setup.exe

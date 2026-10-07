@@ -1,4 +1,5 @@
 using VpsDesk.Domain.Servers;
+using VpsDesk.Application.Runtime;
 
 namespace VpsDesk.Desktop.Services;
 
@@ -55,7 +56,8 @@ public static class BootstrapServerProfileLoader
 
         if (!string.IsNullOrWhiteSpace(keyPath)
             && !Path.IsPathRooted(keyPath)
-            && envPath is not null)
+            && envPath is not null
+            && !VpsDeskDataPaths.IsPortable)
         {
             keyPath = Path.GetFullPath(keyPath, Path.GetDirectoryName(envPath)!);
         }

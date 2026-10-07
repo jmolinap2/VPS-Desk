@@ -22,6 +22,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _terminalScrollbackLines = 5000;
     [ObservableProperty] private bool _confirmMultilineTerminalPaste = true;
     [ObservableProperty] private string _statusMessage = "Las preferencias se guardan localmente y no contienen credenciales.";
+    [ObservableProperty] private string _backupStatus = "Aún no se ha creado ni restaurado una copia en esta sesión.";
+    [ObservableProperty] private string _backupLog = string.Empty;
+    [ObservableProperty] private bool _isBackupOperationRunning;
 
     public string SettingsPath => _store.SettingsPath;
     public string DataDirectory => Path.GetDirectoryName(_store.SettingsPath) ?? string.Empty;
@@ -29,7 +32,37 @@ public partial class SettingsViewModel : ObservableObject
 
     public event EventHandler? PreferencesChanged;
 
-    public void SetBackupStatus(string message) => StatusMessage = message;
+    public void BeginBackupOperation(string message)
+    {
+        BackupLog = $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
+        IsBackupOperationRunning = true;
+        SetBackupStatus(message);
+    }
+
+    public void EndBackupOperation() => IsBackupOperationRunning = false;
+
+    public void SetBackupStatus(string message)
+    {
+        BackupStatus = message;
+        StatusMessage = message;
+    }
+
+    public void AppendBackupLog(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss}] {message}";
+        BackupLog = string.IsNullOrEmpty(BackupLog) ? line : $"{BackupLog}{Environment.NewLine}{line}";
+        SetBackupStatus(message);
+
+        try
+        {
+            Directory.CreateDirectory(DataDirectory);
+            File.AppendAllText(Path.Combine(DataDirectory, "backup-operations.log"), line + Environment.NewLine);
+        }
+        catch
+        {
+            // La bitácora visible sigue disponible aunque el disco no permita persistirla.
+        }
+    }
 
     public SettingsViewModel(
         AppSettingsStore store,

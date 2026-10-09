@@ -8,7 +8,9 @@ public sealed record BootstrapServerContext(
     string? Secret,
     string? RemoteRepositoryPath = null,
     string? ComposeFile = null,
-    string? Warning = null);
+    string? Warning = null,
+    string? HostingerApiToken = null,
+    string? HostingerVirtualMachineId = null);
 
 public static class BootstrapServerProfileLoader
 {
@@ -53,6 +55,8 @@ public static class BootstrapServerProfileLoader
         values.TryGetValue("SERVER_PROVIDER", out var provider);
         values.TryGetValue("REMOTE_REPO_PATH", out var remoteRepositoryPath);
         values.TryGetValue("COMPOSE_FILE", out var composeFile);
+        values.TryGetValue("HOSTINGER_API_TOKEN", out var hostingerToken);
+        values.TryGetValue("HOSTINGER_VM_ID", out var hostingerVmId);
 
         if (!string.IsNullOrWhiteSpace(keyPath)
             && !Path.IsPathRooted(keyPath)
@@ -88,7 +92,9 @@ public static class BootstrapServerProfileLoader
             profile,
             string.IsNullOrWhiteSpace(password) ? null : password,
             string.IsNullOrWhiteSpace(remoteRepositoryPath) ? null : remoteRepositoryPath,
-            string.IsNullOrWhiteSpace(composeFile) ? null : composeFile);
+            string.IsNullOrWhiteSpace(composeFile) ? null : composeFile,
+            HostingerApiToken: string.IsNullOrWhiteSpace(hostingerToken) ? null : hostingerToken,
+            HostingerVirtualMachineId: string.IsNullOrWhiteSpace(hostingerVmId) ? null : hostingerVmId);
     }
 
     private static string? FindEnvFile()

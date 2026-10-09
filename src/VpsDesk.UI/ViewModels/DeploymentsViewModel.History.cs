@@ -104,6 +104,7 @@ public partial class DeploymentsViewModel
 
     partial void OnIsBusyChanged(bool value)
     {
+        NotifySnapshotAvailability();
         if (value) return;
 
         if (IsPreflightModalOpen && !_deploymentObserved)

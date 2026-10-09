@@ -34,6 +34,20 @@
     </Border>
   </Border>
 
+  <Border Background="#B0000000" IsVisible="{Binding HasPendingSnapshotAction}">
+    <Border Classes="card" MaxWidth="620" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <StackPanel Spacing="14">
+        <TextBlock Text="{Binding PendingSnapshotTitle}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding PendingSnapshotMessage}" TextWrapping="Wrap" />
+        <WrapPanel HorizontalAlignment="Right">
+          <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSnapshotActionCommand}" Margin="0,0,8,0" />
+          <Button Content="{Binding PendingSnapshotConfirmLabel}" Command="{Binding ConfirmSnapshotActionCommand}"
+                  Background="#0F766E" Foreground="White" FontWeight="SemiBold" />
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+  </Border>
+
   <Border Background="#B0000000" IsVisible="{Binding IsPreflightModalOpen}">
     <Border Classes="card" MaxWidth="720" MaxHeight="650" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center">
       <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">

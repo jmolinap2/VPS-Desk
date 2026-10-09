@@ -27,6 +27,9 @@ public partial class MainWindowViewModel
                                            && !IsSecurityPage
                                            && !IsSettingsPage;
 
+    public void InitializeSnapshots(VpsDesk.Application.Snapshots.IVpsSnapshotService snapshotService)
+        => DeploymentsModule.InitializeSnapshots(snapshotService);
+
     public void InitializeDeployments(
         IDeploymentPreflightService preflightService,
         IComposeDeploymentService deploymentService,

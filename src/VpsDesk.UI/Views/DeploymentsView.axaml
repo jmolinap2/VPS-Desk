@@ -316,6 +316,24 @@
             </Grid>
           </Border>
 
+          <Border Classes="card" Padding="16">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+              <StackPanel Spacing="4">
+                <TextBlock Text="Punto de restauración del servidor" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding SnapshotSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                <CheckBox Content="Crear un snapshot automáticamente antes de desplegar"
+                          IsChecked="{Binding SnapshotBeforeDeploy}"
+                          IsVisible="{Binding IsSnapshotConfigured}"
+                          Margin="0,6,0,0" />
+              </StackPanel>
+              <WrapPanel Grid.Column="1" VerticalAlignment="Center" MaxWidth="360" HorizontalAlignment="Right">
+                <Button Content="Crear snapshot" Command="{Binding RequestCreateSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,8,6" />
+                <Button Content="Restaurar" Command="{Binding RequestRestoreSnapshotCommand}" IsEnabled="{Binding CanRestoreSnapshot}" Margin="0,0,8,6" />
+                <Button Content="&#8635;" Command="{Binding RefreshSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,0,6" ToolTip.Tip="Consultar el snapshot actual" />
+              </WrapPanel>
+            </Grid>
+          </Border>
+
           <Grid ColumnDefinitions="250,*" ColumnSpacing="14" MinHeight="430">
             <Border Classes="card" ClipToBounds="True">
               <Grid RowDefinitions="Auto,*" RowSpacing="10">

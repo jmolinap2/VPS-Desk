@@ -280,6 +280,23 @@
           </Border>
         </StackPanel>
 
+        <!-- punto de restauración del VPS completo -->
+        <Border Classes="panel">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="sectionTitle" Text="Punto de restauración" />
+            <TextBlock Text="{Binding SnapshotSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsSnapshotConfigured}">
+              <TextBlock Text="Crear snapshot antes de desplegar" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding SnapshotBeforeDeploy}" />
+            </Grid>
+            <WrapPanel>
+              <Button Content="Crear snapshot" Command="{Binding RequestCreateSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,8,6" />
+              <Button Content="Restaurar" Command="{Binding RequestRestoreSnapshotCommand}" IsEnabled="{Binding CanRestoreSnapshot}" Margin="0,0,8,6" />
+              <Button Content="&#8635;" Command="{Binding RefreshSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,0,6" />
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+
         <!-- estado actual -->
         <Border CornerRadius="14" Padding="12" BorderThickness="1"
                 Background="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=background}"

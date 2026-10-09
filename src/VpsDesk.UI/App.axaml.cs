@@ -12,6 +12,7 @@ using VpsDesk.Infrastructure.Docker;
 using VpsDesk.Infrastructure.Logs;
 using VpsDesk.Infrastructure.Monitoring;
 using VpsDesk.Infrastructure.Persistence;
+using VpsDesk.Infrastructure.Snapshots;
 using VpsDesk.Infrastructure.Security;
 using VpsDesk.Infrastructure.Ssh;
 using VpsDesk.Infrastructure.Storage;
@@ -88,6 +89,7 @@ public partial class App : Avalonia.Application
             bootstrap.RemoteRepositoryPath,
             bootstrap.ComposeFile);
         viewModel.DeploymentsModule.InitializeProjectRecipes(recipes);
+        viewModel.InitializeSnapshots(new HostingerVpsSnapshotService(bootstrap.HostingerApiToken, bootstrap.HostingerVirtualMachineId));
         viewModel.InitializeProjects(discovery, recipes, projectWorkspaceStore, deploymentProfileStore);
         viewModel.InitializeLogs(containers, logs);
         viewModel.InitializeStorage(storage);

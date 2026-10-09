@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:activity="using:VpsDesk.Domain.Activity"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
+             x:Class="VpsDesk.Desktop.Views.MobileDashboardView"
+             x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <conv:UsageToBrushConverter x:Key="UsageToBrush" />
+    <conv:ConnectionToBrushConverter x:Key="ConnectionToBrush" />
+    <conv:CapabilityToBrushConverter x:Key="CapabilityToBrush" />
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.metric">
+      <Setter Property="Background" Value="#121826" />
+      <Setter Property="BorderBrush" Value="#1E2735" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="14" />
+    </Style>
+    <Style Selector="Border.section">
+      <Setter Property="Background" Value="#121826" />
+      <Setter Property="BorderBrush" Value="#1E2735" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="18" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Margin="16,14,16,26" Spacing="12">
+
+      <TextBlock Text="{Binding SelectedServerName}" FontSize="11" FontWeight="Bold" Foreground="#5B687C" />
+
+      <!-- métricas 2x2: nada truncado, cada tarjeta respira -->
+      <Grid ColumnDefinitions="*,*" RowDefinitions="*,*" ColumnSpacing="10" RowSpacing="10">
+        <Border Classes="metric">
+          <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="CPU" Foreground="#8290A3" FontSize="11" />
+              <Ellipse Grid.Column="1" Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{Binding CpuUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=cpu}" />
+            </Grid>
+            <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}"
+                       Foreground="{Binding CpuUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=cpu}"
+                       FontSize="24" FontWeight="SemiBold" Margin="0,6,0,4" />
+            <Border Height="5" Background="#1A2230" CornerRadius="3" ClipToBounds="True">
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuUsage}"
+                           Foreground="{Binding CpuUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=cpu}"
+                           Background="Transparent" BorderThickness="0" Height="5" />
+            </Border>
+            <TextBlock Text="{Binding LoadSummary}" FontSize="10" Foreground="#66758A" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" Classes="metric">
+          <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{DynamicResource Dashboard_Memory}" Foreground="#8290A3" FontSize="11" />
+              <Ellipse Grid.Column="1" Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{Binding MemoryUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=memory}" />
+            </Grid>
+            <TextBlock Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}"
+                       Foreground="{Binding MemoryUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=memory}"
+                       FontSize="24" FontWeight="SemiBold" Margin="0,6,0,4" />
+            <Border Height="5" Background="#1A2230" CornerRadius="3" ClipToBounds="True">
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}"
+                           Foreground="{Binding MemoryUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=memory}"
+                           Background="Transparent" BorderThickness="0" Height="5" />
+            </Border>
+            <TextBlock Text="{Binding MemorySummary}" FontSize="10" Foreground="#66758A" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Classes="metric">
+          <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{DynamicResource Dashboard_Disk}" Foreground="#8290A3" FontSize="11" />
+              <Ellipse Grid.Column="1" Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{Binding DiskUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}" />
+            </Grid>
+            <TextBlock Text="{Binding DiskUsage, StringFormat={}{0:F0}%}"
+                       Foreground="{Binding DiskUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
+                       FontSize="24" FontWeight="SemiBold" Margin="0,6,0,4" />
+            <Border Height="5" Background="#1A2230" CornerRadius="3" ClipToBounds="True">
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding DiskUsage}"
+                           Foreground="{Binding DiskUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
+                           Background="Transparent" BorderThickness="0" Height="5" />
+            </Border>
+            <TextBlock Text="{DynamicResource Dashboard_RootFilesystem}" FontSize="10" Foreground="#66758A" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="1" Classes="metric">
+          <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{DynamicResource Dashboard_Uptime}" Foreground="#8290A3" FontSize="11" />
+              <Ellipse Grid.Column="1" Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{Binding ConnectionStatus, Converter={StaticResource ConnectionToBrush}}" />
+            </Grid>
+            <TextBlock Text="{Binding Uptime}" FontSize="20" FontWeight="SemiBold" Margin="0,6,0,4" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{DynamicResource Dashboard_Network}" Foreground="#8290A3" FontSize="10" />
+            <TextBlock Text="{Binding NetworkSummary}" FontSize="10" Foreground="#66758A" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- rendimiento -->
+      <Border Classes="section">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Dashboard_Performance}" FontSize="14.5" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Dashboard_PerformanceHelp}" FontSize="10.5" Foreground="#8290A3" />
+            </StackPanel>
+            <Border Grid.Column="1" Background="#151B25" BorderBrush="#202A38" BorderThickness="1"
+                    CornerRadius="999" Padding="9,4" VerticalAlignment="Top">
+              <TextBlock Text="{Binding LastChecked}" Foreground="#8290A3" FontSize="10.5" FontWeight="SemiBold" />
+            </Border>
+          </Grid>
+          <lvc:CartesianChart Height="140" LegendPosition="Top">
+            <lvc:CartesianChart.Series>
+              <lvc:XamlLineSeries SeriesName="CPU" Values="{Binding CpuSeries}" Fill="{x:Null}" GeometrySize="0" />
+              <lvc:XamlLineSeries SeriesName="Memory" Values="{Binding MemorySeries}" Fill="{x:Null}" GeometrySize="0" />
+            </lvc:CartesianChart.Series>
+          </lvc:CartesianChart>
+        </StackPanel>
+      </Border>
+
+      <!-- servicios -->
+      <Border Classes="section">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{DynamicResource Dashboard_Services}" FontSize="14.5" FontWeight="SemiBold" />
+          <Border Background="#10141C" BorderBrush="#1A2230" BorderThickness="1" CornerRadius="12" Padding="12,11">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{Binding DockerStatus, Converter={StaticResource CapabilityToBrush}}" />
+              <TextBlock Grid.Column="1" Text="Docker" Margin="10,0" FontSize="13" />
+              <TextBlock Grid.Column="2" Text="{Binding DockerStatus}" Foreground="#8290A3" FontSize="11" />
+            </Grid>
+          </Border>
+          <Border Background="#10141C" BorderBrush="#1A2230" BorderThickness="1" CornerRadius="12" Padding="12,11">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{Binding NginxStatus, Converter={StaticResource CapabilityToBrush}}" />
+              <TextBlock Grid.Column="1" Text="Nginx" Margin="10,0" FontSize="13" />
+              <TextBlock Grid.Column="2" Text="{Binding NginxStatus}" Foreground="#8290A3" FontSize="11" />
+            </Grid>
+          </Border>
+          <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="#8290A3" FontSize="11" />
+        </StackPanel>
+      </Border>
+
+      <!-- actividad reciente -->
+      <Border Classes="section">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Dashboard_RecentActivity}" FontSize="14.5" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Dashboard_RecentActivityHelp}" Foreground="#8290A3" FontSize="10.5" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{Binding RecentActivity.Count, StringFormat={}{0} eventos}"
+                       Foreground="#66758A" FontSize="11" VerticalAlignment="Center" />
+          </Grid>
+
+          <ItemsControl ItemsSource="{Binding RecentActivity}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="activity:OperationHistoryEntry">
+                <Border Background="#10141C" BorderBrush="#1A2230" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,3">
+                  <StackPanel Spacing="3">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="{Binding ServerName}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Text="{Binding Outcome}" FontWeight="SemiBold" Foreground="#A8B4C5" FontSize="11" />
+                    </Grid>
+                    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontSize="11.5" Foreground="#C7D0DD" />
+                    <TextBlock Text="{Binding StartedAt, StringFormat={}{0:dd/MM HH:mm}}" Foreground="#66758A" FontSize="10" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <StackPanel IsVisible="{Binding !HasRecentActivity}" Spacing="8" Margin="0,8" HorizontalAlignment="Center">
+            <TextBlock Text="{DynamicResource Dashboard_NoRecentActivity}" Foreground="#66758A" FontSize="11.5" HorizontalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

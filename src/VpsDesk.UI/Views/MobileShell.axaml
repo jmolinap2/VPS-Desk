@@ -5,11 +5,50 @@
              xmlns:services="using:VpsDesk.Desktop.Services"
              x:Class="VpsDesk.Desktop.Views.MobileShell"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Styles>
+    <!--
+      Animación declarativa (sin código): el estado "abierto" lo pone/quita
+      el código-behind con Classes.open, y la Transition hace que el scrim
+      se desvanezca y el cajón se deslice, en vez de aparecer/desaparecer
+      de golpe. El panel queda siempre en el árbol visual (solo se mueve
+      fuera de pantalla), y se desactiva al tacto con IsHitTestVisible para
+      no interceptar toques mientras está cerrado.
+    -->
+    <Style Selector="Border.scrim">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.22" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.scrim.open">
+      <Setter Property="Opacity" Value="0.55" />
+      <Setter Property="IsHitTestVisible" Value="True" />
+    </Style>
+
+    <Style Selector="Border.drawer">
+      <Setter Property="RenderTransform" Value="translateX(-280px)" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.26" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.drawer.open">
+      <Setter Property="RenderTransform" Value="translateX(0)" />
+      <Setter Property="IsHitTestVisible" Value="True" />
+    </Style>
+  </UserControl.Styles>
+
   <!--
     Host para pantallas angostas (teléfono): barra superior con botón de
-    menú + el mismo PageHost que usa el escritorio, y un cajón de
-    navegación (drawer) que se superpone en vez de un sidebar fijo de
-    250px. El escritorio sigue usando MainShell sin cambios.
+    menú + MobilePageHost (variantes de pantalla rediseñadas para móvil
+    donde ya existen; el resto reutiliza las vistas de escritorio), y un
+    cajón de navegación (drawer) que se superpone en vez de un sidebar fijo
+    de 250px. El escritorio sigue usando MainShell sin cambios.
   -->
   <Grid RowDefinitions="56,*">
 
@@ -30,16 +69,15 @@
     </Border>
 
     <!-- contenido -->
-    <views:PageHost Grid.Row="1" />
+    <views:MobilePageHost Grid.Row="1" />
 
     <!-- scrim -->
-    <Border x:Name="Scrim" Grid.RowSpan="2" Background="#000000" Opacity="0.55"
-            IsVisible="False" PointerPressed="OnScrimPointerPressed" />
+    <Border x:Name="Scrim" Classes="scrim" Grid.RowSpan="2" Background="#000000"
+            PointerPressed="OnScrimPointerPressed" />
 
     <!-- cajón de navegación -->
-    <Border x:Name="Drawer" Grid.RowSpan="2" Width="270" HorizontalAlignment="Left"
-            Background="#0E1219" BorderBrush="#202734" BorderThickness="0,0,1,0"
-            IsVisible="False">
+    <Border x:Name="Drawer" Classes="drawer" Grid.RowSpan="2" Width="270" HorizontalAlignment="Left"
+            Background="#0E1219" BorderBrush="#202734" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="72,60,90,*">
         <StackPanel Margin="20,18,12,12">
           <TextBlock Text="VPS Desk" FontSize="22" FontWeight="SemiBold" />

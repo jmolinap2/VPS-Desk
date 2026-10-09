@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:views="using:VpsDesk.Desktop.Views"
+             x:Class="VpsDesk.Desktop.Views.MobilePageHost"
+             x:DataType="vm:MainWindowViewModel">
+  <!--
+    Conmutador de páginas para pantallas angostas. Las pantallas ya
+    rediseñadas para móvil (Dashboard, Containers) usan su vista Mobile*;
+    el resto reutiliza exactamente las mismas vistas que PageHost (el
+    escritorio) hasta que también se rediseñen.
+  -->
+  <Grid>
+    <views:MobileDashboardView IsVisible="{Binding IsDashboardPage}" />
+    <views:ServersView IsVisible="{Binding IsServersPage}" />
+    <views:MobileContainersView IsVisible="{Binding IsContainersPage}" />
+
+    <Grid IsVisible="{Binding IsProjectsPage}">
+      <views:ProjectsView DataContext="{Binding ProjectsModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsDeploymentsPage}">
+      <views:DeploymentsView DataContext="{Binding DeploymentsModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsEnvironmentPage}">
+      <views:EnvironmentView DataContext="{Binding FilesModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsLogsPage}">
+      <views:LogsView DataContext="{Binding LogsModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsStoragePage}">
+      <views:StorageView DataContext="{Binding StorageModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsFilesPage}">
+      <views:FilesView DataContext="{Binding FilesModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsTerminalPage}">
+      <views:TerminalView DataContext="{Binding TerminalModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsSecurityPage}">
+      <views:SecurityView DataContext="{Binding SecurityModule}" />
+    </Grid>
+
+    <Grid IsVisible="{Binding IsSettingsPage}">
+      <views:SettingsView DataContext="{Binding SettingsModule}" />
+    </Grid>
+  </Grid>
+</UserControl>

@@ -14,6 +14,16 @@ public sealed class LinuxStorageService(ISshCommandExecutor ssh) : IStorageServi
         string? secret,
         CancellationToken cancellationToken = default)
     {
+        var overview = await ReadOverviewAsync(server, secret, cancellationToken);
+        var heavyDirectories = await ReadHeavyDirectoriesAsync(server, secret, cancellationToken);
+        return overview with { HeavyDirectories = heavyDirectories };
+    }
+
+    public async Task<StorageSnapshot> ReadOverviewAsync(
+        ServerProfile server,
+        string? secret,
+        CancellationToken cancellationToken = default)
+    {
         var disk = await ssh.ExecuteAsync(
             new SshCommandRequest(
                 server,
@@ -56,14 +66,8 @@ public sealed class LinuxStorageService(ISshCommandExecutor ssh) : IStorageServi
             "docker volume ls --format '{{json .}}'",
             TimeSpan.FromSeconds(20),
             cancellationToken);
-        var heavyDirectoriesTask = ExecuteOptionalAsync(
-            server,
-            secret,
-            "LC_ALL=C du -x -B1 -d 1 /root /home /var /opt /srv 2>/dev/null | sort -nr | head -25",
-            TimeSpan.FromSeconds(45),
-            cancellationToken);
 
-        await Task.WhenAll(dockerUsageTask, imagesTask, volumesTask, heavyDirectoriesTask);
+        await Task.WhenAll(dockerUsageTask, imagesTask, volumesTask);
 
         return new StorageSnapshot(
             total,
@@ -73,8 +77,23 @@ public sealed class LinuxStorageService(ISshCommandExecutor ssh) : IStorageServi
             ParseDockerUsage(await dockerUsageTask),
             ParseImages(await imagesTask),
             ParseVolumes(await volumesTask),
-            ParseHeavyDirectories(await heavyDirectoriesTask),
+            [],
             DateTimeOffset.UtcNow);
+    }
+
+    public async Task<IReadOnlyList<HeavyDirectoryInfo>> ReadHeavyDirectoriesAsync(
+        ServerProfile server,
+        string? secret,
+        CancellationToken cancellationToken = default)
+    {
+        var output = await ExecuteOptionalAsync(
+            server,
+            secret,
+            "LC_ALL=C du -x -B1 -d 1 /root /home /var /opt /srv 2>/dev/null | sort -nr | head -25",
+            TimeSpan.FromSeconds(45),
+            cancellationToken);
+
+        return ParseHeavyDirectories(output);
     }
 
     public async Task<StorageCleanupResult> CleanupAsync(

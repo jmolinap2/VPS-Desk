@@ -10,6 +10,16 @@ public interface IStorageService
         string? secret,
         CancellationToken cancellationToken = default);
 
+    Task<StorageSnapshot> ReadOverviewAsync(
+        ServerProfile server,
+        string? secret,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<HeavyDirectoryInfo>> ReadHeavyDirectoriesAsync(
+        ServerProfile server,
+        string? secret,
+        CancellationToken cancellationToken = default);
+
     Task<StorageCleanupResult> CleanupAsync(
         ServerProfile server,
         StorageCleanupRequest request,

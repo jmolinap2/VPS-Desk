@@ -1,16 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:VpsDesk.Desktop.ViewModels"
-        xmlns:views="using:VpsDesk.Desktop.Views"
-        xmlns:services="using:VpsDesk.Desktop.Services"
-        x:Class="VpsDesk.Desktop.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Title="VPS Desk"
-        Icon="avares://VpsDesk.Desktop/Assets/vps-desk.ico"
-        Width="1180"
-        Height="820"
-        MinWidth="980"
-        MinHeight="640">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:views="using:VpsDesk.Desktop.Views"
+             xmlns:services="using:VpsDesk.Desktop.Services"
+             x:Class="VpsDesk.Desktop.Views.MainShell"
+             x:DataType="vm:MainWindowViewModel">
   <Grid ColumnDefinitions="250,*" RowDefinitions="64,*">
     <Border Grid.RowSpan="2" Background="#0E1219" BorderBrush="#202734" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="72,60,90,*">
@@ -139,4 +133,4 @@
       </Grid>
     </Grid>
   </Grid>
-</Window>
+</UserControl>

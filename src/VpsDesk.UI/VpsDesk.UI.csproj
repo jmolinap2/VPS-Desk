@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Mantiene el namespace histórico (VpsDesk.Desktop.*) para no renombrar
+         los ~70 archivos de Views/ViewModels/Services que ya usan ese namespace.
+         Este proyecto es la UI y lógica de composición compartida entre
+         cabeceras de plataforma (VpsDesk.Desktop, VpsDesk.Android, ...). -->
+    <RootNamespace>VpsDesk.Desktop</RootNamespace>
+    <AssemblyName>VpsDesk.UI</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
+    <ProjectReference Include="../VpsDesk.Application/VpsDesk.Application.csproj" />
+    <ProjectReference Include="../VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
+    <None Update="Localization/Languages/**/*.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
+    <AvaloniaResource Include="Assets/vps-desk.ico" />
+  </ItemGroup>
+</Project>

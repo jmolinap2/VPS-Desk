@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:views="using:VpsDesk.Desktop.Views"
+             x:Class="VpsDesk.Desktop.Views.MainView"
+             x:DataType="vm:MainWindowViewModel">
+  <!--
+    Host para plataformas de "single view" (Android, iOS, navegador).
+    Reutiliza el mismo MainShell que el escritorio: el layout de sidebar fija
+    de 250px no es responsivo todavía (ver VpsDesk.Android/README.md) — es el
+    siguiente paso una vez que esta cabecera compile y arranque en el teléfono.
+  -->
+  <views:MainShell />
+</UserControl>

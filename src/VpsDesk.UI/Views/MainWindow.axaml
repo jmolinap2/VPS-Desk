@@ -1,0 +1,14 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+        xmlns:views="using:VpsDesk.Desktop.Views"
+        x:Class="VpsDesk.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="VPS Desk"
+        Icon="avares://VpsDesk.UI/Assets/vps-desk.ico"
+        Width="1180"
+        Height="820"
+        MinWidth="980"
+        MinHeight="640">
+  <views:MainShell />
+</Window>

@@ -5,7 +5,13 @@ using VpsDesk.Desktop.ViewModels;
 
 namespace VpsDesk.Desktop.Views;
 
-public partial class MainWindow : Window
+/// <summary>
+/// Shared application shell (sidebar navigation + page host) reused by every
+/// platform head: <see cref="MainWindow"/> on desktop and MainView on Android.
+/// Uses Loaded/Unloaded (not Window.Opened/Closed) so it works the same way
+/// whether it's hosted in a Window or directly as a single-view root.
+/// </summary>
+public partial class MainShell : UserControl
 {
     private readonly DispatcherTimer _telemetryTimer = new()
     {
@@ -13,7 +19,7 @@ public partial class MainWindow : Window
     };
     private MainWindowViewModel? _viewModel;
 
-    public MainWindow()
+    public MainShell()
     {
         InitializeComponent();
 
@@ -35,7 +41,7 @@ public partial class MainWindow : Window
             }
         };
 
-        Opened += async (_, _) =>
+        Loaded += async (_, _) =>
         {
             if (DataContext is not MainWindowViewModel vm) return;
 
@@ -51,7 +57,7 @@ public partial class MainWindow : Window
             _telemetryTimer.Start();
         };
 
-        Closed += async (_, _) =>
+        Unloaded += async (_, _) =>
         {
             _telemetryTimer.Stop();
             if (_viewModel != null)

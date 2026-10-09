@@ -6,9 +6,9 @@
              x:DataType="vm:MainWindowViewModel">
   <!--
     Conmutador de páginas para pantallas angostas. Las pantallas ya
-    rediseñadas para móvil (Dashboard, Containers) usan su vista Mobile*;
-    el resto reutiliza exactamente las mismas vistas que PageHost (el
-    escritorio) hasta que también se rediseñen.
+    rediseñadas para móvil (Panel, Contenedores, Proyectos, Despliegues) usan
+    su vista Mobile*; el resto reutiliza las vistas de escritorio (ajustadas
+    para no desbordarse) hasta que también se rediseñen.
   -->
   <Grid>
     <views:MobileDashboardView IsVisible="{Binding IsDashboardPage}" />
@@ -16,11 +16,11 @@
     <views:MobileContainersView IsVisible="{Binding IsContainersPage}" />
 
     <Grid IsVisible="{Binding IsProjectsPage}">
-      <views:ProjectsView DataContext="{Binding ProjectsModule}" />
+      <views:MobileProjectsView DataContext="{Binding ProjectsModule}" />
     </Grid>
 
     <Grid IsVisible="{Binding IsDeploymentsPage}">
-      <views:DeploymentsView DataContext="{Binding DeploymentsModule}" />
+      <views:MobileDeploymentsView DataContext="{Binding DeploymentsModule}" />
     </Grid>
 
     <Grid IsVisible="{Binding IsEnvironmentPage}">

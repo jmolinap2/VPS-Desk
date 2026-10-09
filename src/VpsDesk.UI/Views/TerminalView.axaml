@@ -21,18 +21,20 @@
     </Grid>
 
     <Border Grid.Row="1" Classes="card" Padding="14">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <StackPanel Spacing="10">
         <StackPanel Spacing="4">
           <TextBlock Text="{Binding ActiveServerLabel}" FontWeight="SemiBold" />
           <TextBlock Text="{Binding StatusMessage}" Foreground="#8EA0B7" TextWrapping="Wrap" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Content="Conectar" Command="{Binding ConnectCommand}" IsEnabled="{Binding !IsConnected}" />
-          <Button Content="Desconectar" Command="{Binding DisconnectCommand}" IsEnabled="{Binding IsConnected}" />
-          <Button Content="Ctrl+C" Command="{Binding SendInterruptCommand}" IsEnabled="{Binding IsConnected}" />
-          <Button Content="Limpiar" Command="{Binding ClearTerminalCommand}" />
-        </StackPanel>
-      </Grid>
+        <!-- WrapPanel en vez de StackPanel horizontal: en pantallas angostas
+             los 4 botones pasan a una segunda fila en vez de cortarse. -->
+        <WrapPanel>
+          <Button Content="Conectar" Command="{Binding ConnectCommand}" IsEnabled="{Binding !IsConnected}" Margin="0,0,8,8" />
+          <Button Content="Desconectar" Command="{Binding DisconnectCommand}" IsEnabled="{Binding IsConnected}" Margin="0,0,8,8" />
+          <Button Content="Ctrl+C" Command="{Binding SendInterruptCommand}" IsEnabled="{Binding IsConnected}" Margin="0,0,8,8" />
+          <Button Content="Limpiar" Command="{Binding ClearTerminalCommand}" Margin="0,0,0,8" />
+        </WrapPanel>
+      </StackPanel>
     </Border>
 
     <Border Grid.Row="2" Background="#070A0F" BorderBrush="#243244" BorderThickness="1" CornerRadius="10" Padding="10">

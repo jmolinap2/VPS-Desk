@@ -3,8 +3,12 @@
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
              xmlns:services="using:VpsDesk.Desktop.Services"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.MobileShell"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <conv:ConnectionToBrushConverter x:Key="ConnectionToBrush" />
+  </UserControl.Resources>
   <UserControl.Styles>
     <!--
       Animación declarativa (sin código): el estado "abierto" lo pone/quita
@@ -64,7 +68,15 @@
         <TextBlock Grid.Column="1" Text="{Binding LocalizedHeaderTitle}"
                     FontSize="16" FontWeight="SemiBold"
                     VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="2,0,8,0" />
-        <Ellipse Grid.Column="2" Width="8" Height="8" Fill="#34D399" VerticalAlignment="Center" Margin="0,0,16,0" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,14,0">
+          <Button Command="{Binding RefreshCommand}" IsVisible="{Binding IsDashboardPage}"
+                  Width="40" Height="40" Padding="0" Background="Transparent" BorderThickness="0"
+                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+            <TextBlock Text="&#8635;" FontSize="19" Foreground="#9AA4B2" />
+          </Button>
+          <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                   Fill="{Binding ConnectionStatus, Converter={StaticResource ConnectionToBrush}}" />
+        </StackPanel>
       </Grid>
     </Border>
 

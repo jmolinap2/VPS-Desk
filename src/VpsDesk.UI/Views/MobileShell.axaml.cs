@@ -6,9 +6,16 @@ namespace VpsDesk.Desktop.Views;
 
 public partial class MobileShell : UserControl
 {
+    private readonly ShellTelemetryController _telemetry = new(refreshOnActivation: true);
+
     public MobileShell()
     {
         InitializeComponent();
+
+        // Sin esto los medidores del Panel nunca se refrescaban en el móvil:
+        // el refresco inicial y el temporizador solo existían en MainShell.
+        Loaded += async (_, _) => await _telemetry.StartAsync(DataContext);
+        Unloaded += async (_, _) => await _telemetry.StopAsync();
     }
 
     private void OnMenuButtonClick(object? sender, RoutedEventArgs e) => SetDrawerOpen(!Drawer.Classes.Contains("open"));

@@ -88,12 +88,12 @@
             <TextBlock Text="{Binding ServerEditorMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
           </Border>
 
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Content="{DynamicResource Servers_TestConnection}" Command="{Binding TestServerCommand}" IsEnabled="{Binding !IsTestingServer}" />
-            <Button Content="{DynamicResource Servers_SaveProfile}" Command="{Binding SaveServerCommand}" />
-            <Button Content="{DynamicResource Servers_UseServer}" Command="{Binding ActivateServerCommand}" />
-            <Button Content="{DynamicResource Common_Delete}" Command="{Binding DeleteServerCommand}" />
-          </StackPanel>
+          <WrapPanel>
+            <Button Content="{DynamicResource Servers_TestConnection}" Command="{Binding TestServerCommand}" IsEnabled="{Binding !IsTestingServer}" Margin="0,0,10,8" />
+            <Button Content="{DynamicResource Servers_SaveProfile}" Command="{Binding SaveServerCommand}" Margin="0,0,10,8" />
+            <Button Content="{DynamicResource Servers_UseServer}" Command="{Binding ActivateServerCommand}" Margin="0,0,10,8" />
+            <Button Content="{DynamicResource Common_Delete}" Command="{Binding DeleteServerCommand}" Margin="0,0,0,8" />
+          </WrapPanel>
         </StackPanel>
       </ScrollViewer>
     </Border>

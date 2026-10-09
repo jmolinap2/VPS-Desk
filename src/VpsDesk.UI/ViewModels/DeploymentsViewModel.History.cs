@@ -16,6 +16,11 @@ public partial class DeploymentsViewModel
     private bool _historyRecordedForCurrentRun;
     private DateTimeOffset _observedDeploymentStartedAt;
     private readonly StringBuilder _liveDeploymentOutput = new();
+    private CancellationTokenSource? _preflightCloseCts;
+
+    // Tiempo que el prevuelo exitoso queda visible antes de cerrarse solo.
+    // El usuario puede cerrarlo antes con "Aceptar".
+    private const int PreflightAutoCloseSeconds = 10;
 
     public ObservableCollection<OperationHistoryEntry> DeploymentHistory { get; } = new();
 
@@ -23,6 +28,8 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private bool _isHistoryView;
     [ObservableProperty] private bool _isPreflightModalOpen;
     [ObservableProperty] private string _preflightModalMessage = string.Empty;
+    [ObservableProperty] private bool _hasPreflightCountdown;
+    [ObservableProperty] private string _preflightCountdownText = string.Empty;
     [ObservableProperty] private bool _isPostflightModalOpen;
     [ObservableProperty] private string _postflightModalMessage = string.Empty;
     [ObservableProperty] private int _postflightPassedCount;
@@ -34,11 +41,25 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private string _deploymentProgressText = string.Empty;
 
     public bool IsNewDeploymentView => !IsHistoryView;
+    public bool HasSelectedHistoryEntry => SelectedHistoryEntry is not null;
+
+    // La vista móvil solo muestra la tarjeta de ejecución (progreso + salida)
+    // cuando hay algo que mostrar, para no ocupar pantalla con un panel vacío.
+    public bool HasExecutionActivity => IsDeploymentRunning || !string.IsNullOrEmpty(DeploymentOutput);
     public bool IsDeploymentConfigurationCollapsed => !IsDeploymentConfigurationExpanded;
     public event EventHandler? HistoryChanged;
 
     partial void OnIsHistoryViewChanged(bool value)
         => OnPropertyChanged(nameof(IsNewDeploymentView));
+
+    partial void OnSelectedHistoryEntryChanged(OperationHistoryEntry? value)
+        => OnPropertyChanged(nameof(HasSelectedHistoryEntry));
+
+    partial void OnIsDeploymentRunningChanged(bool value)
+        => OnPropertyChanged(nameof(HasExecutionActivity));
+
+    partial void OnDeploymentOutputChanged(string value)
+        => OnPropertyChanged(nameof(HasExecutionActivity));
 
     partial void OnIsDeploymentConfigurationExpandedChanged(bool value)
         => OnPropertyChanged(nameof(IsDeploymentConfigurationCollapsed));
@@ -125,6 +146,7 @@ public partial class DeploymentsViewModel
         DeploymentProgressPercent = 0;
         DeploymentProgressText = string.Empty;
         CanDeploy = false;
+        CancelPreflightCountdown();
         IsPreflightModalOpen = false;
         IsPostflightModalOpen = false;
         IsDeploymentConfigurationExpanded = true;
@@ -146,7 +168,10 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private void ClosePreflightModal()
     {
-        if (!IsBusy) IsPreflightModalOpen = false;
+        if (IsBusy) return;
+
+        CancelPreflightCountdown();
+        IsPreflightModalOpen = false;
     }
 
     [RelayCommand]
@@ -172,6 +197,7 @@ public partial class DeploymentsViewModel
 
     private void BeginPreflightModal()
     {
+        CancelPreflightCountdown();
         IsPreflightModalOpen = true;
         PreflightModalMessage = "Comprobando SSH, Git, Docker, Compose, rama, archivos y entorno...";
     }
@@ -182,11 +208,45 @@ public partial class DeploymentsViewModel
             ? "Prevuelo correcto. Todo está listo para continuar."
             : "El prevuelo encontró bloqueos. Revisa los elementos marcados antes de desplegar.";
 
-        if (passed)
+        // Con bloqueos el modal se queda abierto hasta que el usuario lo cierre.
+        if (!passed) return;
+
+        // Antes se cerraba solo a los 0,65 s: imposible de leer, sobre todo en
+        // el teléfono. Ahora queda visible con una cuenta regresiva y el botón
+        // "Aceptar" para cerrarlo antes.
+        CancelPreflightCountdown();
+        var cts = _preflightCloseCts = new CancellationTokenSource();
+        try
         {
-            await Task.Delay(650);
+            HasPreflightCountdown = true;
+            for (var remaining = PreflightAutoCloseSeconds; remaining > 0; remaining--)
+            {
+                PreflightCountdownText = $"Se cerrará en {remaining} s";
+                await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
+            }
+
             IsPreflightModalOpen = false;
         }
+        catch (OperationCanceledException)
+        {
+            // El usuario lo cerró (o empezó otro prevuelo) antes de tiempo.
+        }
+        finally
+        {
+            if (ReferenceEquals(_preflightCloseCts, cts))
+            {
+                HasPreflightCountdown = false;
+                PreflightCountdownText = string.Empty;
+            }
+        }
+    }
+
+    private void CancelPreflightCountdown()
+    {
+        _preflightCloseCts?.Cancel();
+        _preflightCloseCts = null;
+        HasPreflightCountdown = false;
+        PreflightCountdownText = string.Empty;
     }
 
     private void BeginPostflightModal()

@@ -8,9 +8,17 @@
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
+    <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == '' AND Exists('C:\Android\Sdk')">C:\Android\Sdk</AndroidSdkDirectory>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <AndroidUseAapt2>true</AndroidUseAapt2>
     <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+    <!-- Sin esto, un APK Debug instalado a mano (adb install, sin el IDE
+         conectado) aborta al iniciar: "No assemblies found ... Assuming
+         this is part of Fast Deployment" (monodroid-glue.cc). Fast
+         Deployment espera que Visual Studio/Rider empuje los ensamblados
+         por USB en cada run; como lo instalamos manualmente, los
+         incrustamos directo en el APK. -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../VpsDesk.UI/VpsDesk.UI.csproj" />

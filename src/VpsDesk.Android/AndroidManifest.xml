@@ -3,7 +3,7 @@
           android:versionCode="1"
           android:versionName="1.0.0"
           package="com.vpsdesk.app">
-  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
 
   <!-- VPS Desk habla por SSH/SFTP con el servidor del usuario. -->
   <uses-permission android:name="android.permission.INTERNET" />

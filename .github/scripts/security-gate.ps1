@@ -50,7 +50,10 @@ $secretPatterns = @(
     @{ Name = 'AWS access key'; Pattern = '\bAKIA[0-9A-Z]{16}\b' },
     @{ Name = 'OpenAI-style key'; Pattern = '\bsk-[A-Za-z0-9_-]{20,}\b' },
     @{ Name = 'Bearer token literal'; Pattern = '(?i)\bBearer\s+[A-Za-z0-9_\-\.=]{24,}\b' },
-    @{ Name = 'Connection-string password'; Pattern = '(?i)(?:Password|Pwd)\s*=\s*[^;\r\n]{4,}' },
+    # Connection strings conventionally use Password=<value> / Pwd=<value> without
+    # C# assignment whitespace. Keeping the '=' adjacent avoids false positives such
+    # as `var password = PasswordInput.Text` while still catching embedded literals.
+    @{ Name = 'Connection-string password'; Pattern = '(?i)(?:Password|Pwd)=[^;\r\n]{4,}' },
     @{ Name = 'Assigned secret/token'; Pattern = '(?i)\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|git[_-]?token|ssh[_-]?password)\b\s*[:=]\s*["''][A-Za-z0-9_\-\./+=]{16,}["'']' }
 )
 

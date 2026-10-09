@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <style name="MyTheme" parent="android:Theme.Material.NoActionBar">
+  <!-- AvaloniaActivity hereda de AppCompatActivity: requiere un tema
+       Theme.AppCompat (no android:Theme.Material) o falla en runtime con
+       "You need to use a Theme.AppCompat theme (or descendant)". -->
+  <style name="MyTheme" parent="Theme.AppCompat.NoActionBar">
   </style>
   <style name="MyTheme.NoActionBar" parent="MyTheme">
-    <item name="android:windowNoTitle">true</item>
-    <item name="android:windowActionBar">false</item>
+    <item name="windowNoTitle">true</item>
+    <item name="windowActionBar">false</item>
     <item name="android:windowFullscreen">false</item>
     <item name="android:windowContentOverlay">@null</item>
   </style>

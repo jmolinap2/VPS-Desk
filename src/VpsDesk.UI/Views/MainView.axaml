@@ -5,10 +5,10 @@
              x:Class="VpsDesk.Desktop.Views.MainView"
              x:DataType="vm:MainWindowViewModel">
   <!--
-    Host para plataformas de "single view" (Android, iOS, navegador).
-    Reutiliza el mismo MainShell que el escritorio: el layout de sidebar fija
-    de 250px no es responsivo todavía (ver VpsDesk.Android/README.md) — es el
-    siguiente paso una vez que esta cabecera compile y arranque en el teléfono.
+    Host para plataformas de "single view" (Android, iOS, navegador):
+    usa MobileShell (barra superior + cajón de navegación) en vez del
+    MainShell de escritorio (sidebar fija de 250px, que no entra en una
+    pantalla de teléfono).
   -->
-  <views:MainShell />
+  <views:MobileShell />
 </UserControl>

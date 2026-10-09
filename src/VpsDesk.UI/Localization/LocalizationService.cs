@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Avalonia.Platform;
 
 namespace VpsDesk.Desktop.Localization;
 
@@ -84,23 +85,21 @@ public sealed class LocalizationService
 
     private static Dictionary<string, string> LoadPack(string culture)
     {
-        var path = Path.Combine(
-            AppContext.BaseDirectory,
-            "Localization",
-            "Languages",
-            culture,
-            "Strings.json");
+        // avares:// resuelve contra ensamblados (AvaloniaResource), no contra
+        // el filesystem — funciona igual en escritorio y en Android, donde no
+        // hay un directorio de salida con archivos sueltos dentro del APK.
+        var uri = new Uri($"avares://VpsDesk.UI/Localization/Languages/{culture}/Strings.json");
 
-        if (!File.Exists(path))
+        if (!AssetLoader.Exists(uri))
         {
             if (culture.Equals(FallbackCulture, StringComparison.OrdinalIgnoreCase))
             {
-                throw new FileNotFoundException($"Required localization pack was not found: {path}", path);
+                throw new FileNotFoundException($"Required localization pack was not found: {uri}");
             }
             return new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
-        using var stream = File.OpenRead(path);
+        using var stream = AssetLoader.Open(uri);
         var values = JsonSerializer.Deserialize<Dictionary<string, string>>(stream);
         return values is null
             ? new Dictionary<string, string>(StringComparer.Ordinal)

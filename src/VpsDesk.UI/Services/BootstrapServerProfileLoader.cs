@@ -93,6 +93,16 @@ public static class BootstrapServerProfileLoader
 
     private static string? FindEnvFile()
     {
+        // En plataformas sin "directorio de salida" navegable hacia arriba
+        // (Android, iOS), una cabecera de plataforma puede fijar la ruta
+        // exacta del .env (por ejemplo el directorio privado de la app) en
+        // vez de que caminemos AppContext.BaseDirectory hacia arriba.
+        var overridePath = Environment.GetEnvironmentVariable("VPSDESK_ENV_PATH");
+        if (!string.IsNullOrWhiteSpace(overridePath) && File.Exists(overridePath))
+        {
+            return overridePath;
+        }
+
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null)
         {

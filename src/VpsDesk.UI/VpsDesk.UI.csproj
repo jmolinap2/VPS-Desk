@@ -16,9 +16,10 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
-    <None Update="Localization/Languages/**/*.json"
-          CopyToOutputDirectory="PreserveNewest"
-          CopyToPublishDirectory="PreserveNewest" />
+    <!-- avares:// (no copia a disco) funciona igual en escritorio y Android;
+         AppContext.BaseDirectory + File.OpenRead no existe como filesystem
+         suelto dentro del APK. -->
+    <AvaloniaResource Include="Localization/Languages/**/*.json" />
     <AvaloniaResource Include="Assets/vps-desk.ico" />
   </ItemGroup>
 </Project>

@@ -8,7 +8,11 @@ Sin parámetros abre un menú. Con parámetros ejecuta solo lo indicado.
 1. **Depuración inalámbrica** activa en el teléfono y el PC en la misma red Wi-Fi.
 2. **Carga de trabajo Android de .NET** para compilar desde la terminal:
    `dotnet workload install android` (puede pedir ejecutar la terminal como administrador).
-   Si no quieres instalarla, compila desde Visual Studio (configuración *Release*) y usa `-Apk`.
+   Si no quieres instalarla, compila desde Visual Studio y usa `-Apk`. El proyecto Android **no está**
+   en `VpsDesk.slnx` (la CI no puede compilarlo sin la carga `android`). Abre en su lugar
+   `src\VpsDesk.Android\VpsDesk.Android.slnx` (Archivo > Abrir > Proyecto o solución), elige
+   *Release* y compila `VpsDesk.Android`. El APK queda en
+   `src\VpsDesk.Android\bin\Release\net10.0-android\com.vpsdesk.app-Signed.apk`.
 3. **Secretos fuera del repositorio.** El `.env` de la raíz del repo está ignorado por git
    (`.gitignore`). No lo subas ni lo copies a otros repos. La clave SSH se toma de `SSH_KEY_PATH`
    del `.env`. Solo si esa ruta no es válida, indica la clave con `-KeySource`.

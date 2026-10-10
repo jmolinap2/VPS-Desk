@@ -9,6 +9,12 @@
   <UserControl.Resources>
     <conv:ConnectionToBrushConverter x:Key="ConnectionToBrush" />
   </UserControl.Resources>
+  <!-- el contenido sube y baja con suavidad cuando aparece o se oculta el teclado -->
+  <UserControl.Transitions>
+    <Transitions>
+      <ThicknessTransition Property="Padding" Duration="0:0:0.20" Easing="CubicEaseOut" />
+    </Transitions>
+  </UserControl.Transitions>
   <UserControl.Styles>
     <StyleInclude Source="avares://VpsDesk.UI/Views/MobileStyles.axaml" />
     <!--

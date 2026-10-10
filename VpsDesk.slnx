@@ -2,5 +2,7 @@
   <Project Path="src/VpsDesk.Domain/VpsDesk.Domain.csproj" />
   <Project Path="src/VpsDesk.Application/VpsDesk.Application.csproj" />
   <Project Path="src/VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
+  <Project Path="src/VpsDesk.UI/VpsDesk.UI.csproj" />
   <Project Path="src/VpsDesk.Desktop/VpsDesk.Desktop.csproj" />
+  <Project Path="src/VpsDesk.Android/VpsDesk.Android.csproj" />
 </Solution>

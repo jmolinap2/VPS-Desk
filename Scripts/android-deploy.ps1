@@ -186,7 +186,12 @@ function Get-NewestSource {
 function Resolve-Apk {
     if ($Apk) {
         if (-not (Test-Path -LiteralPath $Apk)) { throw "No existe el APK indicado: $Apk" }
-        return (Resolve-Path -LiteralPath $Apk).Path
+        $given  = Get-Item -LiteralPath $Apk
+        $newest = Get-NewestSource
+        if ($newest -and $given.LastWriteTime -lt $newest.LastWriteTime) {
+            Write-Warn ("El APK indicado es mas viejo que tu codigo ({0} cambio despues): el telefono recibiria una version anterior. Compila en Release antes de instalar." -f $newest.Name)
+        }
+        return $given.FullName
     }
     $latest = Get-ChildItem -Path $ReleaseDir -Recurse -Filter "$Package-Signed.apk" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |

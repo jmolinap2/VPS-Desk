@@ -1,0 +1,13 @@
+<Solution>
+  <!--
+    Solucion solo para compilar el APK desde Visual Studio. No esta en la raiz a
+    proposito: VpsDesk.slnx lo usa la CI y no debe incluir el proyecto Android,
+    que exige la carga de trabajo 'android' de .NET.
+    Abrir con: Archivo > Abrir > Proyecto o solucion.
+  -->
+  <Project Path="../VpsDesk.Domain/VpsDesk.Domain.csproj" />
+  <Project Path="../VpsDesk.Application/VpsDesk.Application.csproj" />
+  <Project Path="../VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
+  <Project Path="../VpsDesk.UI/VpsDesk.UI.csproj" />
+  <Project Path="VpsDesk.Android.csproj" />
+</Solution>

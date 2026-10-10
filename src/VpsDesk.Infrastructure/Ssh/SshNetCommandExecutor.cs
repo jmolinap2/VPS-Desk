@@ -48,8 +48,8 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         cancellationToken.ThrowIfCancellationRequested();
 
         using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
-        SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
-        client.Connect();
+        var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
+        ConnectExplainingHostKey(client, policy);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var command = client.CreateCommand(NormalizeRemoteCommand(request.Command));
@@ -76,8 +76,8 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         cancellationToken.ThrowIfCancellationRequested();
 
         using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
-        SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
-        client.Connect();
+        var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
+        ConnectExplainingHostKey(client, policy);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var command = client.CreateCommand(NormalizeRemoteCommand(request.Command));
@@ -139,6 +139,20 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     private static string Snapshot(StringBuilder sink)
     {
         lock (sink) return sink.ToString();
+    }
+
+    // Si la conexion falla porque la huella del servidor no coincide, el mensaje dice cual
+    // presento el servidor y cual estaba guardada, en vez de un error generico.
+    private static void ConnectExplainingHostKey(SshClient client, HostKeyPolicy policy)
+    {
+        try
+        {
+            client.Connect();
+        }
+        catch (Exception ex) when (policy.Mismatch is not null)
+        {
+            throw new InvalidOperationException(policy.Mismatch.Describe(), ex);
+        }
     }
 
     private static string NormalizeRemoteCommand(string command)

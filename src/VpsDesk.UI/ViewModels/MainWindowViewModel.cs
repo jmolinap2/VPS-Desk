@@ -58,6 +58,11 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private string _editorEnvironment = "Production";
     [ObservableProperty] private string _editorHostKeyFingerprint = string.Empty;
     [ObservableProperty] private bool _isTestingServer;
+
+    // Resultado de la ultima prueba de conexion. La vista movil los usa para pintar el aviso
+    // dentro de la hoja del formulario (la tarjeta de estado de la pagina queda tapada).
+    [ObservableProperty] private bool _serverTestSucceeded;
+    [ObservableProperty] private bool _serverTestFailed;
     [ObservableProperty] private string _serverEditorMessage = "Secrets are kept in memory only and are not written to servers.json.";
 
     public bool IsDashboardPage => SelectedPage == "Dashboard";
@@ -220,9 +225,12 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task TestServerAsync()
     {
         var id = _editingServerId ?? Guid.NewGuid();
+        ServerTestSucceeded = false;
+        ServerTestFailed = false;
         if (!TryBuildEditorProfile(id, out var profile, out var error))
         {
             ServerEditorMessage = error;
+            ServerTestFailed = true;
             return;
         }
 
@@ -236,6 +244,7 @@ public partial class MainWindowViewModel : ObservableObject
             if (ssh?.Available != true)
             {
                 ServerEditorMessage = $"SSH failed: {ssh?.Detail ?? "connection or authentication rejected"}";
+                ServerTestFailed = true;
                 return;
             }
 
@@ -246,10 +255,12 @@ public partial class MainWindowViewModel : ObservableObject
 
             ServerEditorMessage = $"Connection OK · {result.Distribution ?? "Linux"} · {result.Level} · " +
                                   (detected.Length == 0 ? "basic SSH only" : string.Join(", ", detected));
+            ServerTestSucceeded = true;
         }
         catch (Exception ex)
         {
             ServerEditorMessage = $"Connection test failed: {ex.Message}";
+            ServerTestFailed = true;
         }
         finally
         {
@@ -419,6 +430,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void LoadEditor(ServerProfile server)
     {
+        ServerTestSucceeded = false;
+        ServerTestFailed = false;
         _editingServerId = server.Id;
         EditorName = server.Name;
         EditorHost = server.Host;

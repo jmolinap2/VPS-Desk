@@ -34,19 +34,30 @@ internal static class SshConnectionFactory
         };
     }
 
-    public static void ApplyHostKeyPolicy(BaseClient client, ServerProfile server)
+    /// <summary>
+    /// Verifica la huella del servidor si el perfil tiene una. Devuelve un objeto que,
+    /// si la verificacion falla, conserva las dos huellas para poder explicar el error.
+    /// </summary>
+    public static HostKeyPolicy ApplyHostKeyPolicy(BaseClient client, ServerProfile server)
     {
+        var policy = new HostKeyPolicy();
         var expected = NormalizeFingerprint(server.HostKeyFingerprintSha256);
         if (string.IsNullOrWhiteSpace(expected))
         {
-            return;
+            return policy;
         }
 
         client.HostKeyReceived += (_, e) =>
         {
             var actual = NormalizeFingerprint(e.FingerPrintSHA256);
             e.CanTrust = string.Equals(actual, expected, StringComparison.Ordinal);
+            if (!e.CanTrust)
+            {
+                policy.Mismatch = new HostKeyMismatch(e.HostKeyName, actual ?? string.Empty, expected);
+            }
         };
+
+        return policy;
     }
 
     private static AuthenticationMethod CreatePrivateKeyAuth(ServerProfile server, string? passphrase)

@@ -4,7 +4,7 @@
     Sistema visual compartido de las pantallas móviles (solo se carga desde
     MobileShell, así que el escritorio no cambia). Colores de referencia:
     fondo #0B0E13 · superficie #121826 · superficie 2 #0E131B · borde #1E2735
-    · texto secundario #9AA4B2 · etiqueta #6B7686 · acento #2563EB ·
+    · texto secundario #9AA4B2 · etiqueta #6B7686 · acento #0F766E (verde azulado, igual que el PC) ·
     correcto #34D399 · aviso #FBBF24 · peligro #F87171.
   -->
 
@@ -74,7 +74,7 @@
     <Setter Property="RenderTransform" Value="scale(0.97)" />
   </Style>
   <Style Selector="Button.m-primary">
-    <Setter Property="Background" Value="#2563EB" />
+    <Setter Property="Background" Value="#0F766E" />
     <Setter Property="Foreground" Value="White" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="12" />

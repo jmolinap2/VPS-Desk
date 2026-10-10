@@ -197,7 +197,7 @@
             <Button Grid.Column="1" Content="{DynamicResource Common_Stop}" Command="{Binding ContainerModule.RequestStopCommand}" IsEnabled="{Binding ContainerModule.CanStopSelected}"
                     HorizontalContentAlignment="Center" Padding="0,12" Background="#2A1416" BorderBrush="#4A1F22" Foreground="#F87171" CornerRadius="12" />
             <Button Grid.Column="2" Content="{DynamicResource Common_Restart}" Command="{Binding ContainerModule.RequestRestartCommand}" IsEnabled="{Binding ContainerModule.CanRestartSelected}"
-                    HorizontalContentAlignment="Center" Padding="0,12" Background="#2563EB" Foreground="White" FontWeight="Bold" CornerRadius="12" BorderThickness="0" />
+                    HorizontalContentAlignment="Center" Padding="0,12" Background="#0F766E" Foreground="White" FontWeight="Bold" CornerRadius="12" BorderThickness="0" />
           </Grid>
 
           <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="12" Padding="12" IsVisible="{Binding ContainerModule.HasPendingAction}">

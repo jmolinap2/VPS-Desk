@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text;
 using Avalonia.Threading;
@@ -17,6 +18,13 @@ public partial class DeploymentsViewModel
     private DateTimeOffset _observedDeploymentStartedAt;
     private readonly StringBuilder _liveDeploymentOutput = new();
     private CancellationTokenSource? _preflightCloseCts;
+    private bool _isPreflightPointerOver;
+    private bool _isPreflightCountdownPinned;
+    private bool IsPreflightCountdownPaused => _isPreflightPointerOver || _isPreflightCountdownPinned;
+    private readonly ConcurrentQueue<DeploymentProgressUpdate> _progressQueue = new();
+    private int _progressDrainScheduled;
+    private bool _stepStreamedOutput;
+    private const int LiveOutputFlushMilliseconds = 100;
 
     // Tiempo que el prevuelo exitoso queda visible antes de cerrarse solo.
     // El usuario puede cerrarlo antes con "Aceptar".
@@ -86,6 +94,8 @@ public partial class DeploymentsViewModel
             DeploymentProgressPercent = 0;
             DeploymentProgressText = "Preparando despliegue...";
             _liveDeploymentOutput.Clear();
+            _stepStreamedOutput = false;
+            while (_progressQueue.TryDequeue(out _)) { }
             DeploymentOutput = $"[{DateTime.Now:HH:mm:ss}] Iniciando despliegue...";
             _deployment.ProgressChanged -= OnDeploymentProgressChanged;
             _deployment.ProgressChanged += OnDeploymentProgressChanged;
@@ -175,6 +185,13 @@ public partial class DeploymentsViewModel
         IsPreflightModalOpen = false;
     }
 
+    // Mientras el usuario lee o desplaza la lista, el prevuelo no se cierra solo.
+    // El puntero encima pausa; tocar o pulsar dentro lo deja pausado hasta "Aceptar"
+    // (en el teléfono no hay "hover": al soltar el dedo el puntero "sale").
+    public void SetPreflightPointerOver(bool isOver) => _isPreflightPointerOver = isOver;
+
+    public void PinPreflightCountdown() => _isPreflightCountdownPinned = true;
+
     [RelayCommand]
     private void ClosePostflightModal()
     {
@@ -199,6 +216,8 @@ public partial class DeploymentsViewModel
     private void BeginPreflightModal()
     {
         CancelPreflightCountdown();
+        _isPreflightPointerOver = false;
+        _isPreflightCountdownPinned = false;
         IsPreflightModalOpen = true;
         PreflightModalMessage = "Comprobando SSH, Git, Docker, Compose, rama, archivos y entorno...";
     }
@@ -220,10 +239,14 @@ public partial class DeploymentsViewModel
         try
         {
             HasPreflightCountdown = true;
-            for (var remaining = PreflightAutoCloseSeconds; remaining > 0; remaining--)
+            var remaining = PreflightAutoCloseSeconds;
+            while (remaining > 0)
             {
-                PreflightCountdownText = $"Se cerrará en {remaining} s";
+                PreflightCountdownText = IsPreflightCountdownPaused
+                    ? "Pausado · pulsa Aceptar para continuar"
+                    : $"Se cerrará en {remaining} s";
                 await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
+                if (!IsPreflightCountdownPaused) remaining--;
             }
 
             IsPreflightModalOpen = false;
@@ -272,48 +295,115 @@ public partial class DeploymentsViewModel
                 : "Despliegue verificado. Los contenedores y comprobaciones configuradas respondieron correctamente.";
     }
 
+    // El servicio emite eventos desde hilos de fondo (incluida cada línea de salida).
+    // Se encolan y se aplican en orden en el hilo de UI, agrupando las líneas de salida
+    // unos milisegundos para no reconstruir todo el texto del terminal por cada línea.
     private void OnDeploymentProgressChanged(DeploymentProgressUpdate update)
     {
-        Dispatcher.UIThread.Post(() =>
+        _progressQueue.Enqueue(update);
+        ScheduleProgressDrain();
+    }
+
+    private void ScheduleProgressDrain()
+    {
+        if (Interlocked.Exchange(ref _progressDrainScheduled, 1) != 0) return;
+        Dispatcher.UIThread.Post(async () => await DrainProgressAsync());
+    }
+
+    private async Task DrainProgressAsync()
+    {
+        if (_progressQueue.TryPeek(out var head) && head.State == DeploymentProgressState.Output)
         {
-            var total = Math.Max(1, update.TotalSteps);
-            var completedBeforeCurrent = Math.Max(0, update.StepIndex - 1);
-            DeploymentProgressPercent = update.State == DeploymentProgressState.Completed
-                ? Math.Clamp(update.StepIndex * 100d / total, 0, 100)
-                : Math.Clamp(completedBeforeCurrent * 100d / total, 0, 100);
-            DeploymentProgressText = $"{Math.Max(1, update.StepIndex)}/{total} · {update.Label}";
+            await Task.Delay(LiveOutputFlushMilliseconds);
+        }
 
-            if (update.State == DeploymentProgressState.Started)
-            {
-                if (_liveDeploymentOutput.Length > 0) _liveDeploymentOutput.AppendLine();
-                _liveDeploymentOutput.AppendLine($"[{DateTime.Now:HH:mm:ss}] ▶ {update.Label}");
-                _liveDeploymentOutput.Append("Ejecutando...");
-            }
-            else
-            {
-                if (_liveDeploymentOutput.Length > 0)
-                {
-                    var text = _liveDeploymentOutput.ToString();
-                    if (text.EndsWith("Ejecutando...", StringComparison.Ordinal))
-                    {
-                        _liveDeploymentOutput.Length -= "Ejecutando...".Length;
-                    }
-                }
+        var applied = false;
+        while (_progressQueue.TryDequeue(out var update))
+        {
+            ApplyProgress(update);
+            applied = true;
+        }
 
-                var marker = update.Succeeded == true ? "✓" : update.IsBlocking ? "✕" : "⚠";
-                var duration = update.Duration?.TotalSeconds ?? 0;
-                _liveDeploymentOutput.AppendLine($"{marker} exit {update.ExitCode ?? -1} · {duration:F1}s");
-                if (!string.IsNullOrWhiteSpace(update.Output))
-                {
-                    _liveDeploymentOutput.AppendLine(update.Output.TrimEnd());
-                }
-            }
-
+        // Si el despliegue ya terminó, la salida final completa reemplaza a la parcial.
+        if (applied && IsDeploymentRunning)
+        {
             DeploymentOutput = _liveDeploymentOutput.ToString().TrimEnd();
-        });
+        }
+
+        Interlocked.Exchange(ref _progressDrainScheduled, 0);
+        if (!_progressQueue.IsEmpty) ScheduleProgressDrain();
+    }
+
+    private void ApplyProgress(DeploymentProgressUpdate update)
+    {
+        const string RunningMarker = "Ejecutando...";
+
+        void RemoveRunningMarker()
+        {
+            var length = _liveDeploymentOutput.Length;
+            if (length < RunningMarker.Length) return;
+
+            var start = length - RunningMarker.Length;
+            for (var i = 0; i < RunningMarker.Length; i++)
+            {
+                if (_liveDeploymentOutput[start + i] != RunningMarker[i]) return;
+            }
+
+            _liveDeploymentOutput.Length = start;
+        }
+
+        if (update.State == DeploymentProgressState.Output)
+        {
+            RemoveRunningMarker();
+            _stepStreamedOutput = true;
+            _liveDeploymentOutput.AppendLine(update.Output ?? string.Empty);
+            return;
+        }
+
+        var total = Math.Max(1, update.TotalSteps);
+        var completedBeforeCurrent = Math.Max(0, update.StepIndex - 1);
+        DeploymentProgressPercent = update.State == DeploymentProgressState.Completed
+            ? Math.Clamp(update.StepIndex * 100d / total, 0, 100)
+            : Math.Clamp(completedBeforeCurrent * 100d / total, 0, 100);
+        DeploymentProgressText = $"{Math.Max(1, update.StepIndex)}/{total} · {update.Label}";
+
+        if (update.State == DeploymentProgressState.Started)
+        {
+            _stepStreamedOutput = false;
+            if (_liveDeploymentOutput.Length > 0) _liveDeploymentOutput.AppendLine();
+            _liveDeploymentOutput.AppendLine($"[{DateTime.Now:HH:mm:ss}] ▶ {update.Label}");
+            _liveDeploymentOutput.Append(RunningMarker);
+            return;
+        }
+
+        RemoveRunningMarker();
+
+        var marker = update.Succeeded == true ? "✓" : update.IsBlocking ? "✕" : "⚠";
+        var duration = update.Duration?.TotalSeconds ?? 0;
+        _liveDeploymentOutput.AppendLine($"{marker} exit {update.ExitCode ?? -1} · {duration:F1}s");
+
+        // Si las líneas ya se mostraron en vivo no se repiten al cerrar el paso.
+        if (!_stepStreamedOutput && !string.IsNullOrWhiteSpace(update.Output))
+        {
+            _liveDeploymentOutput.AppendLine(update.Output.TrimEnd());
+        }
     }
 
     private async Task RecordObservedDeploymentAsync()
+    {
+        // La marca se libera siempre: si se borra el servidor activo durante el despliegue,
+        // o falla el guardado, el prevuelo siguiente no debe quedar sin cierre ni "Aceptar".
+        try
+        {
+            await RecordObservedDeploymentCoreAsync();
+        }
+        finally
+        {
+            _deploymentObserved = false;
+        }
+    }
+
+    private async Task RecordObservedDeploymentCoreAsync()
     {
         if (_historyStore is null) return;
         var server = _serverAccessor();
@@ -376,6 +466,5 @@ public partial class DeploymentsViewModel
         await _historyStore.AddAsync(entry);
         await RefreshHistoryAsync();
         HistoryChanged?.Invoke(this, EventArgs.Empty);
-        _deploymentObserved = false;
     }
 }

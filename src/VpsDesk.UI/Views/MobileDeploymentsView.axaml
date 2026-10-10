@@ -342,7 +342,7 @@
             </Border>
 
             <Border x:Name="OutputPanel" Background="#05080C" BorderBrush="#245F54" BorderThickness="1" CornerRadius="10" Height="320">
-              <TextBox Text="{Binding DeploymentOutput}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+              <TextBox Text="{Binding DeploymentOutput}" views:TextBoxAutoScroll.IsEnabled="True" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
                        FontFamily="Cascadia Mono,Consolas,monospace" FontSize="11.5"
                        Background="Transparent" BorderThickness="0" Padding="12"
                        ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />

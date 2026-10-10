@@ -37,6 +37,8 @@ public sealed record DeploymentStepResult(
 public enum DeploymentProgressState
 {
     Started,
+    /// <summary>Una línea de salida del paso, emitida mientras el paso sigue en ejecución.</summary>
+    Output,
     Completed
 }
 
@@ -177,8 +179,21 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 TotalSteps: commands.Count,
                 IsBlocking: step.IsBlocking));
 
+            // Las líneas se sanean una a una antes de salir de este servicio, igual que
+            // la salida final del paso, para que ningún secreto llegue a la UI en vivo.
             var result = await ssh.ExecuteAsync(
-                new SshCommandRequest(request.Server, step.Command, step.Timeout),
+                new SshCommandRequest(
+                    request.Server,
+                    step.Command,
+                    step.Timeout,
+                    line => ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                        step.Code,
+                        step.Label,
+                        DeploymentProgressState.Output,
+                        Output: LogSanitizer.Sanitize(line),
+                        StepIndex: stepIndex,
+                        TotalSteps: commands.Count,
+                        IsBlocking: step.IsBlocking))),
                 secret,
                 cancellationToken);
 

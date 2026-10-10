@@ -396,6 +396,7 @@
                 <TextBox Grid.Row="2"
                          Text="{Binding DeploymentOutput}"
                          IsReadOnly="True"
+                         views:TextBoxAutoScroll.IsEnabled="True"
                          AcceptsReturn="True"
                          TextWrapping="NoWrap"
                          FontFamily="Cascadia Mono,Consolas,monospace"

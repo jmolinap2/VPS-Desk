@@ -10,6 +10,7 @@
     <conv:ConnectionToBrushConverter x:Key="ConnectionToBrush" />
   </UserControl.Resources>
   <UserControl.Styles>
+    <StyleInclude Source="avares://VpsDesk.UI/Views/MobileStyles.axaml" />
     <!--
       Animación declarativa (sin código): el estado "abierto" lo pone/quita
       el código-behind con Classes.open, y la Transition hace que el scrim

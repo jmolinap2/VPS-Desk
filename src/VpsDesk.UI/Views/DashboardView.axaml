@@ -14,6 +14,12 @@
 
   <ScrollViewer>
     <StackPanel Margin="24" Spacing="18">
+      <!-- acceso directo a despliegues, igual que en el panel del teléfono -->
+      <Button Command="{Binding NavigateCommand}" CommandParameter="Deployments"
+              Content="{DynamicResource Nav_Deployments}"
+              HorizontalAlignment="Left" Background="#0F766E" Foreground="White" FontWeight="SemiBold"
+              Padding="20,11" CornerRadius="10" BorderThickness="0" />
+
       <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
         <Border Classes="card" ClipToBounds="True" MinHeight="186">
           <StackPanel Spacing="8">

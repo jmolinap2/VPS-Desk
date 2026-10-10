@@ -5,50 +5,75 @@
              x:Class="VpsDesk.Desktop.Views.MobilePageHost"
              x:DataType="vm:MainWindowViewModel">
   <!--
-    Conmutador de páginas para pantallas angostas. Las pantallas ya
-    rediseñadas para móvil (Panel, Contenedores, Proyectos, Despliegues) usan
-    su vista Mobile*; el resto reutiliza las vistas de escritorio (ajustadas
-    para no desbordarse) hasta que también se rediseñen.
+    Conmutador de páginas del teléfono. Todas las pantallas tienen su versión
+    móvil (una sola columna, tarjetas y hojas inferiores). Al cambiar de
+    página, la nueva aparece con un desvanecido y un pequeño desplazamiento
+    (clase "enter", ver code-behind). Escritorio no usa este control.
   -->
-  <Grid>
-    <views:MobileDashboardView IsVisible="{Binding IsDashboardPage}" />
-    <views:ServersView IsVisible="{Binding IsServersPage}" />
-    <views:MobileContainersView IsVisible="{Binding IsContainersPage}" />
+  <UserControl.Styles>
+    <Style Selector="Grid.page">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="RenderTransform" Value="translateY(0px)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.24" Easing="CubicEaseOut" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.30" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Grid.page.enter">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="RenderTransform" Value="translateY(14px)" />
+    </Style>
+  </UserControl.Styles>
 
-    <Grid IsVisible="{Binding IsProjectsPage}">
+  <Grid>
+    <Grid x:Name="DashboardPage" Classes="page" IsVisible="{Binding IsDashboardPage}">
+      <views:MobileDashboardView />
+    </Grid>
+
+    <Grid x:Name="ServersPage" Classes="page" IsVisible="{Binding IsServersPage}">
+      <views:MobileServersView />
+    </Grid>
+
+    <Grid x:Name="ContainersPage" Classes="page" IsVisible="{Binding IsContainersPage}">
+      <views:MobileContainersView />
+    </Grid>
+
+    <Grid x:Name="ProjectsPage" Classes="page" IsVisible="{Binding IsProjectsPage}">
       <views:MobileProjectsView DataContext="{Binding ProjectsModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsDeploymentsPage}">
+    <Grid x:Name="DeploymentsPage" Classes="page" IsVisible="{Binding IsDeploymentsPage}">
       <views:MobileDeploymentsView DataContext="{Binding DeploymentsModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsEnvironmentPage}">
-      <views:EnvironmentView DataContext="{Binding FilesModule}" />
+    <Grid x:Name="EnvironmentPage" Classes="page" IsVisible="{Binding IsEnvironmentPage}">
+      <views:MobileEnvironmentView DataContext="{Binding FilesModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsLogsPage}">
-      <views:LogsView DataContext="{Binding LogsModule}" />
+    <Grid x:Name="LogsPage" Classes="page" IsVisible="{Binding IsLogsPage}">
+      <views:MobileLogsView DataContext="{Binding LogsModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsStoragePage}">
-      <views:StorageView DataContext="{Binding StorageModule}" />
+    <Grid x:Name="StoragePage" Classes="page" IsVisible="{Binding IsStoragePage}">
+      <views:MobileStorageView DataContext="{Binding StorageModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsFilesPage}">
-      <views:FilesView DataContext="{Binding FilesModule}" />
+    <Grid x:Name="FilesPage" Classes="page" IsVisible="{Binding IsFilesPage}">
+      <views:MobileFilesView DataContext="{Binding FilesModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsTerminalPage}">
-      <views:TerminalView DataContext="{Binding TerminalModule}" />
+    <Grid x:Name="TerminalPage" Classes="page" IsVisible="{Binding IsTerminalPage}">
+      <views:MobileTerminalView DataContext="{Binding TerminalModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsSecurityPage}">
-      <views:SecurityView DataContext="{Binding SecurityModule}" />
+    <Grid x:Name="SecurityPage" Classes="page" IsVisible="{Binding IsSecurityPage}">
+      <views:MobileSecurityView DataContext="{Binding SecurityModule}" />
     </Grid>
 
-    <Grid IsVisible="{Binding IsSettingsPage}">
-      <views:SettingsView DataContext="{Binding SettingsModule}" />
+    <Grid x:Name="SettingsPage" Classes="page" IsVisible="{Binding IsSettingsPage}">
+      <views:MobileSettingsView DataContext="{Binding SettingsModule}" />
     </Grid>
   </Grid>
 </UserControl>

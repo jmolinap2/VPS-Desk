@@ -1,0 +1,144 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:files="using:VpsDesk.Domain.Files"
+             xmlns:views="using:VpsDesk.Desktop.Views"
+             x:Class="VpsDesk.Desktop.Views.MobileFilesView"
+             x:DataType="vm:FilesViewModel">
+  <!--
+    Explorador SFTP para teléfono. Cada elemento es una tarjeta: tocarla abre la
+    carpeta o la vista previa, y el botón "Editar" abre el editor. El editor de
+    texto ocupa la pantalla y se desliza desde la derecha.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Grid.full-overlay">
+      <Setter Property="Background" Value="#0B0E13" />
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="RenderTransform" Value="translateX(28px)" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.24" Easing="CubicEaseOut" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.30" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Grid.full-overlay.open">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="RenderTransform" Value="translateX(0px)" />
+      <Setter Property="IsHitTestVisible" Value="True" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid>
+    <DockPanel LastChildFill="True">
+      <StackPanel DockPanel.Dock="Top" Margin="18,16,18,10" Spacing="12">
+        <StackPanel Spacing="2">
+          <TextBlock Text="{DynamicResource Files_Title}" Classes="m-title" />
+          <TextBlock Text="{Binding LastUpdated}" Classes="m-subtitle" />
+        </StackPanel>
+
+        <!-- ruta actual -->
+        <Border Classes="m-card" Padding="10">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              <Button Classes="m-action" Content="↑" Width="44" Padding="0,10" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" />
+              <TextBox Grid.Column="1" Text="{Binding CurrentPath}" PlaceholderText="/var/www" FontFamily="Cascadia Mono,Consolas,monospace" />
+              <Button Grid.Column="2" Classes="m-primary" Content="{DynamicResource Common_Go}" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" Padding="14,10" />
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Classes="m-action" Content="{DynamicResource Common_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+              <Button Grid.Column="1" Classes="m-action" Content="/" Command="{Binding GoRootCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- accesos rápidos -->
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="m-chip" Content="Home" Command="{Binding GoHomeCommand}" />
+            <Button Classes="m-chip" Content="/opt" Command="{Binding GoOptCommand}" />
+            <Button Classes="m-chip" Content="/etc" Command="{Binding GoEtcCommand}" />
+            <Button Classes="m-chip" Content="/var/log" Command="{Binding GoVarLogCommand}" />
+            <Button Classes="m-chip" Content="/srv" Command="{Binding GoSrvCommand}" />
+          </StackPanel>
+        </ScrollViewer>
+
+        <Border Classes="m-inset" Padding="10,8">
+          <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+
+      <TextBlock DockPanel.Dock="Bottom" Margin="18,6,18,14" Foreground="#66758A" FontSize="10"
+                 Text="{Binding Entries.Count, StringFormat={}{0} elementos}" />
+
+      <!-- lista de entradas: tarjetas de ancho completo -->
+      <ScrollViewer Margin="18,0,18,0">
+        <ItemsControl x:Name="EntriesHost" ItemsSource="{Binding Entries}" Margin="0,0,0,8">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="files:RemoteFileEntry">
+              <Border Classes="m-card" Padding="12,12" Margin="0,0,0,8" Tapped="OnEntryTapped">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <Border Width="40" Height="40" CornerRadius="12" Background="#172033" VerticalAlignment="Center">
+                    <Grid>
+                      <TextBlock Text="▸" FontSize="16" Foreground="#7DD3FC" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsDirectory}" />
+                      <TextBlock Text="▤" FontSize="15" Foreground="#A8B4C5" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !IsDirectory}" />
+                    </Grid>
+                  </Border>
+
+                  <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding CategoryLabel}" Foreground="#8290A3" FontSize="10.5" />
+                      <TextBlock Text="{Binding SizeLabel}" Foreground="#66758A" FontSize="10.5" IsVisible="{Binding !IsDirectory}" />
+                      <Border Background="#2A2410" CornerRadius="8" Padding="6,1" IsVisible="{Binding IsSensitive}">
+                        <TextBlock Text="{DynamicResource Files_Sensitive}" Foreground="#FBBF24" FontSize="9" FontWeight="SemiBold" />
+                      </Border>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <Button Classes="m-chip" Content="{DynamicResource Files_Edit}" IsVisible="{Binding CanEdit}"
+                            Command="{Binding #EntriesHost.((vm:FilesViewModel)DataContext).EditEntryCommand}"
+                            CommandParameter="{Binding}" />
+                    <TextBlock Text="›" FontSize="18" Foreground="#4A5568" HorizontalAlignment="Right" IsVisible="{Binding !CanEdit}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </DockPanel>
+
+    <!-- editor de texto a pantalla completa -->
+    <Grid Classes="full-overlay" Classes.open="{Binding HasOpenTextFile}" RowDefinitions="Auto,*">
+      <Border Background="#0E131B" BorderBrush="#1E2735" BorderThickness="0,0,0,1" Padding="10,8">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+          <Button Classes="m-action" Content="←" Width="46" Padding="0,10" Command="{Binding CloseEditorCommand}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+            <TextBlock Text="{DynamicResource Files_TextEditor}" FontSize="15" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding EditorPath}" Classes="m-mono" FontSize="10" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <views:MobileFileEditor Grid.Row="1" Margin="12" />
+    </Grid>
+
+    <!-- vista previa de imagen -->
+    <Border Classes="m-scrim" Classes.open="{Binding HasImagePreview}" />
+    <Border Classes="m-sheet" Classes.open="{Binding HasImagePreview}" VerticalAlignment="Bottom" Padding="20,16,20,22">
+      <StackPanel Spacing="12">
+        <Border Width="40" Height="4" CornerRadius="2" Background="#2A3444" HorizontalAlignment="Center" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <TextBlock Text="{Binding ImagePreviewName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="m-ghost" Content="✕" Command="{Binding CloseImagePreviewCommand}" />
+        </Grid>
+        <Border Classes="m-inset" Padding="6">
+          <Image Source="{Binding ImagePreview}" Stretch="Uniform" MaxHeight="360" />
+        </Border>
+        <TextBlock Text="{Binding ImagePreviewMeta}" Classes="m-mono" HorizontalAlignment="Center" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

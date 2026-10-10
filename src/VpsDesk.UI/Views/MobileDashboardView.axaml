@@ -33,6 +33,15 @@
 
       <TextBlock Text="{Binding SelectedServerName}" FontSize="11" FontWeight="Bold" Foreground="#5B687C" />
 
+      <!-- acceso directo: desplegar es la acción más frecuente desde el panel -->
+      <Button Classes="m-primary" Command="{Binding NavigateCommand}" CommandParameter="Deployments"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="16,13">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{DynamicResource Nav_Deployments}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="&#8250;" FontSize="22" VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+
       <!-- métricas 2x2: nada truncado, cada tarjeta respira -->
       <Grid ColumnDefinitions="*,*" RowDefinitions="*,*" ColumnSpacing="10" RowSpacing="10">
         <Border Classes="metric">

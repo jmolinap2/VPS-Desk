@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             x:Class="VpsDesk.Desktop.Views.MobileLogsView"
+             x:DataType="vm:LogsViewModel">
+  <DockPanel LastChildFill="True" Margin="18,16,18,16">
+    <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,12">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+          <TextBlock Text="{DynamicResource Logs_Title}" Classes="m-title" />
+          <TextBlock Text="{DynamicResource Logs_Subtitle}" Classes="m-subtitle" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="{Binding LastLoaded}" Classes="m-subtitle" VerticalAlignment="Top" />
+      </Grid>
+
+      <!-- origen y líneas: plegable para dejar más espacio al registro -->
+      <Expander Header="{DynamicResource Logs_Source}" IsExpanded="True" Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="16" Padding="14">
+        <StackPanel Spacing="10" Margin="0,8,0,0">
+          <TextBlock Text="{DynamicResource Logs_SourceType}" Classes="m-label" />
+          <ComboBox ItemsSource="{Binding SourceTypes}" SelectedItem="{Binding SelectedSourceType}" HorizontalAlignment="Stretch" />
+          <TextBlock Text="{DynamicResource Logs_Source}" Classes="m-label" />
+          <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" PlaceholderText="{DynamicResource Logs_SourcePlaceholder}" HorizontalAlignment="Stretch" />
+          <TextBlock Text="{DynamicResource Logs_TailLines}" Classes="m-label" />
+          <NumericUpDown Minimum="20" Maximum="5000" Increment="50" Value="{Binding TailLines}" HorizontalAlignment="Stretch" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button Classes="m-action" Content="{DynamicResource Logs_RefreshSources}" Command="{Binding RefreshSourcesCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            <Button Grid.Column="1" Classes="m-primary" Content="{DynamicResource Logs_Load}" Command="{Binding LoadLogsCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+          </Grid>
+        </StackPanel>
+      </Expander>
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Text="{Binding SearchText}" PlaceholderText="{DynamicResource Logs_FilterPlaceholder}" />
+        <Button Grid.Column="1" Classes="m-action" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearLogsCommand}" />
+      </Grid>
+
+      <Border Classes="m-inset" Padding="10,8">
+        <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+      </Border>
+    </StackPanel>
+
+    <!-- registro: ocupa el resto de la pantalla y se desplaza en ambos ejes -->
+    <Border Classes="m-card" Padding="0" ClipToBounds="True">
+      <TextBox Text="{Binding LogText}"
+               IsReadOnly="True"
+               AcceptsReturn="True"
+               TextWrapping="NoWrap"
+               FontFamily="Cascadia Mono,Consolas,monospace"
+               FontSize="11.5"
+               Background="#080B10"
+               BorderThickness="0"
+               Padding="12"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" />
+    </Border>
+  </DockPanel>
+</UserControl>

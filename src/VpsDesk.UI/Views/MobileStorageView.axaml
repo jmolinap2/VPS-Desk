@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:storage="using:VpsDesk.Domain.Storage"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
+             x:Class="VpsDesk.Desktop.Views.MobileStorageView"
+             x:DataType="vm:StorageViewModel">
+  <UserControl.Resources>
+    <conv:UsageToBrushConverter x:Key="UsageToBrush" />
+  </UserControl.Resources>
+
+  <Grid>
+    <ScrollViewer Padding="18,16,18,24">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <StackPanel Spacing="2">
+            <TextBlock Text="{DynamicResource Storage_Title}" Classes="m-title" />
+            <TextBlock Text="{Binding LastUpdated}" Classes="m-subtitle" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="m-action" Content="{DynamicResource Storage_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- disco raíz: porcentaje grande y barra -->
+        <Border Classes="m-card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource Storage_RootFilesystem}" Classes="m-label" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+              <TextBlock Text="{Binding RootUsagePercent, StringFormat={}{0:F0}%}"
+                         Foreground="{Binding RootUsagePercent, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
+                         FontSize="34" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{Binding RootAvailable, StringFormat={}Libre: {0}}" Foreground="#8290A3" FontSize="12" />
+                <TextBlock Text="{Binding RootUsed, StringFormat={}Usado: {0}}" Foreground="#A8B4C5" FontSize="11" />
+                <TextBlock Text="{Binding RootTotal, StringFormat={}Total: {0}}" Foreground="#66758A" FontSize="10" />
+              </StackPanel>
+            </Grid>
+            <Border Height="8" Background="#27303D" CornerRadius="4" ClipToBounds="True">
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding RootUsagePercent}"
+                           Foreground="{Binding RootUsagePercent, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
+                           Background="Transparent" BorderThickness="0" Height="8" />
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- Docker: tres indicadores en cuadrícula -->
+        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" ColumnSpacing="10" RowSpacing="10">
+          <Border Classes="m-card" Padding="14">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{DynamicResource Storage_DockerImages}" Classes="m-label" />
+              <TextBlock Text="{Binding ImageCount}" FontSize="24" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding ImagesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Classes="m-card" Padding="14">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{DynamicResource Storage_DockerVolumes}" Classes="m-label" />
+              <TextBlock Text="{Binding VolumeCount}" FontSize="24" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding VolumesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="#66758A" FontSize="10" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Row="1" Grid.ColumnSpan="2" Classes="m-card" Padding="14">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{DynamicResource Storage_BuildCache}" Classes="m-label" />
+              <TextBlock Text="{Binding BuildCacheReclaimable}" FontSize="22" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Storage_Reclaimable}" Foreground="#66758A" FontSize="10" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <!-- limpieza: las acciones pasan siempre por confirmación -->
+        <Border Classes="m-card">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{DynamicResource Storage_CleanupTitle}" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Storage_CleanupHelp}" Classes="m-subtitle" />
+            </StackPanel>
+            <Button Classes="m-action" Content="{DynamicResource Storage_CleanBuildCache}" Command="{Binding RequestBuildCacheCleanupCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            <Button Classes="m-action" Content="{DynamicResource Storage_CleanUnusedImages}" Command="{Binding RequestUnusedImagesCleanupCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            <Button Classes="m-danger" Content="{DynamicResource Storage_CleanDockerSystem}" Command="{Binding RequestDockerSystemCleanupCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="m-inset" Padding="10,8">
+          <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+        </Border>
+
+        <Border Classes="m-card">
+          <StackPanel Spacing="10">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{DynamicResource Storage_DockerUsage}" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="docker system df" Classes="m-subtitle" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding DockerUsage}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="storage:DockerDiskUsage">
+                  <Border Classes="m-inset" Margin="0,0,0,6">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Type}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Size}" Foreground="#A8B4C5" FontSize="11" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="{Binding Reclaimable}" Foreground="#66758A" FontSize="10" VerticalAlignment="Center" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="m-card">
+          <StackPanel Spacing="10">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{DynamicResource Storage_HeavyDirectories}" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Storage_HeavyDirectoriesHelp}" Classes="m-subtitle" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding HeavyDirectories}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="storage:HeavyDirectoryInfo">
+                  <Border Classes="m-inset" Margin="0,0,0,6">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <TextBlock Text="{Binding Path}" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="11" TextWrapping="Wrap" />
+                      <TextBlock Grid.Column="1" Text="{Binding SizeLabel}" Foreground="#A8B4C5" FontSize="11" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="m-card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource Storage_CleanupOutput}" FontSize="15" FontWeight="SemiBold" />
+            <TextBox Text="{Binding CleanupOutput}"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="NoWrap"
+                     FontFamily="Cascadia Mono,Consolas,monospace"
+                     FontSize="11"
+                     Background="#080B10"
+                     BorderThickness="0"
+                     Padding="10"
+                     MinHeight="120"
+                     MaxHeight="260"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- confirmación de limpieza: hoja inferior -->
+    <Border Classes="m-scrim" Classes.open="{Binding HasPendingCleanup}" />
+    <Border Classes="m-sheet" Classes.open="{Binding HasPendingCleanup}" VerticalAlignment="Bottom" Padding="20,18,20,22">
+      <StackPanel Spacing="12">
+        <Border Width="40" Height="4" CornerRadius="2" Background="#2A3444" HorizontalAlignment="Center" />
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <Border Width="40" Height="40" CornerRadius="20" Background="#3A2412" BorderBrush="#A16207" BorderThickness="1">
+            <TextBlock Text="!" FontSize="20" FontWeight="Bold" Foreground="#FBBF24" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="{Binding PendingCleanupTitle}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{DynamicResource Storage_CleanupConfirmation}" Classes="m-subtitle" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Text="{Binding PendingCleanupMessage}" Foreground="#C7D0DD" TextWrapping="Wrap" />
+        <CheckBox Content="{DynamicResource Storage_IncludeUnusedVolumes}" IsChecked="{Binding IncludeUnusedVolumes}" IsVisible="{Binding ShowIncludeVolumesOption}" />
+        <Border Background="#15100D" BorderBrush="#4B3525" BorderThickness="1" CornerRadius="12" Padding="12">
+          <TextBlock Text="{DynamicResource Storage_CleanupSafety}" Foreground="#D6B98C" TextWrapping="Wrap" FontSize="11" />
+        </Border>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+          <Button Classes="m-action" Content="{DynamicResource Common_Cancel}" Command="{Binding CancelCleanupCommand}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Classes="m-danger" Content="{DynamicResource Storage_ConfirmCleanup}" Command="{Binding ConfirmCleanupCommand}" HorizontalAlignment="Stretch" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

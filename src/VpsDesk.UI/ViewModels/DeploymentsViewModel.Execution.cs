@@ -384,6 +384,8 @@ public partial class DeploymentsViewModel
         Steps.Clear();
         PostChecks.Clear();
         DeploymentOutput = string.Empty;
+        DeploymentOutcomeTitle = "Pase en curso";
+        DeploymentNextAction = "Mantén la aplicación abierta. Los pasos reservan el último tramo para verificar el resultado.";
         StatusMessage = "Deployment is running. Do not close VPS Desk until it finishes.";
         CancelPendingDeploy();
 
@@ -406,6 +408,8 @@ public partial class DeploymentsViewModel
                     Operation: operation),
                 _secretAccessor());
 
+            while (_progressQueue.TryDequeue(out _)) { }
+            Steps.Clear();
             var output = new StringBuilder();
             foreach (var step in result.Steps)
             {
@@ -424,6 +428,8 @@ public partial class DeploymentsViewModel
             if (!result.Succeeded)
             {
                 StatusMessage = $"La ejecución se detuvo en '{result.FailedStep?.Label ?? "paso desconocido"}'. Revisa la salida sanitizada.";
+                DeploymentOutcomeTitle = "Pase detenido";
+                DeploymentNextAction = "Revisa el paso fallido y los servicios. Puede haber cambios aplicados. Ejecuta un nuevo prevuelo antes de repetir.";
                 Toast.Error(StatusMessage, "El despliegue se detuvo");
                 return;
             }
@@ -431,6 +437,9 @@ public partial class DeploymentsViewModel
             var elapsed = (result.FinishedAt - result.StartedAt).TotalSeconds;
             if (MigrationOnly)
             {
+                DeploymentOutcomeTitle = "Migraciones completadas";
+                DeploymentProgressPercent = 100;
+                DeploymentNextAction = "Revisa la salida de las migraciones antes de continuar.";
                 StatusMessage = $"Migraciones completadas en {elapsed:F1}s · {SelectedMigrationMode?.Label}.";
                 Toast.Success(StatusMessage, "Migraciones completadas");
                 return;
@@ -449,6 +458,11 @@ public partial class DeploymentsViewModel
             foreach (var check in verification.Checks) PostChecks.Add(check);
 
             var hasWarnings = result.HasWarnings || verification.HasWarnings;
+            DeploymentOutcomeTitle = !verification.Passed ? "Pase con problemas" : hasWarnings ? "Pase completado con avisos" : "Pase verificado";
+            DeploymentProgressPercent = 100;
+            DeploymentNextAction = verification.Passed
+                ? "Revisa las comprobaciones y los avisos. El resultado queda disponible al volver a esta pantalla."
+                : "Revisa las comprobaciones fallidas y los logs de los servicios antes de repetir el pase.";
             StatusMessage = verification.Passed
                 ? hasWarnings
                     ? $"Deployment completed in {elapsed:F1}s. The release is healthy, with maintenance/post-deploy warnings to review."
@@ -466,6 +480,9 @@ public partial class DeploymentsViewModel
         {
             var friendly = UserFacingErrors.Describe(ex);
             StatusMessage = $"La ejecución falló o no pudo verificarse: {friendly}";
+            DeploymentOutcomeTitle = "Pase interrumpido · estado sin confirmar";
+            DeploymentNextAction = "Recupera la conexión y revisa contenedores, logs y migraciones antes de repetir. El servidor puede haber aplicado cambios.";
+            DeploymentOutput += $"\n[Interrupción] {friendly}";
             Toast.Error(friendly, "El despliegue falló");
         }
         finally

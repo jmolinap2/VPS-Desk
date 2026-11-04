@@ -23,13 +23,13 @@
       <StackPanel Spacing="14">
         <TextBlock Text="{DynamicResource Deployments_ConfirmTitle}" FontSize="20" FontWeight="SemiBold" />
         <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <WrapPanel HorizontalAlignment="Right">
           <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
           <Button Content="{DynamicResource Deployments_Confirm}"
                   Command="{Binding ConfirmDeployCommand}"
                   Background="#0F766E"
                   Foreground="White" />
-        </StackPanel>
+        </WrapPanel>
       </StackPanel>
     </Border>
   </Border>

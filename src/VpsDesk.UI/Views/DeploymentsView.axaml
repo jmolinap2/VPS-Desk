@@ -388,7 +388,8 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel>
                     <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Text="{DynamicResource Deployments_OutputHelp}" Foreground="#66758A" FontSize="11" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding DeploymentOutcomeTitle}" FontWeight="Bold" TextWrapping="Wrap" IsVisible="{Binding HasExecutionActivity}" />
+                    <TextBlock Text="{Binding DeploymentNextAction}" Foreground="#A8B4C5" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
                   </StackPanel>
                   <StackPanel Grid.Column="1"
                               Orientation="Horizontal"
@@ -400,32 +401,33 @@
                   </StackPanel>
                 </Grid>
 
-                <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="5" IsVisible="{Binding IsDeploymentRunning}">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="{Binding DeploymentProgressText}" Foreground="#9FB4C8" FontSize="10" />
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding DeploymentProgressPercent, StringFormat={}{0:F0}%}"
-                               Foreground="#5EEAD4"
-                               FontSize="10"
-                               FontWeight="SemiBold" />
-                  </Grid>
-                  <ProgressBar Grid.Row="1"
+                <StackPanel Grid.Row="1" Spacing="8">
+                  <TextBlock Text="{Binding DeploymentProgressText}" Foreground="#F1F5F9" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
+                             IsVisible="{Binding IsDeploymentRunning}" views:DeploymentAttention.IsRunning="{Binding IsDeploymentRunning}" />
+                  <ProgressBar IsVisible="{Binding IsDeploymentRunning}"
                                Minimum="0"
                                Maximum="100"
                                Value="{Binding DeploymentProgressPercent}"
                                Height="7"
                                Foreground="#14B8A6"
                                Background="#17252B" />
-                </Grid>
+                  <TextBlock Text="{Binding DeploymentLastActivity}" Foreground="#94A3B8" FontSize="11" IsVisible="{Binding HasExecutionActivity}" />
+                  <WrapPanel IsVisible="{Binding HasExecutionActivity}">
+                    <Button Content="{Binding OutputFollowLabel}" Command="{Binding ToggleOutputFollowCommand}" Margin="0,0,12,4" />
+                    <TextBlock Text="{Binding OutputFollowHint}" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap" />
+                  </WrapPanel>
+                </StackPanel>
 
                 <TextBox Grid.Row="2"
+                         MinHeight="280"
                          Text="{Binding DeploymentOutput}"
                          IsReadOnly="True"
-                         views:TextBoxAutoScroll.IsEnabled="True"
+                         views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput}"
                          AcceptsReturn="True"
                          TextWrapping="NoWrap"
                          FontFamily="Cascadia Mono,Consolas,monospace"
                          FontSize="13"
+                         Foreground="#CBD5E1"
                          Background="#05080C"
                          BorderThickness="0"
                          Padding="16"

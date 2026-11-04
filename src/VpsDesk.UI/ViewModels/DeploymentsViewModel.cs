@@ -48,6 +48,8 @@ public partial class DeploymentsViewModel : ObservableObject
     [ObservableProperty] private string _pendingDeployMessage = string.Empty;
     [ObservableProperty] private string _statusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
     [ObservableProperty] private string _lastChecked = "Never";
+    [ObservableProperty] private string _deploymentOutcomeTitle = "Pase";
+    [ObservableProperty] private string _deploymentNextAction = string.Empty;
     [ObservableProperty] private string _deploymentOutput = string.Empty;
 
     public Guid? ActiveProjectId => _activeProjectId;

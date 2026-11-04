@@ -340,15 +340,19 @@
               </StackPanel>
             </Grid>
 
-            <StackPanel Spacing="5" IsVisible="{Binding IsDeploymentRunning}">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding DeploymentProgressText}" Foreground="#9FB4C8" FontSize="11" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="1" Text="{Binding DeploymentProgressPercent, StringFormat={}{0:F0}%}"
-                           Foreground="#5EEAD4" FontSize="11" FontWeight="SemiBold" />
-              </Grid>
+            <TextBlock Text="{Binding DeploymentOutcomeTitle}" FontWeight="Bold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding DeploymentNextAction}" Foreground="#A8B4C5" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
+            <StackPanel Spacing="8" IsVisible="{Binding IsDeploymentRunning}">
+              <TextBlock Text="{Binding DeploymentProgressText}" Foreground="#F1F5F9" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"
+                         views:DeploymentAttention.IsRunning="{Binding IsDeploymentRunning}" />
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding DeploymentProgressPercent}"
                            Height="6" Foreground="#14B8A6" Background="#17252B" />
+              <TextBlock Text="{Binding DeploymentLastActivity}" Foreground="#94A3B8" FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
+
+            <Button Content="{Binding OutputFollowLabel}" Command="{Binding ToggleOutputFollowCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="44" />
+            <TextBlock Text="{Binding OutputFollowHint}" Foreground="#94A3B8" FontSize="11" TextWrapping="Wrap" />
 
             <Border Padding="3" Background="#0E131B" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="12">
               <Grid ColumnDefinitions="*,*" ColumnSpacing="2">
@@ -358,10 +362,10 @@
             </Border>
 
             <Border x:Name="OutputPanel" Background="#05080C" BorderBrush="#245F54" BorderThickness="1" CornerRadius="10" Height="320">
-              <TextBox Text="{Binding DeploymentOutput}" views:TextBoxAutoScroll.IsEnabled="True" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-                       FontFamily="Cascadia Mono,Consolas,monospace" FontSize="11.5"
+              <TextBox Text="{Binding DeploymentOutput}" views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                       FontFamily="Cascadia Mono,Consolas,monospace" FontSize="13" Foreground="#CBD5E1"
                        Background="Transparent" BorderThickness="0" Padding="12"
-                       ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" />
             </Border>
 
             <ItemsControl x:Name="StepsPanel" ItemsSource="{Binding Steps}" IsVisible="False">

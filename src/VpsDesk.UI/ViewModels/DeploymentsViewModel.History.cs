@@ -47,6 +47,22 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private bool _isDeploymentConfigurationExpanded = true;
     [ObservableProperty] private double _deploymentProgressPercent;
     [ObservableProperty] private string _deploymentProgressText = string.Empty;
+    [ObservableProperty] private bool _followDeploymentOutput = true;
+    [ObservableProperty] private string _deploymentLastActivity = string.Empty;
+
+    public string OutputFollowLabel => FollowDeploymentOutput ? "Pausar seguimiento" : "Ir a la última salida";
+    public string OutputFollowHint => FollowDeploymentOutput
+        ? "Siguiendo la salida · pausa para revisar o copiar líneas anteriores"
+        : "Seguimiento pausado · la ejecución continúa recibiendo salida";
+
+    partial void OnFollowDeploymentOutputChanged(bool value)
+    {
+        OnPropertyChanged(nameof(OutputFollowLabel));
+        OnPropertyChanged(nameof(OutputFollowHint));
+    }
+
+    [RelayCommand]
+    private void ToggleOutputFollow() => FollowDeploymentOutput = !FollowDeploymentOutput;
 
     public bool IsNewDeploymentView => !IsHistoryView;
     public bool HasSelectedHistoryEntry => SelectedHistoryEntry is not null;
@@ -93,6 +109,8 @@ public partial class DeploymentsViewModel
             IsDeploymentConfigurationExpanded = false;
             DeploymentProgressPercent = 0;
             DeploymentProgressText = "Preparando despliegue...";
+            FollowDeploymentOutput = true;
+            DeploymentLastActivity = "Esperando la primera respuesta del servidor…";
             _liveDeploymentOutput.Clear();
             _stepStreamedOutput = false;
             while (_progressQueue.TryDequeue(out _)) { }
@@ -104,9 +122,8 @@ public partial class DeploymentsViewModel
         if (value.Contains("Verifying the real container", StringComparison.OrdinalIgnoreCase)
             || value.Contains("Verificando", StringComparison.OrdinalIgnoreCase) && value.Contains("contenedor", StringComparison.OrdinalIgnoreCase))
         {
-            DeploymentProgressPercent = 100;
+            DeploymentProgressPercent = 95;
             DeploymentProgressText = "Comandos completados · verificando postvuelo";
-            IsDeploymentRunning = false;
             _deployment.ProgressChanged -= OnDeploymentProgressChanged;
             BeginPostflightModal();
         }
@@ -127,6 +144,11 @@ public partial class DeploymentsViewModel
             CompletePostflightModalFromChecks();
         }
 
+        if (_deploymentObserved)
+        {
+            while (_progressQueue.TryDequeue(out _)) { }
+            DeploymentProgressText = DeploymentOutcomeTitle;
+        }
         IsDeploymentRunning = false;
         _deployment.ProgressChanged -= OnDeploymentProgressChanged;
 
@@ -288,7 +310,9 @@ public partial class DeploymentsViewModel
         PostflightWarningCount = PostChecks.Count(x => x.Status == PostDeployCheckStatus.Warning);
         PostflightFailedCount = PostChecks.Count(x => x.Status == PostDeployCheckStatus.Failed);
 
-        PostflightModalMessage = PostflightFailedCount > 0
+        PostflightModalMessage = PostChecks.Count == 0
+            ? "No se pudo verificar el estado final. Revisa la conexión y los contenedores antes de repetir el pase."
+            : PostflightFailedCount > 0
             ? "El despliegue terminó, pero el postvuelo detectó problemas. Revisa los controles fallidos antes de considerar saludable la versión."
             : PostflightWarningCount > 0
                 ? "El despliegue terminó con advertencias de postvuelo. Conviene revisarlas antes de cerrar."
@@ -336,6 +360,7 @@ public partial class DeploymentsViewModel
 
     private void ApplyProgress(DeploymentProgressUpdate update)
     {
+        DeploymentLastActivity = $"Última actividad recibida · {DateTime.Now:HH:mm:ss}";
         const string RunningMarker = "Ejecutando...";
 
         void RemoveRunningMarker()
@@ -363,9 +388,20 @@ public partial class DeploymentsViewModel
         var total = Math.Max(1, update.TotalSteps);
         var completedBeforeCurrent = Math.Max(0, update.StepIndex - 1);
         DeploymentProgressPercent = update.State == DeploymentProgressState.Completed
-            ? Math.Clamp(update.StepIndex * 100d / total, 0, 100)
-            : Math.Clamp(completedBeforeCurrent * 100d / total, 0, 100);
-        DeploymentProgressText = $"{Math.Max(1, update.StepIndex)}/{total} · {update.Label}";
+            ? Math.Clamp(update.StepIndex * 90d / total, 0, 90)
+            : Math.Clamp(completedBeforeCurrent * 90d / total, 0, 90);
+        var label = update.Code switch
+        {
+            "fetch" => "Buscando cambios en Git",
+            "checkout" => "Seleccionando la rama",
+            "pull" => "Actualizando el código",
+            "compose_pull" => "Descargando imágenes",
+            "compose_up" => "Construyendo e iniciando servicios",
+            "compose_ps" => "Consultando los contenedores",
+            "build_cache_prune" => "Limpiando la caché de construcción",
+            _ => update.Label
+        };
+        DeploymentProgressText = $"Paso {Math.Max(1, update.StepIndex)} de {total} · {label}";
 
         if (update.State == DeploymentProgressState.Started)
         {
@@ -378,6 +414,9 @@ public partial class DeploymentsViewModel
 
         RemoveRunningMarker();
 
+        Steps.Add(new DeploymentStepResult(update.Code, update.Label,
+            update.Succeeded == true, update.ExitCode ?? -1, update.Output ?? string.Empty,
+            update.Duration ?? TimeSpan.Zero, update.IsBlocking));
         var marker = update.Succeeded == true ? "✓" : update.IsBlocking ? "✕" : "⚠";
         var duration = update.Duration?.TotalSeconds ?? 0;
         _liveDeploymentOutput.AppendLine($"{marker} exit {update.ExitCode ?? -1} · {duration:F1}s");

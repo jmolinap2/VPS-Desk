@@ -81,11 +81,12 @@ public partial class MainWindowViewModel
             {
                 // Project activation already loaded the correct path/profile. Do not fall back to
                 // the old server-only profile when simply navigating between pages.
-                if (_activeProject is null)
+                if (_activeProject is null && !_deploymentsModule!.IsBusy && !_deploymentsModule.HasExecutionActivity)
                 {
                     _deploymentsModule?.LoadForServer(_server);
                 }
-                _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
+                if (_deploymentsModule is { IsBusy: false, HasExecutionActivity: false })
+                    _ = _deploymentsModule.TryAutoDiscoverRepositoryAsync();
             }
             else if (SelectedPage == "Dashboard")
             {
@@ -98,7 +99,8 @@ public partial class MainWindowViewModel
             _ = RefreshRecentActivityAsync();
             if (SelectedPage == "Deployments" && _activeProject is null)
             {
-                _ = _deploymentsModule?.TryAutoDiscoverRepositoryAsync();
+                if (_deploymentsModule is { IsBusy: false, HasExecutionActivity: false })
+                    _ = _deploymentsModule.TryAutoDiscoverRepositoryAsync();
             }
         }
     }

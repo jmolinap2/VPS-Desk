@@ -10,6 +10,11 @@ public partial class MainWindowViewModel
     public void InitializeNavigationState()
     {
         PropertyChanged += HandleNavigationStateChanged;
+        if (_server is null)
+        {
+            Navigate("Servers");
+            StatusMessage = "Agrega un servidor y comprueba la conexión para comenzar. Después selecciona un proyecto para desplegar.";
+        }
         OnPropertyChanged(nameof(IsTerminalPage));
         OnPropertyChanged(nameof(IsSettingsPage));
     }

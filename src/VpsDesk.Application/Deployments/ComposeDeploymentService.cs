@@ -39,6 +39,7 @@ public enum DeploymentProgressState
     Started,
     /// <summary>Una línea de salida del paso, emitida mientras el paso sigue en ejecución.</summary>
     Output,
+    OutputSnapshot,
     Completed
 }
 
@@ -181,24 +182,34 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
             // Las líneas se sanean una a una antes de salir de este servicio, igual que
             // la salida final del paso, para que ningún secreto llegue a la UI en vivo.
+            var terminal = new TerminalTextBuffer();
             var result = await ssh.ExecuteAsync(
                 new SshCommandRequest(
                     request.Server,
-                    step.Command,
+                    "export NO_COLOR=1 COMPOSE_ANSI=never BUILDKIT_PROGRESS=plain;\n" + step.Command,
                     step.Timeout,
-                    line => ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                    OutputChunkReceived: (chunk, completed) =>
+                    {
+                        terminal.Append(chunk);
+                        ProgressChanged?.Invoke(new DeploymentProgressUpdate(
                         step.Code,
                         step.Label,
-                        DeploymentProgressState.Output,
-                        Output: LogSanitizer.Sanitize(line),
+                        DeploymentProgressState.OutputSnapshot,
+                        Output: LogSanitizer.Sanitize(terminal.GetText(holdTrailingToken: !completed)),
                         StepIndex: stepIndex,
                         TotalSteps: commands.Count,
-                        IsBlocking: step.IsBlocking))),
+                        IsBlocking: step.IsBlocking));
+                    }),
                 secret,
                 cancellationToken);
 
             var output = CombineOutput(result.StandardOutput, result.StandardError);
-            var sanitized = LogSanitizer.Sanitize(output);
+            if (terminal.GetText().Length == 0) terminal.Append(output);
+            var sanitized = LogSanitizer.Sanitize(terminal.GetText());
+            ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                step.Code, step.Label, DeploymentProgressState.OutputSnapshot,
+                Output: sanitized, StepIndex: stepIndex, TotalSteps: commands.Count,
+                IsBlocking: step.IsBlocking));
             var stepResult = new DeploymentStepResult(
                 step.Code,
                 step.Label,

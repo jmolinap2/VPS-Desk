@@ -21,7 +21,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
 
         try
         {
-            return request.OutputReceived is null
+            return request.OutputReceived is null && request.OutputChunkReceived is null
                 ? await Task.Run(() => ExecuteCore(request, secret, stopwatch, linkedCts.Token), linkedCts.Token)
                 : await Task.Run(() => ExecuteStreamingAsync(request, secret, stopwatch, linkedCts.Token), linkedCts.Token);
         }
@@ -80,7 +80,10 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         ConnectExplainingHostKey(client, policy);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var command = client.CreateCommand(NormalizeRemoteCommand(request.Command));
+        // Un solo canal conserva el orden de stdout/stderr tal como lo escribe el proceso.
+        var commandText = NormalizeRemoteCommand(request.Command);
+        if (request.OutputChunkReceived is not null) commandText = "{\n" + commandText + "\n} 2>&1";
+        using var command = client.CreateCommand(commandText);
         command.CommandTimeout = request.Timeout;
 
         var stdout = new StringBuilder();
@@ -91,9 +94,11 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         // Los lectores no usan command.Result/Error: esas propiedades leen estos mismos flujos
         // y quedarían vacías si ya los hemos consumido.
         var execution = command.ExecuteAsync(cancellationToken);
-        var pumps = Task.WhenAll(
-            Task.Run(() => PumpLines(command.OutputStream, stdout, onOutput)),
-            Task.Run(() => PumpLines(command.ExtendedOutputStream, stderr, onOutput)));
+        var pumps = request.OutputChunkReceived is { } onChunk
+            ? Task.Run(() => PumpChunks(command.OutputStream, stdout, onChunk))
+            : Task.WhenAll(
+                Task.Run(() => PumpLines(command.OutputStream, stdout, onOutput)),
+                Task.Run(() => PumpLines(command.ExtendedOutputStream, stderr, onOutput)));
 
         try
         {
@@ -134,6 +139,24 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         {
             // El comando se liberó mientras se leía: no hay más salida.
         }
+    }
+
+    private static void PumpChunks(Stream stream, StringBuilder sink, Action<string, bool> onChunk)
+    {
+        try
+        {
+            using var reader = new StreamReader(stream, Encoding.UTF8, false, 4096, leaveOpen: true);
+            var buffer = new char[4096];
+            int count;
+            while ((count = reader.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                var text = new string(buffer, 0, count);
+                lock (sink) sink.Append(text);
+                onChunk(text, false);
+            }
+            onChunk(string.Empty, true);
+        }
+        catch (ObjectDisposedException) { }
     }
 
     private static string Snapshot(StringBuilder sink)

@@ -24,6 +24,7 @@ public partial class DeploymentsViewModel
     private readonly ConcurrentQueue<DeploymentProgressUpdate> _progressQueue = new();
     private int _progressDrainScheduled;
     private bool _stepStreamedOutput;
+    private int _stepOutputStart;
     private const int LiveOutputFlushMilliseconds = 100;
 
     // Tiempo que el prevuelo exitoso queda visible antes de cerrarse solo.
@@ -336,7 +337,7 @@ public partial class DeploymentsViewModel
 
     private async Task DrainProgressAsync()
     {
-        if (_progressQueue.TryPeek(out var head) && head.State == DeploymentProgressState.Output)
+        if (_progressQueue.TryPeek(out var head) && head.State is DeploymentProgressState.Output or DeploymentProgressState.OutputSnapshot)
         {
             await Task.Delay(LiveOutputFlushMilliseconds);
         }
@@ -385,6 +386,14 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        if (update.State == DeploymentProgressState.OutputSnapshot)
+        {
+            _stepStreamedOutput = true;
+            _liveDeploymentOutput.Length = _stepOutputStart;
+            _liveDeploymentOutput.Append(update.Output);
+            return;
+        }
+
         var total = Math.Max(1, update.TotalSteps);
         var completedBeforeCurrent = Math.Max(0, update.StepIndex - 1);
         DeploymentProgressPercent = update.State == DeploymentProgressState.Completed
@@ -408,12 +417,15 @@ public partial class DeploymentsViewModel
             _stepStreamedOutput = false;
             if (_liveDeploymentOutput.Length > 0) _liveDeploymentOutput.AppendLine();
             _liveDeploymentOutput.AppendLine($"[{DateTime.Now:HH:mm:ss}] ▶ {update.Label}");
+            _stepOutputStart = _liveDeploymentOutput.Length;
             _liveDeploymentOutput.Append(RunningMarker);
             return;
         }
 
         RemoveRunningMarker();
 
+        if (_liveDeploymentOutput.Length > 0 && _liveDeploymentOutput[^1] != '\n')
+            _liveDeploymentOutput.AppendLine();
         Steps.Add(new DeploymentStepResult(update.Code, update.Label,
             update.Succeeded == true, update.ExitCode ?? -1, update.Output ?? string.Empty,
             update.Duration ?? TimeSpan.Zero, update.IsBlocking));

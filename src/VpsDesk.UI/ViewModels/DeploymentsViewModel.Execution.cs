@@ -408,7 +408,7 @@ public partial class DeploymentsViewModel
                     Operation: operation),
                 _secretAccessor());
 
-            while (_progressQueue.TryDequeue(out _)) { }
+            while (_progressQueue.TryDequeue(out var pending)) ApplyProgress(pending);
             Steps.Clear();
             var output = new StringBuilder();
             foreach (var step in result.Steps)
@@ -423,7 +423,9 @@ public partial class DeploymentsViewModel
                 output.AppendLine();
             }
 
-            DeploymentOutput = output.ToString().TrimEnd();
+            DeploymentOutput = _liveDeploymentOutput.Length > 0
+                ? _liveDeploymentOutput.ToString().TrimEnd()
+                : output.ToString().TrimEnd();
 
             if (!result.Succeeded)
             {

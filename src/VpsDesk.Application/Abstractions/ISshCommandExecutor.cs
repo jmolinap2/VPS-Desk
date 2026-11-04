@@ -11,7 +11,8 @@ public sealed record SshCommandRequest(
     ServerProfile Server,
     string Command,
     TimeSpan Timeout,
-    Action<string>? OutputReceived = null);
+    Action<string>? OutputReceived = null,
+    Action<string, bool>? OutputChunkReceived = null);
 
 public sealed record SshCommandResult(
     int ExitCode,

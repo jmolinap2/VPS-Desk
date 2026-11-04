@@ -422,7 +422,7 @@
                          MinHeight="280"
                          Text="{Binding DeploymentOutput}"
                          IsReadOnly="True"
-                         views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput}"
+                         views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput, Mode=TwoWay}"
                          AcceptsReturn="True"
                          TextWrapping="NoWrap"
                          FontFamily="Cascadia Mono,Consolas,monospace"

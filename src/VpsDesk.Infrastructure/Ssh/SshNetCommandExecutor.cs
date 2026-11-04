@@ -89,13 +89,21 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
         var onOutput = request.OutputReceived!;
+        var outputGate = new object();
+        var acceptChunks = true;
 
         // Los flujos solo existen una vez iniciado el comando, por eso ExecuteAsync va primero.
         // Los lectores no usan command.Result/Error: esas propiedades leen estos mismos flujos
         // y quedarían vacías si ya los hemos consumido.
         var execution = command.ExecuteAsync(cancellationToken);
         var pumps = request.OutputChunkReceived is { } onChunk
-            ? Task.Run(() => PumpChunks(command.OutputStream, stdout, onChunk))
+            ? Task.Run(() => PumpChunks(command.OutputStream, stdout, (text, completed) =>
+            {
+                lock (outputGate)
+                {
+                    if (acceptChunks) onChunk(text, completed);
+                }
+            }))
             : Task.WhenAll(
                 Task.Run(() => PumpLines(command.OutputStream, stdout, onOutput)),
                 Task.Run(() => PumpLines(command.ExtendedOutputStream, stderr, onOutput)));
@@ -109,6 +117,8 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
             // Si el canal no cierra los flujos a tiempo no bloqueamos el despliegue:
             // seguimos con lo acumulado hasta ese momento.
             await Task.WhenAny(pumps, Task.Delay(PumpDrainTimeout)).ConfigureAwait(false);
+            // Ninguna lectura tardía puede modificar el paso siguiente ni su registro.
+            lock (outputGate) acceptChunks = false;
         }
 
         var exitCode = command.ExitStatus ?? -1;

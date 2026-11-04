@@ -483,6 +483,9 @@ public partial class DeploymentsViewModel
             var friendly = UserFacingErrors.Describe(ex);
             StatusMessage = $"La ejecución falló o no pudo verificarse: {friendly}";
             DeploymentOutcomeTitle = "Pase interrumpido · estado sin confirmar";
+            while (_progressQueue.TryDequeue(out var pending)) ApplyProgress(pending);
+            if (_liveDeploymentOutput.Length > 0)
+                DeploymentOutput = _liveDeploymentOutput.ToString().TrimEnd();
             DeploymentNextAction = "Recupera la conexión y revisa contenedores, logs y migraciones antes de repetir. El servidor puede haber aplicado cambios.";
             DeploymentOutput += $"\n[Interrupción] {friendly}";
             Toast.Error(friendly, "El despliegue falló");

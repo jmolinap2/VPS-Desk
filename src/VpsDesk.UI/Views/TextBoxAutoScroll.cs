@@ -57,13 +57,11 @@ public static class TextBoxAutoScroll
         {
             // No roba el foco ni deshace una selección mientras el usuario copia texto.
             if (!GetIsEnabled(box)) return;
-            var end = box.Text?.Length ?? 0;
-            if (clearSelection)
-            {
-                box.SelectionStart = end;
-                box.SelectionEnd = end;
-            }
-            if (box.SelectionStart == box.SelectionEnd) box.CaretIndex = end;
+            if (!clearSelection && box.SelectionStart != box.SelectionEnd) return;
+            var scroll = box.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+            if (scroll is not null)
+                scroll.Offset = new Vector(scroll.Offset.X,
+                    Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height));
         }, DispatcherPriority.Background);
 
     public static bool GetIsEnabled(TextBox box) => box.GetValue(IsEnabledProperty);

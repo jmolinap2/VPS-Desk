@@ -205,6 +205,8 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
             var output = CombineOutput(result.StandardOutput, result.StandardError);
             if (terminal.GetText().Length == 0) terminal.Append(output);
+            else if (!string.IsNullOrWhiteSpace(result.StandardError))
+                terminal.Append("\n" + result.StandardError + "\n");
             var sanitized = LogSanitizer.Sanitize(terminal.GetText());
             ProgressChanged?.Invoke(new DeploymentProgressUpdate(
                 step.Code, step.Label, DeploymentProgressState.OutputSnapshot,

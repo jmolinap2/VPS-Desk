@@ -7,6 +7,11 @@ namespace VpsDesk.Application.Abstractions;
 /// a medida que el comando la produce, en lugar de esperar a que termine.
 /// Se invoca desde un hilo de fondo. El resultado final conserva la salida completa.
 /// </param>
+/// <param name="OutputChunkReceived">
+/// Flujo incremental alternativo: fragmentos UTF-8 decodificados y señal de fin.
+/// El ejecutor combina stdout/stderr en el servidor para conservar su orden.
+/// El consumidor debe interpretar controles y sanear antes de mostrar el texto.
+/// </param>
 public sealed record SshCommandRequest(
     ServerProfile Server,
     string Command,

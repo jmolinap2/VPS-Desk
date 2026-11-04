@@ -23,7 +23,19 @@ public interface IVpsSnapshotService
 
     /// <summary>Restaura el VPS completo al snapshot y espera a que el proveedor termine.</summary>
     Task RestoreAsync(string serverHost, IProgress<string>? progress = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Backups automáticos del proveedor (semanales, y diarios si el plan los incluye),
+    /// de la más reciente a la más antigua. Son de solo lectura aquí: se restauran desde hPanel.
+    /// </summary>
+    Task<IReadOnlyList<VpsBackupInfo>> ListBackupsAsync(string serverHost, CancellationToken cancellationToken = default);
 }
+
+public sealed record VpsBackupInfo(
+    long Id,
+    DateTimeOffset CreatedAt,
+    long? SizeKilobytes,
+    TimeSpan? EstimatedRestoreTime);
 
 public sealed record VpsSnapshotInfo(
     long Id,

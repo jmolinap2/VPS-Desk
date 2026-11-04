@@ -297,6 +297,22 @@
           </StackPanel>
         </Border>
 
+        <!-- copia descargable de la aplicación -->
+        <Border Classes="panel" IsVisible="{Binding IsAppBackupConfigured}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="sectionTitle" Text="Copia de la aplicación" />
+            <TextBlock Text="{Binding AppBackupSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Crear copia antes de desplegar" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding BackupBeforeDeploy}" />
+            </Grid>
+            <WrapPanel>
+              <Button Content="Crear copia" Command="{Binding CreateAppBackupCommand}" IsEnabled="{Binding CanUseAppBackups}" Margin="0,0,8,6" />
+              <Button Content="&#8635;" Command="{Binding RefreshAppBackupsCommand}" Margin="0,0,0,6" />
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+
         <!-- estado actual -->
         <Border CornerRadius="14" Padding="12" BorderThickness="1"
                 Background="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=background}"

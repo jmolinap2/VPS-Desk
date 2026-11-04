@@ -42,6 +42,7 @@ public partial class DeploymentsViewModel
     {
         OnPropertyChanged(nameof(CanUseSnapshots));
         OnPropertyChanged(nameof(CanRestoreSnapshot));
+        OnPropertyChanged(nameof(CanUseAppBackups));
     }
 
     public void InitializeSnapshots(IVpsSnapshotService service)
@@ -76,6 +77,7 @@ public partial class DeploymentsViewModel
         try
         {
             ApplySnapshot(await _snapshots.GetAsync(server.Host));
+            await AppendProviderBackupsNoteAsync(server.Host);
         }
         catch (Exception ex)
         {
@@ -86,6 +88,25 @@ public partial class DeploymentsViewModel
         finally
         {
             IsSnapshotBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Añade al resumen los backups automáticos de Hostinger. Es informativo: si la
+    /// consulta falla no debe ocultar el estado del snapshot.
+    /// </summary>
+    private async Task AppendProviderBackupsNoteAsync(string host)
+    {
+        try
+        {
+            var backups = await _snapshots!.ListBackupsAsync(host);
+            SnapshotSummary += backups.Count == 0
+                ? " · Hostinger no tiene backups automáticos de este VPS."
+                : $" · Backups automáticos de Hostinger: {backups.Count} (último {backups[0].CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}; se restauran desde hPanel y no son descargables).";
+        }
+        catch (Exception ex)
+        {
+            SnapshotSummary += $" · No se pudieron consultar los backups de Hostinger: {ex.Message}";
         }
     }
 
@@ -109,8 +130,8 @@ public partial class DeploymentsViewModel
         PendingSnapshotTitle = "Crear snapshot del servidor";
         PendingSnapshotConfirmLabel = "Crear snapshot";
         PendingSnapshotMessage = _currentSnapshot is { } existing
-            ? $"Hostinger conserva un solo snapshot por VPS: este REEMPLAZARÁ al del {existing.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} y ese punto de restauración se perderá."
-            : "Se creará un snapshot de todo el VPS. Puede tardar varios minutos; el servidor sigue funcionando mientras tanto.";
+            ? $"Hostinger conserva un solo snapshot por VPS: este REEMPLAZARÁ al del {existing.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} y ese punto de restauración se perderá. Para tener varias copias descargables usa «Copia de la aplicación»."
+            : "Se creará un snapshot de todo el VPS. Caduca al día siguiente y Hostinger solo conserva uno. Puede tardar varios minutos; el servidor sigue funcionando mientras tanto.";
         HasPendingSnapshotAction = true;
     }
 

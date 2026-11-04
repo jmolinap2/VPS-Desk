@@ -30,6 +30,9 @@ public partial class MainWindowViewModel
     public void InitializeSnapshots(VpsDesk.Application.Snapshots.IVpsSnapshotService snapshotService)
         => DeploymentsModule.InitializeSnapshots(snapshotService);
 
+    public void InitializeAppBackups(VpsDesk.Application.AppBackups.IAppBackupService appBackupService)
+        => DeploymentsModule.InitializeAppBackups(appBackupService);
+
     public void InitializeDeployments(
         IDeploymentPreflightService preflightService,
         IComposeDeploymentService deploymentService,

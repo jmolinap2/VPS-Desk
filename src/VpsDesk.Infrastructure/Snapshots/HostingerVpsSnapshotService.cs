@@ -10,7 +10,9 @@ namespace VpsDesk.Infrastructure.Snapshots;
 /// <summary>
 /// Snapshots del VPS mediante la API de Hostinger
 /// (https://developers.hostinger.com, rutas /api/vps/v1/...). Hostinger guarda
-/// UN solo snapshot por VPS: crear uno nuevo sobrescribe el anterior.
+/// UN solo snapshot por VPS, que además caduca al día: crear uno nuevo sobrescribe
+/// el anterior. Los backups automáticos (hasta 4: 2 diarios + 2 semanales) solo se
+/// pueden consultar por API; ni snapshots ni backups son descargables.
 /// El token viaja solo en la cabecera Authorization y nunca se registra.
 /// </summary>
 public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposable
@@ -48,8 +50,12 @@ public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposab
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
 
         var root = await ReadJsonAsync(response, cancellationToken);
-        // Un VPS sin snapshot puede responder 200 con un cuerpo sin "id".
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.Number)
+        // Un VPS sin snapshot responde 200 con un cuerpo sin "id" o, como se verificó contra la
+        // API real, con un marcador {"id":0,...} y fechas de "ahora": no es un snapshot.
+        if (root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty("id", out var id)
+            || id.ValueKind != JsonValueKind.Number
+            || id.GetInt64() <= 0)
         {
             return null;
         }
@@ -77,6 +83,34 @@ public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposab
         progress?.Report("Solicitando la restauración a Hostinger...");
         var actionId = await PostActionAsync($"api/vps/v1/virtual-machines/{vm}/snapshot/restore", cancellationToken);
         await WaitForActionAsync(vm, actionId, RestoreTimeout, "La restauración del snapshot", progress, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<VpsBackupInfo>> ListBackupsAsync(string serverHost, CancellationToken cancellationToken = default)
+    {
+        var vm = await ResolveVirtualMachineIdAsync(serverHost, cancellationToken);
+        using var response = await _http.GetAsync($"api/vps/v1/virtual-machines/{vm}/backups", cancellationToken);
+        var root = await ReadJsonAsync(response, cancellationToken);
+        var items = root.ValueKind == JsonValueKind.Array
+            ? root
+            : root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data) ? data : default;
+
+        if (items.ValueKind != JsonValueKind.Array) return [];
+
+        var backups = new List<VpsBackupInfo>();
+        foreach (var item in items.EnumerateArray())
+        {
+            if (!item.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.Number) continue;
+
+            backups.Add(new VpsBackupInfo(
+                id.GetInt64(),
+                ReadDate(item, "created_at") ?? DateTimeOffset.MinValue,
+                item.TryGetProperty("size", out var size) && size.ValueKind == JsonValueKind.Number ? size.GetInt64() : null,
+                item.TryGetProperty("restore_time", out var rt) && rt.ValueKind == JsonValueKind.Number
+                    ? TimeSpan.FromSeconds(rt.GetInt64())
+                    : null));
+        }
+
+        return backups.OrderByDescending(b => b.CreatedAt).ToArray();
     }
 
     private async Task<string> ResolveVirtualMachineIdAsync(string serverHost, CancellationToken cancellationToken)

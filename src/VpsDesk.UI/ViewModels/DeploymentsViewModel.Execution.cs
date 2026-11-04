@@ -350,13 +350,13 @@ public partial class DeploymentsViewModel
             ? " Es un servidor de producción: los servicios seleccionados pueden recrearse o reiniciarse."
             : " Los servicios seleccionados pueden recrearse o reiniciarse.";
         PendingDeployMessage =
-            $"Rama '{Branch.Trim()}' · {BuildExecutionSummary()} · Compose '{ComposeFile.Trim()}'.{productionWarning}{BuildSnapshotNotice()}";
+            $"Rama '{Branch.Trim()}' · {BuildExecutionSummary()} · Compose '{ComposeFile.Trim()}'.{productionWarning}{BuildSnapshotNotice()}{BuildAppBackupNotice()}";
     }
 
     [RelayCommand]
     private async Task ConfirmDeployAsync()
     {
-        if (!HasPendingDeploy || !CanDeploy || IsBusy || IsSnapshotBusy) return;
+        if (!HasPendingDeploy || !CanDeploy || IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
         var server = _serverAccessor();
         if (server == null)
         {
@@ -369,6 +369,9 @@ public partial class DeploymentsViewModel
 
         // Punto de restauración del VPS completo: sin él no se toca el servidor.
         if (!await TakeSnapshotBeforeDeployAsync(server)) return;
+
+        // Copia descargable de la aplicación: conserva varias versiones, a diferencia del snapshot.
+        if (!await TakeAppBackupBeforeDeployAsync(server)) return;
 
         IsBusy = true;
         CanDeploy = false;

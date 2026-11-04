@@ -334,6 +334,31 @@
             </Grid>
           </Border>
 
+          <Border Classes="card" Padding="16" IsVisible="{Binding IsAppBackupConfigured}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+              <StackPanel Spacing="4">
+                <TextBlock Text="Copia de la aplicación (descargable)" FontWeight="SemiBold" />
+                <TextBlock Text="PostgreSQL (todas las bases) + proyecto + configuración, guardados en esta máquina con rotación."
+                           Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding AppBackupSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                <CheckBox Content="Crear una copia automáticamente antes de desplegar"
+                          IsChecked="{Binding BackupBeforeDeploy}"
+                          Margin="0,6,0,0" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Conservar las últimas" VerticalAlignment="Center" FontSize="12" />
+                  <NumericUpDown Value="{Binding AppBackupKeepCopies}" Minimum="1" Maximum="10" Increment="1"
+                                 FormatString="0" Width="110" />
+                  <TextBlock Text="copias" VerticalAlignment="Center" FontSize="12" />
+                </StackPanel>
+              </StackPanel>
+              <WrapPanel Grid.Column="1" VerticalAlignment="Center" MaxWidth="360" HorizontalAlignment="Right">
+                <Button Content="Crear copia" Command="{Binding CreateAppBackupCommand}" IsEnabled="{Binding CanUseAppBackups}" Margin="0,0,8,6" />
+                <Button Content="Abrir carpeta" Command="{Binding OpenAppBackupFolderCommand}" Margin="0,0,8,6" />
+                <Button Content="&#8635;" Command="{Binding RefreshAppBackupsCommand}" Margin="0,0,0,6" ToolTip.Tip="Releer las copias locales" />
+              </WrapPanel>
+            </Grid>
+          </Border>
+
           <Grid ColumnDefinitions="250,*" ColumnSpacing="14" MinHeight="430">
             <Border Classes="card" ClipToBounds="True">
               <Grid RowDefinitions="Auto,*" RowSpacing="10">

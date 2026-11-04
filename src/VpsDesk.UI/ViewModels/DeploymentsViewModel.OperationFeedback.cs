@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -47,6 +48,12 @@ public partial class DeploymentsViewModel
         OperationFeedbackMessage = message;
         IsOperationFeedbackRunning = false;
         IsOperationFeedbackOutputExpanded = true;
+
+        // El modal puede cerrarse solo (copia previa al despliegue) o quedar fuera de vista en
+        // móvil: el resultado también se anuncia como aviso para que nunca pase desapercibido.
+        var title = string.IsNullOrWhiteSpace(OperationFeedbackTitle) ? null : OperationFeedbackTitle;
+        if (succeeded) Toast.Success(message, title);
+        else Toast.Error(message, title);
     }
 
     public void OnGitUpdateProgressChanged(GitRepositoryUpdateProgressUpdate update)

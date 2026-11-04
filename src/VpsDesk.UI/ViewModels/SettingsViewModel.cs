@@ -103,7 +103,9 @@ public partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"No se pudo abrir la carpeta local: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"No se pudo abrir la carpeta local: {friendly}";
+            Toast.Error(friendly, "No se pudo abrir la carpeta local");
         }
     }
 
@@ -138,7 +140,9 @@ public partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"No se pudieron guardar las preferencias: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"No se pudieron guardar las preferencias: {friendly}";
+            Toast.Error(friendly, "No se pudieron guardar las preferencias");
         }
     }
 

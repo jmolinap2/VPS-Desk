@@ -7,6 +7,7 @@ using VpsDesk.Application.Activity;
 using VpsDesk.Domain.Activity;
 using VpsDesk.Domain.Security;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -102,7 +103,9 @@ public partial class SecurityViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to complete security audit: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to complete security audit: {friendly}";
+            Toast.Error(friendly, "No se pudo completar la auditoría de seguridad");
             await RecordAuditAsync(server, startedAt, ex);
         }
         finally

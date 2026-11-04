@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -121,7 +122,9 @@ public partial class LogsViewModel : ObservableObject
         catch (Exception ex)
         {
             _sourcesLoaded = false;
-            StatusMessage = $"Unable to load log sources: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to load log sources: {friendly}";
+            Toast.Error(friendly, "No se pudieron cargar las fuentes de logs");
         }
         finally
         {
@@ -166,7 +169,9 @@ public partial class LogsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to read logs: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to read logs: {friendly}";
+            Toast.Error(friendly, "No se pudieron leer los logs");
         }
         finally
         {

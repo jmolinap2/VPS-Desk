@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="using:VpsDesk.Desktop.Services"
+             x:Class="VpsDesk.Desktop.Views.ToastHost"
+             x:DataType="services:NotificationCenter"
+             IsHitTestVisible="{Binding HasItems}">
+  <!--
+    Avisos flotantes compartidos por escritorio y móvil. El contenedor no captura
+    toques cuando no hay avisos (IsHitTestVisible), así que nunca tapa la pantalla.
+    Un toque en el aviso lo descarta; el texto del error se puede seleccionar y copiar.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.toast">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="12,10,6,10" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="Background" Value="#101A28" />
+      <Setter Property="BorderBrush" Value="#1F3B5E" />
+      <Setter Property="BoxShadow" Value="0 8 24 0 #66000000" />
+      <Style.Animations>
+        <Animation Duration="0:0:0.20" FillMode="Forward">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="Border.toast.success">
+      <Setter Property="Background" Value="#0E1F1A" />
+      <Setter Property="BorderBrush" Value="#1D6B54" />
+    </Style>
+    <Style Selector="Border.toast.warning">
+      <Setter Property="Background" Value="#241D0D" />
+      <Setter Property="BorderBrush" Value="#7A5F14" />
+    </Style>
+    <Style Selector="Border.toast.error">
+      <Setter Property="Background" Value="#2A1315" />
+      <Setter Property="BorderBrush" Value="#8A2F36" />
+    </Style>
+
+    <Style Selector="Border.badge">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="#3B82F6" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Border.toast.success Border.badge"><Setter Property="Background" Value="#34D399" /></Style>
+    <Style Selector="Border.toast.warning Border.badge"><Setter Property="Background" Value="#FBBF24" /></Style>
+    <Style Selector="Border.toast.error Border.badge"><Setter Property="Background" Value="#F87171" /></Style>
+
+    <Style Selector="Button.toastClose">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="#9AA4B2" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.LiveSetting="Assertive">
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:DataType="services:AppNotification">
+        <Border Classes="toast"
+                Classes.success="{Binding IsSuccess}"
+                Classes.warning="{Binding IsWarning}"
+                Classes.error="{Binding IsError}"
+                PointerPressed="OnToastPressed">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <Border Classes="badge">
+              <TextBlock Text="{Binding Glyph}" Foreground="#0B0E13" FontWeight="Bold" FontSize="13"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding RepeatLabel}" IsVisible="{Binding HasRepeats}" FontSize="11" Foreground="#9AA4B2" VerticalAlignment="Center" />
+              </StackPanel>
+              <SelectableTextBlock Text="{Binding Message}" FontSize="12.5" Foreground="#C9D3E0" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="toastClose" Click="OnCloseClick" AutomationProperties.Name="Cerrar aviso">
+              <TextBlock Text="✕" FontSize="12" />
+            </Button>
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

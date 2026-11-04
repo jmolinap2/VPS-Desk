@@ -212,7 +212,9 @@ public partial class ProjectsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"No se pudieron detectar proyectos: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"No se pudieron detectar proyectos: {friendly}";
+            Toast.Error(friendly, "No se pudieron detectar proyectos");
         }
         finally
         {

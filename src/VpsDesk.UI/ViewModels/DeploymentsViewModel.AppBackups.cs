@@ -2,6 +2,7 @@ using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.AppBackups;
+using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -77,6 +78,7 @@ public partial class DeploymentsViewModel
         catch (Exception ex)
         {
             StatusMessage = $"No se pudo abrir la carpeta de copias: {ex.Message}";
+            Toast.Error(ex, "No se pudo abrir la carpeta de copias");
         }
     }
 
@@ -88,6 +90,7 @@ public partial class DeploymentsViewModel
         if (_serverAccessor() is not { } server)
         {
             StatusMessage = "Selecciona y conecta un servidor antes de crear una copia.";
+            Toast.Warning(StatusMessage, "Falta un servidor");
             return;
         }
 
@@ -124,6 +127,7 @@ public partial class DeploymentsViewModel
         if (!created)
         {
             StatusMessage = "Despliegue cancelado: no se pudo crear la copia previa. No se modificó el servidor.";
+            Toast.Error(StatusMessage, "Despliegue cancelado");
         }
 
         return created;
@@ -139,6 +143,7 @@ public partial class DeploymentsViewModel
         if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
         {
             StatusMessage = "Indica o detecta primero la ruta remota del proyecto: es lo que se incluye en la copia.";
+            Toast.Warning(StatusMessage, "Falta la ruta del proyecto");
             return false;
         }
 
@@ -166,7 +171,7 @@ public partial class DeploymentsViewModel
         catch (Exception ex)
         {
             AppendSnapshotLog($"ERROR: {ex.Message}");
-            CompleteOperationFeedback(false, $"No se pudo crear la copia: {ex.Message}");
+            CompleteOperationFeedback(false, $"No se pudo crear la copia: {UserFacingErrors.Describe(ex)}");
             return false;
         }
         finally

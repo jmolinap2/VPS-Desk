@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -96,7 +97,9 @@ public partial class TerminalViewModel : ObservableObject, IAsyncDisposable
         catch (Exception ex)
         {
             IsConnected = false;
-            StatusMessage = $"No se pudo abrir la terminal SSH: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"No se pudo abrir la terminal SSH: {friendly}";
+            Toast.Error(friendly, "No se pudo abrir la terminal SSH");
         }
         finally
         {
@@ -167,7 +170,9 @@ public partial class TerminalViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            StatusMessage = $"No se pudo enviar Ctrl+C: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"No se pudo enviar Ctrl+C: {friendly}";
+            Toast.Error(friendly, "No se pudo enviar Ctrl+C");
         }
     }
 
@@ -216,7 +221,9 @@ public partial class TerminalViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error al enviar a la terminal: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Error al enviar a la terminal: {friendly}";
+            Toast.Error(friendly, "Error al enviar a la terminal");
             IsConnected = _session.IsConnected;
         }
     }

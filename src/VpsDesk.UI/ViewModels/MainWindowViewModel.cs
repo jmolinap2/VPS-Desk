@@ -194,6 +194,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (!TryBuildEditorProfile(id, out var profile, out var error))
         {
             ServerEditorMessage = error;
+            Toast.Warning(error, "No se pudo guardar el perfil");
             return;
         }
 
@@ -216,9 +217,16 @@ public partial class MainWindowViewModel : ObservableObject
         _editingServerId = id;
         SelectedServerInList = profile;
         _store.Save(Servers, _server?.Id);
-        ServerEditorMessage = string.IsNullOrWhiteSpace(profile!.HostKeyFingerprintSha256)
-            ? "Profile saved locally. Secret was not persisted. Add the server SHA256 fingerprint to pin its identity."
-            : "Profile saved locally with SSH host-key pinning. Secret was not persisted.";
+        if (string.IsNullOrWhiteSpace(profile!.HostKeyFingerprintSha256))
+        {
+            ServerEditorMessage = "Perfil guardado en este equipo. La contraseña/passphrase no se guarda. Añade la huella SHA256 del servidor para fijar su identidad.";
+            Toast.Warning("Perfil guardado, pero sin huella SHA256 del servidor: la conexión no verificará su identidad.", "Perfil guardado");
+        }
+        else
+        {
+            ServerEditorMessage = "Perfil guardado en este equipo con huella SSH fijada. La contraseña/passphrase no se guarda.";
+            Toast.Success($"«{profile.Name}» se guardó con la huella SSH fijada.", "Perfil guardado");
+        }
     }
 
     [RelayCommand]
@@ -231,11 +239,12 @@ public partial class MainWindowViewModel : ObservableObject
         {
             ServerEditorMessage = error;
             ServerTestFailed = true;
+            Toast.Warning(error, "Revisa el perfil");
             return;
         }
 
         IsTestingServer = true;
-        ServerEditorMessage = "Testing SSH connection and Linux capabilities...";
+        ServerEditorMessage = "Probando la conexión SSH y las capacidades de Linux...";
         try
         {
             var secret = string.IsNullOrWhiteSpace(EditorSecret) ? null : EditorSecret;
@@ -243,8 +252,10 @@ public partial class MainWindowViewModel : ObservableObject
             var ssh = result.Capabilities.FirstOrDefault(x => x.Capability == ServerCapability.Ssh);
             if (ssh?.Available != true)
             {
-                ServerEditorMessage = $"SSH failed: {ssh?.Detail ?? "connection or authentication rejected"}";
+                var detail = ssh?.Detail ?? "conexión o autenticación rechazada";
+                ServerEditorMessage = $"Falló la conexión SSH: {detail}";
                 ServerTestFailed = true;
+                Toast.Error(detail, "No se pudo conectar por SSH");
                 return;
             }
 
@@ -253,14 +264,17 @@ public partial class MainWindowViewModel : ObservableObject
                 .Select(x => x.Capability.ToString())
                 .ToArray();
 
-            ServerEditorMessage = $"Connection OK · {result.Distribution ?? "Linux"} · {result.Level} · " +
-                                  (detected.Length == 0 ? "basic SSH only" : string.Join(", ", detected));
+            ServerEditorMessage = $"Conexión correcta · {result.Distribution ?? "Linux"} · {result.Level} · " +
+                                  (detected.Length == 0 ? "solo SSH básico" : string.Join(", ", detected));
             ServerTestSucceeded = true;
+            Toast.Success($"{result.Distribution ?? "Linux"} · {(detected.Length == 0 ? "solo SSH básico" : string.Join(", ", detected))}", "Conexión correcta");
         }
         catch (Exception ex)
         {
-            ServerEditorMessage = $"Connection test failed: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            ServerEditorMessage = $"No se pudo probar la conexión: {friendly}";
             ServerTestFailed = true;
+            Toast.Error(friendly, "No se pudo probar la conexión");
         }
         finally
         {
@@ -287,7 +301,8 @@ public partial class MainWindowViewModel : ObservableObject
 
         _store.Save(Servers, _server?.Id);
         NewServer();
-        ServerEditorMessage = "Profile deleted.";
+        ServerEditorMessage = "Perfil eliminado.";
+        Toast.Info($"Se eliminó el perfil «{deleting.Name}».", "Perfil eliminado");
     }
 
     [RelayCommand]
@@ -295,7 +310,8 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (SelectedServerInList == null)
         {
-            ServerEditorMessage = "Select a saved server first.";
+            ServerEditorMessage = "Selecciona primero un servidor guardado.";
+            Toast.Warning("Selecciona primero un servidor guardado.", "Ningún servidor seleccionado");
             return;
         }
 
@@ -308,6 +324,7 @@ public partial class MainWindowViewModel : ObservableObject
         HeaderTitle = "Dashboard";
         HeaderSubtitle = "Overview of the selected Linux VPS";
         StatusMessage = "Server activated. Press Refresh to run compatibility checks and telemetry.";
+        Toast.Success($"«{_server.Name}» es ahora el servidor activo. Pulsa Actualizar para comprobar la conexión.", "Servidor activado");
         RefreshCommand.NotifyCanExecuteChanged();
     }
 
@@ -343,6 +360,7 @@ public partial class MainWindowViewModel : ObservableObject
                 AutoRefreshEnabled = false;
                 StatusMessage = ssh?.Detail ?? "SSH connection failed.";
                 LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
+                Toast.Error(ssh?.Detail ?? "No hubo respuesta SSH del servidor.", "Servidor sin conexión");
                 return;
             }
 
@@ -370,8 +388,10 @@ public partial class MainWindowViewModel : ObservableObject
         {
             AutoRefreshEnabled = false;
             ConnectionStatus = "SSH Offline";
-            StatusMessage = ex.Message;
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = friendly;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
+            Toast.Error(friendly, "No se pudo actualizar el servidor");
         }
         finally
         {

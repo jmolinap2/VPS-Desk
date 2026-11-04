@@ -6,6 +6,7 @@ using VpsDesk.Application.Activity;
 using VpsDesk.Domain.Activity;
 using VpsDesk.Domain.Servers;
 using VpsDesk.Domain.Storage;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -128,7 +129,9 @@ public partial class StorageViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to read storage: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to read storage: {friendly}";
+            Toast.Error(friendly, "No se pudo leer el almacenamiento");
         }
         finally
         {
@@ -176,13 +179,17 @@ public partial class StorageViewModel : ObservableObject
             StatusMessage = result.Succeeded
                 ? $"{GetActionLabel(kind)} completed in {result.Duration.TotalSeconds:F1}s. Storage will be refreshed."
                 : $"{GetActionLabel(kind)} failed with exit code {result.ExitCode}. Review the output.";
+            if (result.Succeeded) Toast.Success($"{GetActionLabel(kind)} terminó en {result.Duration.TotalSeconds:F1}s. Se actualizará el almacenamiento.", "Limpieza completada");
+            else Toast.Error($"{GetActionLabel(kind)} falló con código {result.ExitCode}. Revisa la salida.", "Falló la limpieza");
 
             await RecordCleanupAsync(server, startedAt, result);
         }
         catch (Exception ex)
         {
             CleanupOutput = ex.Message;
-            StatusMessage = $"Cleanup failed: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Cleanup failed: {friendly}";
+            Toast.Error(friendly, "Falló la limpieza");
             await RecordCleanupExceptionAsync(server, startedAt, kind, ex);
         }
         finally

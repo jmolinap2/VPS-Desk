@@ -3,8 +3,12 @@
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
              xmlns:services="using:VpsDesk.Desktop.Services"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.MainShell"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Resources>
+    <conv:ConnectionToBrushConverter x:Key="ConnectionToBrush" />
+  </UserControl.Resources>
   <Grid ColumnDefinitions="250,*" RowDefinitions="64,*">
     <Border Grid.RowSpan="2" Background="#0E1219" BorderBrush="#202734" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="72,60,90,*">
@@ -16,19 +20,20 @@
         <Border Grid.Row="1" Margin="12,4" Padding="12,8" Background="#151B25" CornerRadius="8">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <StackPanel>
-              <TextBlock Text="SERVIDOR" FontSize="8" FontWeight="Bold" Foreground="#66758A" />
+              <TextBlock Text="SERVIDOR" FontSize="10" FontWeight="Bold" Foreground="#66758A" />
               <TextBlock Text="{Binding SelectedServerName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
               <TextBlock Text="{Binding ConnectionStatus}" FontSize="10" Foreground="#8290A3" />
             </StackPanel>
-            <Ellipse Grid.Column="1" Width="8" Height="8" Fill="#34D399" VerticalAlignment="Center" />
+            <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center"
+                     Fill="{Binding ConnectionStatus, Converter={StaticResource ConnectionToBrush}}" />
           </Grid>
         </Border>
 
         <Border Grid.Row="2" Margin="12,5" Padding="10,8" Background="#101720" BorderBrush="#202A38" BorderThickness="1" CornerRadius="8">
           <StackPanel Spacing="4">
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="PROYECTO ACTIVO" FontSize="8" FontWeight="Bold" Foreground="#66758A" />
-              <TextBlock Grid.Column="1" Text="{Binding ActiveProjectMode}" FontSize="8" Foreground="#5EEAD4" TextTrimming="CharacterEllipsis" MaxWidth="105" />
+              <TextBlock Text="PROYECTO ACTIVO" FontSize="10" FontWeight="Bold" Foreground="#66758A" />
+              <TextBlock Grid.Column="1" Text="{Binding ActiveProjectMode}" FontSize="10" Foreground="#5EEAD4" TextTrimming="CharacterEllipsis" MaxWidth="105" />
             </Grid>
             <ComboBox ItemsSource="{Binding ProjectsModule.AssociatedProjects}"
                       SelectedItem="{Binding ProjectsModule.SelectedProject}"
@@ -40,13 +45,13 @@
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
-            <TextBlock Text="{Binding ActiveProjectContext}" FontSize="8" Foreground="#66758A" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding ActiveProjectContext}" FontSize="10" Foreground="#66758A" TextTrimming="CharacterEllipsis" />
           </StackPanel>
         </Border>
 
         <ScrollViewer Grid.Row="3">
           <StackPanel Margin="4,10">
-            <TextBlock Text="SERVIDOR" FontSize="8" FontWeight="Bold" Foreground="#56657A" Margin="14,4,0,5" />
+            <TextBlock Text="SERVIDOR" FontSize="10" FontWeight="Bold" Foreground="#56657A" Margin="14,4,0,5" />
             <Button Classes="nav" Classes.active="{Binding IsServersPage}" Content="{DynamicResource Nav_Servers}" Command="{Binding NavigateCommand}" CommandParameter="Servers" />
             <Button Classes="nav" Classes.active="{Binding IsDashboardPage}" Content="{DynamicResource Nav_Dashboard}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" />
             <Button Classes="nav" Classes.active="{Binding IsContainersPage}" Content="{DynamicResource Nav_Containers}" Command="{Binding NavigateCommand}" CommandParameter="Containers" />
@@ -57,7 +62,7 @@
             <Button Classes="nav" Classes.active="{Binding IsSecurityPage}" Content="{DynamicResource Nav_Security}" Command="{Binding NavigateCommand}" CommandParameter="Security" />
 
             <Border Height="1" Background="#202734" Margin="12,10" />
-            <TextBlock Text="PROYECTO" FontSize="8" FontWeight="Bold" Foreground="#56657A" Margin="14,2,0,5" />
+            <TextBlock Text="PROYECTO" FontSize="10" FontWeight="Bold" Foreground="#56657A" Margin="14,2,0,5" />
             <Button Classes="nav" Classes.active="{Binding IsProjectsPage}" Content="{Binding LocalizedProjectsNavigationLabel}" Command="{Binding NavigateCommand}" CommandParameter="Projects" />
             <Button Classes="nav" Classes.active="{Binding IsDeploymentsPage}" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" />
             <Button Classes="nav" Classes.active="{Binding IsEnvironmentPage}" Content="{DynamicResource Nav_Environment}" Command="{Binding NavigateCommand}" CommandParameter="Environment" />
@@ -92,5 +97,9 @@
     </Border>
 
     <views:PageHost Grid.Column="1" Grid.Row="1" />
+
+    <!-- avisos flotantes: esquina superior derecha, bajo la barra de título -->
+    <views:ToastHost Grid.Column="1" Grid.Row="1" Width="400" Margin="0,14,18,0"
+                     HorizontalAlignment="Right" VerticalAlignment="Top" />
   </Grid>
 </UserControl>

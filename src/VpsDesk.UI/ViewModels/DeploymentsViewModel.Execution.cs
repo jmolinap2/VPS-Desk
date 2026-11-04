@@ -72,7 +72,9 @@ public partial class DeploymentsViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = $"La detección falló. Revisa la conexión SSH y la ruta del repositorio: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"La detección falló. Revisa la conexión SSH y la ruta del repositorio: {friendly}";
+            Toast.Error(friendly, "La detección falló");
         }
         finally
         {
@@ -109,7 +111,9 @@ public partial class DeploymentsViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = $"No se pudo detectar automáticamente el proyecto: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"No se pudo detectar automáticamente el proyecto: {friendly}";
+            Toast.Error(friendly, "No se pudo detectar el proyecto");
         }
         finally
         {
@@ -206,7 +210,7 @@ public partial class DeploymentsViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = $"No se pudieron traer los cambios: {ex.Message}";
+            StatusMessage = $"No se pudieron traer los cambios: {UserFacingErrors.Describe(ex)}";
             CompleteOperationFeedback(false, "La actualización no pudo completarse. Revisa el terminal.");
         }
         finally
@@ -309,7 +313,9 @@ public partial class DeploymentsViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = $"La validación previa falló: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"La validación previa falló: {friendly}";
+            Toast.Error(friendly, "La validación previa falló");
             CanDeploy = false;
             return false;
         }
@@ -418,6 +424,7 @@ public partial class DeploymentsViewModel
             if (!result.Succeeded)
             {
                 StatusMessage = $"La ejecución se detuvo en '{result.FailedStep?.Label ?? "paso desconocido"}'. Revisa la salida sanitizada.";
+                Toast.Error(StatusMessage, "El despliegue se detuvo");
                 return;
             }
 
@@ -425,6 +432,7 @@ public partial class DeploymentsViewModel
             if (MigrationOnly)
             {
                 StatusMessage = $"Migraciones completadas en {elapsed:F1}s · {SelectedMigrationMode?.Label}.";
+                Toast.Success(StatusMessage, "Migraciones completadas");
                 return;
             }
 
@@ -446,10 +454,19 @@ public partial class DeploymentsViewModel
                     ? $"Deployment completed in {elapsed:F1}s. The release is healthy, with maintenance/post-deploy warnings to review."
                     : $"Deployment completed in {elapsed:F1}s and post-deploy verification passed."
                 : $"Deployment commands completed in {elapsed:F1}s, but post-deploy verification found problems. Review the checks before considering the release healthy.";
+
+            if (!verification.Passed)
+                Toast.Error($"Los comandos terminaron en {elapsed:F1}s, pero la verificación posterior encontró problemas. Revisa las comprobaciones antes de dar la versión por buena.", "Despliegue con problemas");
+            else if (hasWarnings)
+                Toast.Warning($"Desplegado en {elapsed:F1}s y saludable, con avisos de mantenimiento o posteriores que conviene revisar.", "Despliegue completado con avisos");
+            else
+                Toast.Success($"Desplegado en {elapsed:F1}s y la verificación posterior pasó.", "Despliegue completado");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"La ejecución falló o no pudo verificarse: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"La ejecución falló o no pudo verificarse: {friendly}";
+            Toast.Error(friendly, "El despliegue falló");
         }
         finally
         {

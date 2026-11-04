@@ -27,6 +27,13 @@ public class MainApplication : AvaloniaAndroidApplication<App>
             Environment.SetEnvironmentVariable(
                 "VPSDESK_ENV_PATH",
                 System.IO.Path.Combine(externalFilesDir, ".env"));
+
+            // Las copias de la aplicación se guardan junto al .env: en Android, la carpeta
+            // "Documentos" de .NET es privada y no se ve desde el gestor de archivos. Esta
+            // carpeta sí se puede sacar con `adb pull` o por USB desde el PC.
+            Environment.SetEnvironmentVariable(
+                "VPSDESK_BACKUP_DIR",
+                System.IO.Path.Combine(externalFilesDir, "Backups"));
         }
 
         base.OnCreate();

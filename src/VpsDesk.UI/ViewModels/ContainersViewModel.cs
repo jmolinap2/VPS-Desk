@@ -6,6 +6,7 @@ using VpsDesk.Application.Activity;
 using VpsDesk.Domain.Activity;
 using VpsDesk.Domain.Containers;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -137,7 +138,9 @@ public partial class ContainersViewModel : ObservableObject
         catch (Exception ex)
         {
             AutoRefreshEnabled = false;
-            StatusMessage = $"Docker unavailable: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Docker unavailable: {friendly}";
+            Toast.Error(friendly, "Docker no disponible");
         }
         finally
         {
@@ -187,18 +190,22 @@ public partial class ContainersViewModel : ObservableObject
                     ? $"Docker {action} failed."
                     : result.Error;
                 StatusMessage = details;
+                Toast.Error(details, "Falló la acción del contenedor");
                 return;
             }
 
             outcome = OperationOutcome.Success;
             StatusMessage = $"{containerName}: {action} completed.";
             details = StatusMessage;
+            Toast.Success($"{containerName}: {action} completado.", "Acción del contenedor");
             CancelPendingAction();
         }
         catch (Exception ex)
         {
             details = ex.Message;
-            StatusMessage = $"Container action failed: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Container action failed: {friendly}";
+            Toast.Error(friendly, "Falló la acción del contenedor");
         }
         finally
         {

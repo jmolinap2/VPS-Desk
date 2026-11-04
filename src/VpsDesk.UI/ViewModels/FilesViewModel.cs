@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Domain.Files;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
 
@@ -135,7 +136,9 @@ public partial class FilesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to browse files: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to browse files: {friendly}";
+            Toast.Error(friendly, "No se pudieron listar los archivos");
         }
         finally
         {
@@ -286,7 +289,9 @@ public partial class FilesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to preview image: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to preview image: {friendly}";
+            Toast.Error(friendly, "No se pudo previsualizar la imagen");
         }
         finally
         {
@@ -332,7 +337,9 @@ public partial class FilesViewModel : ObservableObject
         catch (Exception ex)
         {
             HasOpenTextFile = false;
-            StatusMessage = $"Unable to open file: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to open file: {friendly}";
+            Toast.Error(friendly, "No se pudo abrir el archivo");
         }
         finally
         {
@@ -380,7 +387,9 @@ public partial class FilesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to reload file: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to reload file: {friendly}";
+            Toast.Error(friendly, "No se pudo recargar el archivo");
         }
         finally
         {
@@ -474,12 +483,19 @@ public partial class FilesViewModel : ObservableObject
             StatusMessage = string.IsNullOrWhiteSpace(LastBackupPath)
                 ? $"Saved {EditorPath}."
                 : $"Saved {EditorPath}. Backup: {LastBackupPath}";
+            Toast.Success(
+                string.IsNullOrWhiteSpace(LastBackupPath)
+                    ? $"{EditorPath} se guardó en el servidor."
+                    : $"{EditorPath} se guardó en el servidor. Copia previa: {LastBackupPath}",
+                "Archivo guardado");
             CancelPendingSave();
             _lastRefreshUtc = null;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unable to save file: {ex.Message}";
+            var friendly = UserFacingErrors.Describe(ex);
+            StatusMessage = $"Unable to save file: {friendly}";
+            Toast.Error(friendly, "No se pudo guardar el archivo");
         }
         finally
         {

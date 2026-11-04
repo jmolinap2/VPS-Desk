@@ -4,6 +4,33 @@
              xmlns:servers="using:VpsDesk.Domain.Servers"
              x:Class="VpsDesk.Desktop.Views.ServersView"
              x:DataType="vm:MainWindowViewModel">
+  <UserControl.Styles>
+    <!-- resultado de "Probar conexión": neutro mientras prueba, verde si conecta, rojo si falla -->
+    <Style Selector="Border.testResult">
+      <Setter Property="Background" Value="#0E131B" />
+      <Setter Property="BorderBrush" Value="#1E2735" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+    <Style Selector="Border.testResult.ok">
+      <Setter Property="Background" Value="#0D241F" />
+      <Setter Property="BorderBrush" Value="#0F766E" />
+    </Style>
+    <Style Selector="Border.testResult.failed">
+      <Setter Property="Background" Value="#2A1215" />
+      <Setter Property="BorderBrush" Value="#B91C1C" />
+    </Style>
+    <Style Selector="Border.testResult SelectableTextBlock.msg">
+      <Setter Property="Foreground" Value="#8290A3" />
+    </Style>
+    <Style Selector="Border.testResult.ok SelectableTextBlock.msg">
+      <Setter Property="Foreground" Value="#7EE7CD" />
+    </Style>
+    <Style Selector="Border.testResult.failed SelectableTextBlock.msg">
+      <Setter Property="Foreground" Value="#FCA5A5" />
+    </Style>
+  </UserControl.Styles>
   <Grid Margin="24" ColumnDefinitions="340,*" ColumnSpacing="18">
     <Border Classes="card">
       <Grid RowDefinitions="Auto,*,Auto">
@@ -84,8 +111,11 @@
             </StackPanel>
           </Grid>
 
-          <Border Background="#0E131B" CornerRadius="8" Padding="12">
-            <TextBlock Text="{Binding ServerEditorMessage}" Foreground="#8290A3" TextWrapping="Wrap" />
+          <Border Classes="testResult" Classes.ok="{Binding ServerTestSucceeded}" Classes.failed="{Binding ServerTestFailed}">
+            <StackPanel Spacing="8">
+              <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsTestingServer}" Height="3" Foreground="#5EEAD4" />
+              <SelectableTextBlock Classes="msg" Text="{Binding ServerEditorMessage}" TextWrapping="Wrap" />
+            </StackPanel>
           </Border>
 
           <WrapPanel>

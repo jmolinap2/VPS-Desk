@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Snapshots;
+using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -223,6 +224,7 @@ public partial class DeploymentsViewModel
         if (!created)
         {
             StatusMessage = "Despliegue cancelado: no se pudo crear el snapshot previo. No se modificó el servidor.";
+            Toast.Error(StatusMessage, "Despliegue cancelado");
         }
 
         return created;
@@ -250,7 +252,7 @@ public partial class DeploymentsViewModel
         catch (Exception ex)
         {
             AppendSnapshotLog($"ERROR: {ex.Message}");
-            CompleteOperationFeedback(false, $"No se pudo crear el snapshot: {ex.Message}");
+            CompleteOperationFeedback(false, $"No se pudo crear el snapshot: {UserFacingErrors.Describe(ex)}");
             return false;
         }
         finally
@@ -277,7 +279,7 @@ public partial class DeploymentsViewModel
         catch (Exception ex)
         {
             AppendSnapshotLog($"ERROR: {ex.Message}");
-            CompleteOperationFeedback(false, $"La restauración no terminó correctamente: {ex.Message}. Revisa el estado del VPS en hPanel.");
+            CompleteOperationFeedback(false, $"La restauración no terminó correctamente: {UserFacingErrors.Describe(ex)} Revisa el estado del VPS en hPanel.");
         }
         finally
         {

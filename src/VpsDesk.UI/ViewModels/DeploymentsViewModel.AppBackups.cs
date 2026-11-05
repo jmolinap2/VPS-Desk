@@ -97,7 +97,9 @@ public partial class DeploymentsViewModel
         await CreateAppBackupWithFeedbackAsync(
             server,
             "Creando copia de la aplicación",
-            $"Se guardará en esta máquina y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando.",
+            IsDataSaverActive
+                ? $"Modo ahorro de datos: se guardará en el VPS, sin descargarla, y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando."
+                : $"Se guardará en esta máquina y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando.",
             "Copia creada y verificada.",
             closeOnSuccess: false);
     }
@@ -105,7 +107,9 @@ public partial class DeploymentsViewModel
     /// <summary>Línea para la confirmación del despliegue.</summary>
     private string BuildAppBackupNotice()
         => BackupBeforeDeploy && IsAppBackupConfigured
-            ? $" Antes de desplegar se descargará una copia de la aplicación (se conservan las {KeepCopies} más recientes)."
+            ? IsDataSaverActive
+                ? $" Antes de desplegar se creará una copia de la aplicación que se queda en el VPS, sin descargarla (se conservan las {KeepCopies} más recientes)."
+                : $" Antes de desplegar se descargará una copia de la aplicación (se conservan las {KeepCopies} más recientes)."
             : string.Empty;
 
     /// <summary>
@@ -120,7 +124,9 @@ public partial class DeploymentsViewModel
         var created = await CreateAppBackupWithFeedbackAsync(
             server,
             "Creando copia previa al despliegue",
-            "Volcado de PostgreSQL, proyecto y configuración descargados a esta máquina antes de tocar el servidor.",
+            IsDataSaverActive
+                ? "Volcado de PostgreSQL, proyecto y configuración guardados en el VPS (sin descargar, modo ahorro de datos) antes de tocar el servidor."
+                : "Volcado de PostgreSQL, proyecto y configuración descargados a esta máquina antes de tocar el servidor.",
             "Copia creada. Continuando con el despliegue...",
             closeOnSuccess: true);
 
@@ -154,12 +160,14 @@ public partial class DeploymentsViewModel
         try
         {
             var result = await _appBackups!.CreateAsync(
-                new AppBackupRequest(server, RemoteRepositoryPath.Trim(), KeepCopies),
+                new AppBackupRequest(server, RemoteRepositoryPath.Trim(), KeepCopies, KeepOnServerOnly: IsDataSaverActive),
                 _secretAccessor(),
                 progress);
 
             foreach (var warning in result.Warnings) AppendSnapshotLog($"AVISO: {warning}");
-            AppendSnapshotLog($"Guardada en {result.Backup.FullPath} ({FormatBytes(result.Backup.SizeBytes)})");
+            AppendSnapshotLog(result.StoredOnServer
+                ? $"Guardada en el VPS: {result.Backup.FullPath} ({FormatBytes(result.Backup.SizeBytes)}). No se descargó (modo ahorro de datos)."
+                : $"Guardada en {result.Backup.FullPath} ({FormatBytes(result.Backup.SizeBytes)})");
             RefreshAppBackups();
 
             var detail = result.DatabaseIncluded ? string.Empty : " ATENCIÓN: no incluye base de datos.";

@@ -70,7 +70,7 @@ public sealed class SshAppBackupService : IAppBackupService
         try
         {
             progress?.Report("Preparando la copia en el VPS (volcado de base de datos, proyecto y configuración)...");
-            var script = BuildRemoteScript(stamp, repository, request.PostgresContainer);
+            var script = BuildRemoteScript(stamp, repository, request.PostgresContainer, keep, request.KeepOnServerOnly);
             var command = $"printf %s '{Convert.ToBase64String(Encoding.UTF8.GetBytes(script))}' | base64 -d | bash";
 
             var result = await _ssh.ExecuteAsync(
@@ -94,6 +94,27 @@ public sealed class SshAppBackupService : IAppBackupService
             }
 
             long.TryParse(markers.GetValueOrDefault("VPSDESK_SIZE"), NumberStyles.None, CultureInfo.InvariantCulture, out var expectedSize);
+
+            if (request.KeepOnServerOnly)
+            {
+                // Modo ahorro de datos: nada se descarga. La copia ya está verificada en el VPS
+                // (gzip -t del volcado) y rotada allí; aquí solo se informa de dónde quedó.
+                var remotePath = markers.GetValueOrDefault("VPSDESK_REMOTE_PATH") ?? remoteFile;
+                progress?.Report($"Copia guardada en el VPS ({FormatSize(expectedSize)}); no se descarga para ahorrar datos.");
+                var remoteWarnings = result.StandardOutput
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(line => line.StartsWith("WARN:", StringComparison.Ordinal))
+                    .Select(line => line[5..].Trim())
+                    .ToArray();
+
+                return new AppBackupResult(
+                    new AppBackupInfo(Path.GetFileName(remotePath), remotePath, expectedSize, DateTimeOffset.UtcNow),
+                    string.Equals(markers.GetValueOrDefault("VPSDESK_DB"), "yes", StringComparison.Ordinal),
+                    remoteWarnings,
+                    0,
+                    StoredOnServer: true);
+            }
+
             progress?.Report($"Descargando la copia ({FormatSize(expectedSize)})...");
             await DownloadAsync(request.Server, secret, remoteFile, partPath, expectedSize, progress, cancellationToken);
 
@@ -243,9 +264,11 @@ public sealed class SshAppBackupService : IAppBackupService
             : $"La copia falló en el VPS (código {result.ExitCode}). {result.StandardError.Trim()}".TrimEnd();
     }
 
-    private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer)
+    private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer, int keep, bool serverOnly)
         => RemoteScript
             .Replace("__STAMP__", stamp, StringComparison.Ordinal)
+            .Replace("__KEEP__", keep.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
+            .Replace("__SERVER_ONLY__", serverOnly ? "1" : "0", StringComparison.Ordinal)
             .Replace("__REPO__", Quote(repository), StringComparison.Ordinal)
             .Replace("__PG__", Quote(postgresContainer?.Trim() ?? string.Empty), StringComparison.Ordinal);
 
@@ -291,6 +314,8 @@ public sealed class SshAppBackupService : IAppBackupService
         STAMP=__STAMP__
         REPO=__REPO__
         PGC=__PG__
+        KEEP=__KEEP__
+        SERVER_ONLY=__SERVER_ONLY__
         WORK="/tmp/vpsdesk-backup-$STAMP"
         OUT="$WORK.tar"
         fail() { echo "ERR: $1"; rm -rf "$WORK" "$OUT"; exit "${2:-1}"; }
@@ -343,6 +368,15 @@ public sealed class SshAppBackupService : IAppBackupService
 
         tar -cf "$OUT" -C "$WORK/content" . || fail "No se pudo crear el paquete final." 40
         rm -rf "$WORK"
+        if [ "$SERVER_ONLY" = "1" ]; then
+          DEST="${HOME:-/root}/vpsdesk-backups"
+          mkdir -p "$DEST" || fail "No se pudo crear $DEST" 50
+          FINAL="$DEST/vpsdesk-$STAMP.vpsbackup.tar"
+          mv "$OUT" "$FINAL" || fail "No se pudo guardar la copia en $DEST" 50
+          OUT="$FINAL"
+          ls -1t "$DEST"/*.vpsbackup.tar 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+          echo "VPSDESK_REMOTE_PATH=$OUT"
+        fi
         echo "VPSDESK_SHA256=$(sha256sum "$OUT" | cut -d' ' -f1)"
         echo "VPSDESK_SIZE=$(stat -c %s "$OUT")"
         echo "VPSDESK_DB=$DB"

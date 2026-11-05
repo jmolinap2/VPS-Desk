@@ -28,11 +28,16 @@ public interface IAppBackupService
         CancellationToken cancellationToken = default);
 }
 
+/// <param name="KeepOnServerOnly">
+/// Modo ahorro de datos: la copia no se descarga al dispositivo, queda en el VPS
+/// (~/vpsdesk-backups) con la misma rotación de <paramref name="KeepCopies"/>.
+/// </param>
 public sealed record AppBackupRequest(
     ServerProfile Server,
     string RemoteRepositoryPath,
     int KeepCopies = 3,
-    string? PostgresContainer = null);
+    string? PostgresContainer = null,
+    bool KeepOnServerOnly = false);
 
 public sealed record AppBackupInfo(
     string FileName,
@@ -44,4 +49,5 @@ public sealed record AppBackupResult(
     AppBackupInfo Backup,
     bool DatabaseIncluded,
     IReadOnlyList<string> Warnings,
-    int PrunedCount);
+    int PrunedCount,
+    bool StoredOnServer = false);

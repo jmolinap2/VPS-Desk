@@ -93,6 +93,7 @@ public partial class DeploymentsViewModel : ObservableObject
 
     partial void OnBranchChanged(string value)
     {
+        NotifyExecutionSummaryChanged();
         if (!_isLoadingProfile) InvalidatePreflight();
     }
 

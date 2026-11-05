@@ -405,6 +405,7 @@ public partial class DeploymentsViewModel
             "checkout" => "Seleccionando la rama",
             "pull" => "Actualizando el código",
             "compose_pull" => "Descargando imágenes",
+            "compose_deps" => "Comprobando dependencias",
             "compose_up" => "Construyendo e iniciando servicios",
             "compose_ps" => "Consultando los contenedores",
             "build_cache_prune" => "Limpiando la caché de construcción",

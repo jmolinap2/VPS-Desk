@@ -356,7 +356,7 @@ public partial class DeploymentsViewModel
             ? " Es un servidor de producción: los servicios seleccionados pueden recrearse o reiniciarse."
             : " Los servicios seleccionados pueden recrearse o reiniciarse.";
         PendingDeployMessage =
-            $"Rama '{Branch.Trim()}' · {BuildExecutionSummary()} · Compose '{ComposeFile.Trim()}'.{productionWarning}{BuildSnapshotNotice()}{BuildAppBackupNotice()}";
+            $"Rama '{Branch.Trim()}' · {BuildExecutionSummary()} · Compose '{ComposeFile.Trim()}'.{productionWarning}{BuildSnapshotNotice()}{BuildAppBackupNotice()}{BuildDataSaverNotice()}";
     }
 
     [RelayCommand]
@@ -391,6 +391,9 @@ public partial class DeploymentsViewModel
 
         var deploymentServices = GetDeploymentServices();
         var operation = BuildProjectOperation();
+        // La red se evalúa ahora: puede haber cambiado desde que se abrió la pantalla.
+        var dataSaver = IsDataSaverActive;
+        RefreshDataSaverStatus();
 
         try
         {
@@ -405,7 +408,8 @@ public partial class DeploymentsViewModel
                     CleanBuildCache,
                     DeployApplication: !MigrationOnly,
                     Services: deploymentServices,
-                    Operation: operation),
+                    Operation: operation,
+                    DataSaver: dataSaver),
                 _secretAccessor());
 
             while (_progressQueue.TryDequeue(out var pending)) ApplyProgress(pending);

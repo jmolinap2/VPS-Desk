@@ -2,6 +2,7 @@ using Android.App;
 using Android.Runtime;
 using Avalonia;
 using Avalonia.Android;
+using VpsDesk.Application.Runtime;
 using VpsDesk.Desktop;
 
 namespace VpsDesk.Android;
@@ -35,6 +36,9 @@ public class MainApplication : AvaloniaAndroidApplication<App>
                 "VPSDESK_BACKUP_DIR",
                 System.IO.Path.Combine(externalFilesDir, "Backups"));
         }
+
+        // El modo ahorro de datos (Automático) decide según esta red; sin esto nunca se activaría.
+        NetworkConditions.Current = new AndroidNetworkConditions(this);
 
         base.OnCreate();
     }

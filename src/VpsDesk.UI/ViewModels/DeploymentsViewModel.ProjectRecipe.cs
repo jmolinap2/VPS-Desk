@@ -50,6 +50,8 @@ public partial class DeploymentsViewModel
     partial void OnSelectedDeploymentTargetChanged(ProjectDeploymentTarget? value)
     {
         OnPropertyChanged(nameof(SelectedTargetLabel));
+        SyncQuickChoiceFromState();
+        NotifyExecutionSummaryChanged();
         if (_applyingProjectModel) return;
 
         if (value is not null && HasMigrationRecipe && !MigrationOnly)
@@ -81,6 +83,7 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(ShowDeploymentTarget));
         OnPropertyChanged(nameof(SelectedTargetLabel));
         NotifyMigrationPresentationChanged();
+        SyncQuickChoiceFromState();
         if (!_applyingProjectModel) InvalidatePreflight();
     }
 
@@ -96,6 +99,7 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(MigrationInputLabel));
         OnPropertyChanged(nameof(MigrationInputPlaceholder));
         OnPropertyChanged(nameof(SelectedMigrationLabel));
+        NotifyExecutionSummaryChanged();
     }
 
     private void LoadProjectPreferences(DeploymentProfile? profile)
@@ -128,6 +132,7 @@ public partial class DeploymentsViewModel
             NotifyMigrationPresentationChanged();
             OnPropertyChanged(nameof(ShowDeploymentTarget));
             OnPropertyChanged(nameof(SelectedTargetLabel));
+            RebuildQuickChoices();
         }
         finally
         {
@@ -249,6 +254,7 @@ public partial class DeploymentsViewModel
             NotifyMigrationPresentationChanged();
             OnPropertyChanged(nameof(ShowDeploymentTarget));
             OnPropertyChanged(nameof(SelectedTargetLabel));
+            RebuildQuickChoices();
             InvalidatePreflight();
         }
     }

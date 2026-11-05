@@ -66,6 +66,36 @@
     <Style Selector="TextBlock.outcome[Text=Warning]"><Setter Property="Foreground" Value="#FBBF24" /></Style>
     <Style Selector="TextBlock.outcome[Text=Failed]"><Setter Property="Foreground" Value="#F87171" /></Style>
 
+    <!-- chips de objetivo: ListBox con panel envolvente; el seleccionado se rellena en verde -->
+    <Style Selector="ListBox.chips">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.chips &gt; ListBoxItem">
+      <Setter Property="MinHeight" Value="44" />
+      <Setter Property="Padding" Value="14,0" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="#A8B4C5" />
+    </Style>
+    <Style Selector="ListBox.chips &gt; ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#0E131B" />
+      <Setter Property="BorderBrush" Value="#2A3A52" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+    <Style Selector="ListBox.chips &gt; ListBoxItem:selected">
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="ListBox.chips &gt; ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#0F766E" />
+      <Setter Property="BorderBrush" Value="#14B8A6" />
+    </Style>
+    <Style Selector="ListBox.chips &gt; ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#0F766E" />
+    </Style>
+
     <!-- hoja de detalle del historial (mismo patrón que Contenedores) -->
     <Style Selector="Border.scrim">
       <Setter Property="Opacity" Value="0" />
@@ -131,6 +161,62 @@
             </Grid>
           </Border>
         </Button>
+
+        <!-- qué ejecutar: un toque para Completo / Backend / Frontend / Solo migraciones -->
+        <Border Classes="panel">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="sectionTitle" Text="Qué ejecutar" />
+            <ListBox Classes="chips" ItemsSource="{Binding QuickChoices}" SelectedItem="{Binding SelectedQuickChoice}">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:DeploymentChoice">
+                  <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel IsVisible="{Binding HasMigrationRecipe}" Spacing="8">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Text="Ejecutar migraciones en este pase" FontSize="13" TextWrapping="Wrap" />
+                  <TextBlock Text="Migraciones de base de datos" FontSize="10.5" Foreground="#66758A" />
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding RunMigrations}" IsEnabled="{Binding !MigrationOnly}" />
+              </Grid>
+              <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding MigrationModes}"
+                        SelectedItem="{Binding SelectedMigrationMode}" IsVisible="{Binding ShowMigrationOptions}"
+                        PlaceholderText="Selecciona el alcance">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="deploy:ProjectMigrationMode">
+                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <StackPanel IsVisible="{Binding RequiresMigrationInput}">
+                <TextBlock Classes="label" Text="{Binding MigrationInputLabel}" />
+                <TextBox Text="{Binding MigrationInput}" PlaceholderText="{Binding MigrationInputPlaceholder}" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ajustes poco frecuentes: en una hoja inferior para no alargar la pantalla -->
+        <Button Command="{Binding OpenAdvancedOptionsCommand}" HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch" MinHeight="48" CornerRadius="13"
+                Background="#121826" BorderBrush="#1E2735" BorderThickness="1">
+          <Grid ColumnDefinitions="*,Auto" Margin="2,0">
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Opciones del pase" FontSize="13" FontWeight="SemiBold" />
+              <TextBlock Text="Seguridad, ahorro de datos, snapshot y copia" FontSize="10.5" Foreground="#66758A" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="&#8250;" FontSize="22" Foreground="#8290A3" VerticalAlignment="Center" />
+          </Grid>
+        </Button>
+
 
         <!-- configuración -->
         <StackPanel Spacing="12" IsVisible="{Binding IsDeploymentConfigurationExpanded}">
@@ -199,119 +285,8 @@
                          Text="Integración VPS Desk activa: el prevuelo y la confirmación siguen siendo obligatorios." />
             </StackPanel>
           </Border>
-
-          <!-- qué ejecutar -->
-          <Border Classes="panel">
-            <StackPanel Spacing="12">
-              <StackPanel IsVisible="{Binding ShowDeploymentTarget}">
-                <TextBlock Classes="label" Text="Objetivo de despliegue" />
-                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding AvailableTargets}"
-                          SelectedItem="{Binding SelectedDeploymentTarget}" PlaceholderText="Selecciona servicios">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="deploy:ProjectDeploymentTarget">
-                      <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-              </StackPanel>
-
-              <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasMigrationRecipe}">
-                <StackPanel>
-                  <TextBlock Text="Solo ejecutar migraciones" FontSize="13" />
-                </StackPanel>
-                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding MigrationOnly}" />
-              </Grid>
-
-              <StackPanel IsVisible="{Binding HasMigrationRecipe}" Spacing="8">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel>
-                    <TextBlock Text="Ejecutar migraciones en este pase" FontSize="13" TextWrapping="Wrap" />
-                    <TextBlock Text="Migraciones de base de datos" FontSize="10.5" Foreground="#66758A" />
-                  </StackPanel>
-                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding RunMigrations}" IsEnabled="{Binding !MigrationOnly}" />
-                </Grid>
-                <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding MigrationModes}"
-                          SelectedItem="{Binding SelectedMigrationMode}" IsVisible="{Binding ShowMigrationOptions}"
-                          PlaceholderText="Selecciona el alcance">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="deploy:ProjectMigrationMode">
-                      <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-                <StackPanel IsVisible="{Binding RequiresMigrationInput}">
-                  <TextBlock Classes="label" Text="{Binding MigrationInputLabel}" />
-                  <TextBox Text="{Binding MigrationInput}" PlaceholderText="{Binding MigrationInputPlaceholder}" />
-                </StackPanel>
-              </StackPanel>
-            </StackPanel>
-          </Border>
-
-          <!-- seguridad y estrategia: una fila por interruptor -->
-          <Border Classes="panel">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="sectionTitle" Text="{DynamicResource Deployments_Safety}" />
-
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{DynamicResource Deployments_RequireEnv}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding RequireEnvironmentFile}" />
-              </Grid>
-              <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" IsVisible="{Binding RequireEnvironmentFile}" />
-
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{DynamicResource Deployments_PullImages}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding PullImages}" IsEnabled="{Binding !MigrationOnly}" />
-              </Grid>
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{DynamicResource Deployments_BuildImages}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding BuildImages}" IsEnabled="{Binding !MigrationOnly}" />
-              </Grid>
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{DynamicResource Deployments_CleanBuildCache}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding CleanBuildCache}" IsEnabled="{Binding !MigrationOnly}" />
-              </Grid>
-
-              <StackPanel>
-                <TextBlock Classes="label" Text="{DynamicResource Deployments_HealthUrls}" />
-                <TextBox Text="{Binding HttpHealthUrls}" AcceptsReturn="True" MinHeight="64" TextWrapping="Wrap"
-                         IsEnabled="{Binding !MigrationOnly}" PlaceholderText="https://app.example.com/health" />
-              </StackPanel>
-            </StackPanel>
-          </Border>
         </StackPanel>
 
-        <!-- punto de restauración del VPS completo -->
-        <Border Classes="panel">
-          <StackPanel Spacing="10">
-            <TextBlock Classes="sectionTitle" Text="Punto de restauración" />
-            <TextBlock Text="{Binding SnapshotSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
-            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsSnapshotConfigured}">
-              <TextBlock Text="Crear snapshot antes de desplegar" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
-              <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding SnapshotBeforeDeploy}" />
-            </Grid>
-            <WrapPanel>
-              <Button Content="Crear snapshot" Command="{Binding RequestCreateSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,8,6" />
-              <Button Content="Restaurar" Command="{Binding RequestRestoreSnapshotCommand}" IsEnabled="{Binding CanRestoreSnapshot}" Margin="0,0,8,6" />
-              <Button Content="&#8635;" Command="{Binding RefreshSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,0,6" />
-            </WrapPanel>
-          </StackPanel>
-        </Border>
-
-        <!-- copia descargable de la aplicación -->
-        <Border Classes="panel" IsVisible="{Binding IsAppBackupConfigured}">
-          <StackPanel Spacing="10">
-            <TextBlock Classes="sectionTitle" Text="Copia de la aplicación" />
-            <TextBlock Text="{Binding AppBackupSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Crear copia antes de desplegar" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
-              <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding BackupBeforeDeploy}" />
-            </Grid>
-            <WrapPanel>
-              <Button Content="Crear copia" Command="{Binding CreateAppBackupCommand}" IsEnabled="{Binding CanUseAppBackups}" Margin="0,0,8,6" />
-              <Button Content="&#8635;" Command="{Binding RefreshAppBackupsCommand}" Margin="0,0,0,6" />
-            </WrapPanel>
-          </StackPanel>
-        </Border>
 
         <!-- estado actual -->
         <Border CornerRadius="14" Padding="12" BorderThickness="1"
@@ -415,6 +390,9 @@
     <!-- ============ BARRA FIJA: Prevuelo / Ejecutar ============ -->
     <Border Grid.Row="2" IsVisible="{Binding IsNewDeploymentView}" Background="#0E1219" BorderBrush="#1A2230"
             BorderThickness="0,1,0,0" Padding="16,10,16,12">
+      <StackPanel Spacing="8">
+      <TextBlock Text="{Binding ExecutionSummaryLine}" Foreground="#5EEAD4" FontSize="11.5" FontWeight="SemiBold"
+                 TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
       <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
         <Button Content="{DynamicResource Deployments_RunPreflight}" Command="{Binding RunPreflightCommand}"
                 IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -423,6 +401,7 @@
                 IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                 Padding="0,13" CornerRadius="13" Background="#0F766E" Foreground="White" FontWeight="Bold" BorderThickness="0" />
       </Grid>
+      </StackPanel>
     </Border>
 
     <!-- ============ DETALLE DE HISTORIAL (hoja inferior) ============ -->
@@ -461,6 +440,108 @@
 
             <Button Content="{DynamicResource Common_Close}" Click="OnHistoryCloseClick" HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Center" Padding="0,12" CornerRadius="12" />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+
+
+    <!-- ============ OPCIONES DEL PASE (hoja inferior) ============ -->
+    <Border x:Name="OptionsScrim" Classes="scrim" Classes.open="{Binding IsAdvancedOptionsOpen}" Grid.RowSpan="3"
+            Background="#000000" PointerPressed="OnOptionsScrimPressed" />
+    <Border x:Name="OptionsSheet" Classes="sheet" Classes.open="{Binding IsAdvancedOptionsOpen}" Grid.RowSpan="3"
+            VerticalAlignment="Bottom" MaxHeight="680" Background="#10141D" BorderBrush="#1E2735"
+            BorderThickness="1,1,1,0" CornerRadius="22,22,0,0">
+      <Grid RowDefinitions="Auto,Auto,*">
+        <Border Width="38" Height="4" CornerRadius="2" Background="#2A3444" Margin="0,10,0,6" HorizontalAlignment="Center" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="20,2,20,8">
+          <TextBlock Text="Opciones del pase" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="Listo" Command="{Binding CloseAdvancedOptionsCommand}" MinHeight="40" Padding="18,0" CornerRadius="12" />
+        </Grid>
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="16,4,16,22" Spacing="12">
+            <!-- seguridad y estrategia: una fila por interruptor -->
+            <Border Classes="panel">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="sectionTitle" Text="{DynamicResource Deployments_Safety}" />
+
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{DynamicResource Deployments_RequireEnv}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding RequireEnvironmentFile}" />
+                </Grid>
+                <TextBox Text="{Binding EnvironmentFileName}" PlaceholderText=".env" IsVisible="{Binding RequireEnvironmentFile}" />
+
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{DynamicResource Deployments_PullImages}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding PullImages}" IsEnabled="{Binding !MigrationOnly}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{DynamicResource Deployments_BuildImages}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding BuildImages}" IsEnabled="{Binding !MigrationOnly}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{DynamicResource Deployments_CleanBuildCache}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding CleanBuildCache}" IsEnabled="{Binding !MigrationOnly}" />
+                </Grid>
+
+                <StackPanel>
+                  <TextBlock Classes="label" Text="{DynamicResource Deployments_HealthUrls}" />
+                  <TextBox Text="{Binding HttpHealthUrls}" AcceptsReturn="True" MinHeight="64" TextWrapping="Wrap"
+                           IsEnabled="{Binding !MigrationOnly}" PlaceholderText="https://app.example.com/health" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- ahorro de datos: se evalúa al ejecutar; en "Automático" depende de la red medida -->
+            <Border Classes="panel">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="sectionTitle" Text="Ahorro de datos" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Content="&#8635;" Command="{Binding RefreshDataSaverStatusCommand}" />
+                </Grid>
+                <TextBlock Text="{Binding DataSaverStatus}" Foreground="#5EEAD4" FontSize="11" TextWrapping="Wrap" />
+                <ComboBox HorizontalAlignment="Stretch" SelectedIndex="{Binding DataSaverModeIndex}">
+                  <ComboBoxItem Content="Automático (solo con datos móviles)" />
+                  <ComboBoxItem Content="Siempre" />
+                  <ComboBoxItem Content="Nunca" />
+                </ComboBox>
+                <TextBlock Foreground="#66758A" FontSize="10.5" TextWrapping="Wrap"
+                           Text="Activo: el log del pase no se transmite en vivo (solo vuelve el final de cada paso) y la copia previa queda en el VPS en lugar de descargarse al teléfono." />
+              </StackPanel>
+            </Border>
+
+            <!-- punto de restauración del VPS completo -->
+            <Border Classes="panel">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="sectionTitle" Text="Punto de restauración" />
+                <TextBlock Text="{Binding SnapshotSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsSnapshotConfigured}">
+                  <TextBlock Text="Crear snapshot antes de desplegar" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding SnapshotBeforeDeploy}" />
+                </Grid>
+                <WrapPanel>
+                  <Button Content="Crear snapshot" Command="{Binding RequestCreateSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,8,6" />
+                  <Button Content="Restaurar" Command="{Binding RequestRestoreSnapshotCommand}" IsEnabled="{Binding CanRestoreSnapshot}" Margin="0,0,8,6" />
+                  <Button Content="&#8635;" Command="{Binding RefreshSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- copia descargable de la aplicación -->
+            <Border Classes="panel" IsVisible="{Binding IsAppBackupConfigured}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="sectionTitle" Text="Copia de la aplicación" />
+                <TextBlock Text="{Binding AppBackupSummary}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Crear copia antes de desplegar" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" IsChecked="{Binding BackupBeforeDeploy}" />
+                </Grid>
+                <WrapPanel>
+                  <Button Content="Crear copia" Command="{Binding CreateAppBackupCommand}" IsEnabled="{Binding CanUseAppBackups}" Margin="0,0,8,6" />
+                  <Button Content="&#8635;" Command="{Binding RefreshAppBackupsCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
           </StackPanel>
         </ScrollViewer>
       </Grid>

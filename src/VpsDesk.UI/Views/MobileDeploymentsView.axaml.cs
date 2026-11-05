@@ -47,6 +47,10 @@ public partial class MobileDeploymentsView : UserControl
 
     private void OnHistoryScrimPressed(object? sender, PointerPressedEventArgs e) => SetHistorySheetOpen(false);
 
+    // La hoja de opciones es estado del ViewModel (IsAdvancedOptionsOpen); tocar el fondo la cierra.
+    private void OnOptionsScrimPressed(object? sender, PointerPressedEventArgs e)
+        => (DataContext as DeploymentsViewModel)?.CloseAdvancedOptionsCommand.Execute(null);
+
     private void OnHistoryCloseClick(object? sender, RoutedEventArgs e) => SetHistorySheetOpen(false);
 
     private void SetHistorySheetOpen(bool isOpen)

@@ -39,6 +39,9 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         }
     }
 
+    // Paquetes de unos pocos bytes: evitan que un NAT de red móvil cierre un paso largo sin salida.
+    private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(30);
+
     private static SshCommandResult ExecuteCore(
         SshCommandRequest request,
         string? secret,
@@ -48,6 +51,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         cancellationToken.ThrowIfCancellationRequested();
 
         using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
+        client.KeepAliveInterval = KeepAliveInterval;
         var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
         ConnectExplainingHostKey(client, policy);
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,6 +80,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         cancellationToken.ThrowIfCancellationRequested();
 
         using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
+        client.KeepAliveInterval = KeepAliveInterval;
         var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
         ConnectExplainingHostKey(client, policy);
         cancellationToken.ThrowIfCancellationRequested();

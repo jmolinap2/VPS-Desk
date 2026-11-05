@@ -23,7 +23,8 @@ public sealed record ComposeDeploymentRequest(
     bool CleanBuildCache = true,
     bool DeployApplication = true,
     IReadOnlyList<string>? Services = null,
-    DeploymentProjectOperationRequest? Operation = null);
+    DeploymentProjectOperationRequest? Operation = null,
+    bool DataSaver = false);
 
 public sealed record DeploymentStepResult(
     string Code,
@@ -130,11 +131,28 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
         if (request.DeployApplication)
         {
+            // Con servicios concretos (p. ej. solo Front) el pase debe tocar únicamente esos
+            // servicios. Sin --no-deps, Compose también recrearía las dependencias cuya
+            // configuración haya cambiado (p. ej. la API si recibe metadatos distintos en
+            // cada pase). Antes se levantan, sin recrear, las dependencias que falten o
+            // estén detenidas, porque --no-deps ya no lo haría.
+            var isolateServices = serviceArguments.Length > 0;
+            if (isolateServices)
+            {
+                commands.Add((
+                    "compose_deps",
+                    "Ensure dependencies are running",
+                    $"cd -- {repo} && docker compose -f {compose} up -d --no-recreate{serviceArguments}",
+                    TimeSpan.FromMinutes(10),
+                    true));
+            }
+
             var buildFlag = request.BuildImages ? " --build" : string.Empty;
+            var noDepsFlag = isolateServices ? " --no-deps" : string.Empty;
             commands.Add((
                 "compose_up",
                 "Apply Docker Compose",
-                $"cd -- {repo} && docker compose -f {compose} up -d{buildFlag}{serviceArguments}",
+                $"cd -- {repo} && docker compose -f {compose} up -d{buildFlag}{noDepsFlag}{serviceArguments}",
                 TimeSpan.FromMinutes(10),
                 true));
         }
@@ -183,15 +201,18 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             // Las líneas se sanean una a una antes de salir de este servicio, igual que
             // la salida final del paso, para que ningún secreto llegue a la UI en vivo.
             var terminal = new TerminalTextBuffer();
-            var result = await ssh.ExecuteAsync(
-                new SshCommandRequest(
-                    request.Server,
-                    "export NO_COLOR=1 COMPOSE_ANSI=never BUILDKIT_PROGRESS=plain;\n" + step.Command,
-                    step.Timeout,
-                    OutputChunkReceived: (chunk, completed) =>
-                    {
-                        terminal.Append(chunk);
-                        ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+
+            // Modo ahorro de datos: la salida se acumula en el VPS y solo vuelve el final
+            // (tope por paso), sin transmitir el log en vivo. El código de salida se conserva.
+            var commandText = request.DataSaver
+                ? LimitRemoteOutput(step.Command, DataSaverMaxStepOutputBytes)
+                : step.Command;
+            Action<string, bool>? onChunk = request.DataSaver
+                ? null
+                : (chunk, completed) =>
+                {
+                    terminal.Append(chunk);
+                    ProgressChanged?.Invoke(new DeploymentProgressUpdate(
                         step.Code,
                         step.Label,
                         DeploymentProgressState.OutputSnapshot,
@@ -199,7 +220,14 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                         StepIndex: stepIndex,
                         TotalSteps: commands.Count,
                         IsBlocking: step.IsBlocking));
-                    }),
+                };
+
+            var result = await ssh.ExecuteAsync(
+                new SshCommandRequest(
+                    request.Server,
+                    "export NO_COLOR=1 COMPOSE_ANSI=never BUILDKIT_PROGRESS=plain;\n" + commandText,
+                    step.Timeout,
+                    OutputChunkReceived: onChunk),
                 secret,
                 cancellationToken);
 
@@ -248,6 +276,23 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             previousCommit,
             deployedCommit);
     }
+
+    /// <summary>Tope de salida que vuelve al dispositivo por paso en modo ahorro de datos.</summary>
+    private const int DataSaverMaxStepOutputBytes = 16 * 1024;
+
+    /// <summary>
+    /// Ejecuta el comando en un subshell con su salida en un archivo temporal del VPS y devuelve
+    /// únicamente los últimos <paramref name="maxBytes"/>. Conserva el código de salida; un
+    /// <c>exit</c> dentro del comando solo termina el subshell.
+    /// </summary>
+    private static string LimitRemoteOutput(string command, int maxBytes)
+        => "VPSDESK_LOG=\"$(mktemp)\"; trap 'rm -f \"$VPSDESK_LOG\"' EXIT\n" +
+           "(\n" + command + "\n) >\"$VPSDESK_LOG\" 2>&1\n" +
+           "VPSDESK_RC=$?\n" +
+           "VPSDESK_SIZE=$(wc -c <\"$VPSDESK_LOG\")\n" +
+           $"if [ \"$VPSDESK_SIZE\" -gt {maxBytes} ]; then echo \"[Modo ahorro de datos: se omitieron $((VPSDESK_SIZE - {maxBytes})) bytes iniciales de la salida]\"; fi\n" +
+           $"tail -c {maxBytes} \"$VPSDESK_LOG\"\n" +
+           "exit $VPSDESK_RC";
 
     private static string BuildServiceArguments(IReadOnlyList<string>? services)
     {

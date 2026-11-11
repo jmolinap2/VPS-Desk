@@ -11,6 +11,20 @@
           <TextBlock Text="Preferencias locales de VPS Desk. No se almacenan contraseñas, claves privadas ni secretos del VPS." Classes="m-subtitle" />
         </StackPanel>
 
+        <Border Classes="m-card" DataContext="{Binding Updates}" IsVisible="{Binding IsAvailableOnPlatform}" x:DataType="vm:UpdatesViewModel">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Actualizaciones" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="VPS Desk busca versiones nuevas al abrirse. Tú decides cuándo instalarlas." Classes="m-subtitle" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" Classes="m-subtitle" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ReleaseNotes}" Classes="m-subtitle" TextWrapping="Wrap" IsVisible="{Binding IsUpdateAvailable}" />
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadPercent}" IsVisible="{Binding IsDownloading}" Height="6" />
+            <Button Classes="m-primary" Content="{Binding InstallLabel}" Command="{Binding InstallCommand}" IsVisible="{Binding IsUpdateAvailable}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            <Button Classes="m-action" Content="Buscar actualizaciones" Command="{Binding CheckCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Border>
+
         <Border Classes="m-card">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">

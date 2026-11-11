@@ -38,3 +38,9 @@ desktop.ini
 tmp/
 dist/installers/VPS-Desk-Personal-Setup.exe
 dist/android-ux/
+
+# Canal de actualizacion Android: APK firmado y estado local de Netlify
+dist/android-update/
+.netlify/
+*.keystore
+*.jks

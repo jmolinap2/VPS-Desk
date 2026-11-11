@@ -3,6 +3,7 @@ using Android.Runtime;
 using Avalonia;
 using Avalonia.Android;
 using VpsDesk.Application.Runtime;
+using VpsDesk.Application.Updates;
 using VpsDesk.Desktop;
 
 namespace VpsDesk.Android;
@@ -39,6 +40,9 @@ public class MainApplication : AvaloniaAndroidApplication<App>
 
         // El modo ahorro de datos (Automático) decide según esta red; sin esto nunca se activaría.
         NetworkConditions.Current = new AndroidNetworkConditions(this);
+
+        // Actualización in-app: lee versión instalada y la URL de version.json compilada en el APK.
+        AppUpdatePlatform.Current = new AndroidAppUpdatePlatform(this);
 
         base.OnCreate();
     }

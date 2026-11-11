@@ -12,11 +12,12 @@ public partial class MainWindowViewModel
     public void InitializeSettings(
         AppSettingsStore store,
         VpsDeskSettings settings,
-        Action<string> applyLanguage)
+        Action<string> applyLanguage,
+        UpdatesViewModel updates)
     {
         if (_settingsModule != null) return;
 
-        _settingsModule = new SettingsViewModel(store, settings, applyLanguage);
+        _settingsModule = new SettingsViewModel(store, settings, applyLanguage, updates);
         _settingsModule.PreferencesChanged += (_, _) => ApplyPreferencesToModules();
         ApplyPreferencesToModules();
         OnPropertyChanged(nameof(SettingsModule));

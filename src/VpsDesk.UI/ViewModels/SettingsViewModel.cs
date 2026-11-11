@@ -64,12 +64,17 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>Actualizaciones de la app (solo visibles en plataformas que las soportan).</summary>
+    public UpdatesViewModel Updates { get; }
+
     public SettingsViewModel(
         AppSettingsStore store,
         VpsDeskSettings settings,
-        Action<string> applyLanguage)
+        Action<string> applyLanguage,
+        UpdatesViewModel updates)
     {
         _store = store;
+        Updates = updates;
         _applyLanguage = applyLanguage;
         ApplySnapshot(settings);
     }

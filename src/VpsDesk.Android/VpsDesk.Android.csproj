@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.vpsdesk.app</ApplicationId>
-    <ApplicationVersion>4</ApplicationVersion>
-    <ApplicationDisplayVersion>1.0.3</ApplicationDisplayVersion>
+    <ApplicationVersion>5</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0.4</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
     <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == '' AND Exists('C:\Android\Sdk')">C:\Android\Sdk</AndroidSdkDirectory>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
@@ -20,6 +20,11 @@
          incrustamos directo en el APK. -->
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- URL de version.json del canal de actualización. Se pasa al compilar
+         (-p:VpsDeskUpdateUrl=https://...) para no versionar la dirección privada. -->
+    <AssemblyMetadata Include="VpsDesk.UpdateUrl" Value="$(VpsDeskUpdateUrl)" Condition="'$(VpsDeskUpdateUrl)' != ''" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../VpsDesk.UI/VpsDesk.UI.csproj" />
     <PackageReference Include="Avalonia.Android" />

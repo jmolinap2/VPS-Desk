@@ -97,7 +97,7 @@ public static class BootstrapServerProfileLoader
             HostingerVirtualMachineId: string.IsNullOrWhiteSpace(hostingerVmId) ? null : hostingerVmId);
     }
 
-    private static string? FindEnvFile()
+    internal static string? FindEnvFile()
     {
         // En plataformas sin "directorio de salida" navegable hacia arriba
         // (Android, iOS), una cabecera de plataforma puede fijar la ruta
@@ -117,6 +117,7 @@ public static class BootstrapServerProfileLoader
             directory = directory.Parent;
         }
 
-        return null;
+        var restoredEnvironment = Path.Combine(VpsDeskDataPaths.RoamingRoot, ".env");
+        return File.Exists(restoredEnvironment) ? restoredEnvironment : null;
     }
 }

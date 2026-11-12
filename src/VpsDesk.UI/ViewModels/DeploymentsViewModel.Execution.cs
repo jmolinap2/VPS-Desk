@@ -14,7 +14,7 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     public async Task DiscoverRemoteOptionsAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
         var server = _serverAccessor();
         if (server == null)
         {
@@ -133,7 +133,7 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     public async Task PullSourceAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
 
         var server = _serverAccessor();
         if (server == null)
@@ -227,7 +227,7 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     public async Task StartDeploymentAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
 
         var server = _serverAccessor();
         if (server == null)
@@ -255,7 +255,7 @@ public partial class DeploymentsViewModel
 
     private async Task<bool> RunPreflightCoreAsync()
     {
-        if (IsBusy) return false;
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return false;
         var server = _serverAccessor();
         if (server == null)
         {
@@ -579,8 +579,10 @@ public partial class DeploymentsViewModel
     }
 
     private void PersistProfile(ServerProfile server)
-    {
-        _profileStore.Upsert(new DeploymentProfile(
+        => _profileStore.Upsert(CreateDeploymentProfile(server));
+
+    private DeploymentProfile CreateDeploymentProfile(ServerProfile server)
+        => new DeploymentProfile(
             server.Id,
             RemoteRepositoryPath.Trim(),
             Branch.Trim(),
@@ -594,6 +596,10 @@ public partial class DeploymentsViewModel
             SelectedMigrationMode?.Id,
             RunMigrations,
             MigrationOnly,
-            _activeProjectId));
-    }
+            _activeProjectId,
+            BackupBeforeDeploy,
+            KeepCopies,
+            StoreAppBackupOnServer,
+            SnapshotBeforeDeploy,
+            AppBackupPostgresContainer.Trim());
 }

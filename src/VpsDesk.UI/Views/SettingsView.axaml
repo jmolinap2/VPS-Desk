@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:views="using:VpsDesk.Desktop.Views"
              x:Class="VpsDesk.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
   <ScrollViewer>
@@ -35,38 +36,7 @@
         </Grid>
       </Border>
 
-      <Border Classes="card">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
-          <StackPanel Spacing="4">
-            <TextBlock Text="Copia cifrada" FontSize="17" FontWeight="SemiBold" />
-            <TextBlock Text="Guarda perfiles, historial, .env y la llave SSH en un archivo protegido con contraseña."
-                       Foreground="#8290A3" TextWrapping="Wrap" />
-          </StackPanel>
-          <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
-            <Button Content="Crear copia cifrada" Click="CreateEncryptedBackup_Click" IsEnabled="{Binding !IsBackupOperationRunning}" />
-            <Button Content="Restaurar copia cifrada" Click="RestoreEncryptedBackup_Click" IsEnabled="{Binding !IsBackupOperationRunning}" />
-          </StackPanel>
-          <Border Grid.Row="2" Background="#0E131B" CornerRadius="8" Padding="11">
-            <StackPanel Spacing="8">
-              <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBackupOperationRunning}" Height="4" />
-              <TextBlock Text="{Binding BackupStatus}" Foreground="#A9B8CA" TextWrapping="Wrap" />
-            </StackPanel>
-          </Border>
-          <StackPanel Grid.Row="3" Spacing="6">
-            <TextBlock Text="Registro detallado (también guardado en la carpeta de datos como backup-operations.log)"
-                       Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
-            <TextBox Text="{Binding BackupLog}"
-                     IsReadOnly="True"
-                     AcceptsReturn="True"
-                     TextWrapping="NoWrap"
-                     FontFamily="Cascadia Mono,Consolas,monospace"
-                     FontSize="11"
-                     Height="190"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
-          </StackPanel>
-        </Grid>
-      </Border>
+      <views:LocalBackupsView />
 
       <Border Classes="card">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16">

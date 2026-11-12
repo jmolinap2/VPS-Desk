@@ -44,3 +44,6 @@ dist/android-update/
 .netlify/
 *.keystore
 *.jks
+
+# Validacion local de backups en telefono: contiene claves, bases de datos, APK y capturas
+.backup-validation/

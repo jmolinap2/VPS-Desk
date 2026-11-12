@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:views="using:VpsDesk.Desktop.Views"
              x:Class="VpsDesk.Desktop.Views.MobileSettingsView"
              x:DataType="vm:SettingsViewModel">
   <Grid>
@@ -38,32 +39,7 @@
           </StackPanel>
         </Border>
 
-        <Border Classes="m-card">
-          <StackPanel Spacing="12">
-            <StackPanel Spacing="2">
-              <TextBlock Text="Copia cifrada" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="Guarda perfiles, historial, .env y la llave SSH en un archivo protegido con contraseña." Classes="m-subtitle" />
-            </StackPanel>
-            <Button Classes="m-action" Content="Crear copia cifrada" Click="CreateEncryptedBackup_Click" IsEnabled="{Binding !IsBackupOperationRunning}" HorizontalAlignment="Stretch" />
-            <Button Classes="m-action" Content="Restaurar copia cifrada" Click="RestoreEncryptedBackup_Click" IsEnabled="{Binding !IsBackupOperationRunning}" HorizontalAlignment="Stretch" />
-            <Border Classes="m-inset">
-              <StackPanel Spacing="8">
-                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBackupOperationRunning}" Height="4" />
-                <TextBlock Text="{Binding BackupStatus}" Foreground="#A9B8CA" TextWrapping="Wrap" FontSize="12" />
-              </StackPanel>
-            </Border>
-            <TextBox Text="{Binding BackupLog}"
-                     IsReadOnly="True"
-                     AcceptsReturn="True"
-                     TextWrapping="NoWrap"
-                     FontFamily="Cascadia Mono,Consolas,monospace"
-                     FontSize="11"
-                     MinHeight="120"
-                     MaxHeight="220"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
-          </StackPanel>
-        </Border>
+        <views:LocalBackupsView />
 
         <Border Classes="m-card">
           <StackPanel Spacing="12">
@@ -106,29 +82,5 @@
       </StackPanel>
     </ScrollViewer>
 
-    <!-- contraseña de la copia cifrada: hoja inferior (en Android no hay ventanas) -->
-    <Border x:Name="PasswordScrim" Classes="m-scrim" />
-    <Border x:Name="PasswordSheet" Classes="m-sheet" VerticalAlignment="Bottom" Padding="20,18,20,22">
-      <StackPanel Spacing="12">
-        <Border Width="40" Height="4" CornerRadius="2" Background="#2A3444" HorizontalAlignment="Center" />
-        <TextBlock x:Name="PasswordTitle" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock x:Name="PasswordMessage" Foreground="#C7D0DD" TextWrapping="Wrap" FontSize="12" />
-        <StackPanel Spacing="4">
-          <TextBlock Text="Contraseña" Classes="m-label" />
-          <TextBox x:Name="PasswordInput" PasswordChar="●" />
-        </StackPanel>
-        <StackPanel x:Name="PasswordConfirmPanel" Spacing="4">
-          <TextBlock Text="Confirmar contraseña" Classes="m-label" />
-          <TextBox x:Name="PasswordConfirmInput" PasswordChar="●" />
-        </StackPanel>
-        <Border x:Name="PasswordError" Background="#2A1215" BorderBrush="#B91C1C" BorderThickness="1" CornerRadius="10" Padding="10" IsVisible="False">
-          <TextBlock x:Name="PasswordErrorText" Foreground="#FCA5A5" FontSize="12" TextWrapping="Wrap" />
-        </Border>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-          <Button Classes="m-action" Content="Cancelar" Click="OnPasswordCancelClick" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="1" Classes="m-primary" Content="Continuar" Click="OnPasswordConfirmClick" HorizontalAlignment="Stretch" />
-        </Grid>
-      </StackPanel>
-    </Border>
   </Grid>
 </UserControl>

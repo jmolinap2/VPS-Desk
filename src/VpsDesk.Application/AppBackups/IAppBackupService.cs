@@ -16,6 +16,18 @@ public interface IAppBackupService
     /// <summary>Copias locales de este servidor, de la más reciente a la más antigua.</summary>
     IReadOnlyList<AppBackupInfo> List(ServerProfile server);
 
+    /// <summary>Enumera las copias guardadas en ~/vpsdesk-backups sin descargar su contenido.</summary>
+    Task<IReadOnlyList<AppBackupInfo>> ListRemoteAsync(ServerProfile server, string? secret, CancellationToken cancellationToken = default);
+
+    /// <summary>Descarga una copia remota y verifica el archivo y su SHA-256 antes de publicarla localmente.</summary>
+    Task<AppBackupInfo> DownloadAsync(ServerProfile server, AppBackupInfo backup, string? secret, IProgress<string>? progress = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Comprueba los paquetes comprimidos y la huella SHA-256 cuando está disponible.</summary>
+    Task VerifyAsync(ServerProfile server, AppBackupInfo backup, string? secret, CancellationToken cancellationToken = default);
+
+    /// <summary>Elimina una copia de la carpeta de respaldos del servidor indicado y su huella asociada.</summary>
+    Task DeleteAsync(ServerProfile server, AppBackupInfo backup, string? secret, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Crea la copia en el VPS, la descarga, verifica su SHA-256 y solo entonces
     /// elimina las copias locales que excedan <see cref="AppBackupRequest.KeepCopies"/>.
@@ -43,7 +55,8 @@ public sealed record AppBackupInfo(
     string FileName,
     string FullPath,
     long SizeBytes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool StoredOnServer = false);
 
 public sealed record AppBackupResult(
     AppBackupInfo Backup,

@@ -159,6 +159,7 @@ public partial class MainWindowViewModel : ObservableObject
             "Dashboard" => "Overview of the selected Linux VPS",
             "Containers" => "Docker and Compose operations",
             "Deployments" => "Safe application deployment workflows",
+            "Backups" => "Application backups and full VPS recovery",
             "Logs" => "Docker, system and application logs",
             "Storage" => "Disk, images, volumes and large directories",
             "Files" => "Secure SFTP file operations",

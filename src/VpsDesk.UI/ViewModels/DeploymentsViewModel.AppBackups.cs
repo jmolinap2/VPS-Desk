@@ -22,15 +22,19 @@ public partial class DeploymentsViewModel
 
     [ObservableProperty] private bool _backupBeforeDeploy;
     [ObservableProperty] private bool _isAppBackupBusy;
+    [ObservableProperty] private bool _storeAppBackupOnServer;
+    [ObservableProperty] private string _appBackupPostgresContainer = string.Empty;
     [ObservableProperty] private decimal? _appBackupKeepCopies = DefaultKeepCopies;
     [ObservableProperty] private string _appBackupSummary = "Consultando las copias locales...";
 
     public bool IsAppBackupConfigured => _appBackups is not null;
-    public bool CanUseAppBackups => IsAppBackupConfigured && !IsBusy && !IsSnapshotBusy && !IsAppBackupBusy;
+    public bool CanUseAppBackups => IsAppBackupConfigured && _serverAccessor() is not null && !IsBusy && !IsSnapshotBusy && !IsAppBackupBusy;
 
     private int KeepCopies => (int)Math.Clamp(AppBackupKeepCopies ?? DefaultKeepCopies, 1, MaxKeepCopiesUi);
 
-    partial void OnIsAppBackupBusyChanged(bool value) => OnPropertyChanged(nameof(CanUseAppBackups));
+    partial void OnIsAppBackupBusyChanged(bool value) => NotifySnapshotAvailability();
+
+    private bool KeepAppBackupOnServer => StoreAppBackupOnServer || IsDataSaverActive;
 
     public void InitializeAppBackups(IAppBackupService service)
     {
@@ -44,6 +48,7 @@ public partial class DeploymentsViewModel
     private void RefreshAppBackups()
     {
         if (_appBackups is null) return;
+        LocalAppBackups.Clear();
 
         if (_serverAccessor() is not { } server)
         {
@@ -54,6 +59,7 @@ public partial class DeploymentsViewModel
         try
         {
             var backups = _appBackups.List(server);
+            foreach (var backup in backups) LocalAppBackups.Add(backup);
             AppBackupSummary = backups.Count == 0
                 ? $"Sin copias locales todavía. Se guardarán en {_appBackups.GetBackupDirectory(server)}."
                 : $"{backups.Count} copia(s) local(es) · última {backups[0].CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} ({FormatBytes(backups[0].SizeBytes)}) · {_appBackups.GetBackupDirectory(server)}";
@@ -97,8 +103,8 @@ public partial class DeploymentsViewModel
         await CreateAppBackupWithFeedbackAsync(
             server,
             "Creando copia de la aplicación",
-            IsDataSaverActive
-                ? $"Modo ahorro de datos: se guardará en el VPS, sin descargarla, y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando."
+            KeepAppBackupOnServer
+                ? $"Se guardará en el VPS y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando."
                 : $"Se guardará en esta máquina y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando.",
             "Copia creada y verificada.",
             closeOnSuccess: false);
@@ -107,7 +113,7 @@ public partial class DeploymentsViewModel
     /// <summary>Línea para la confirmación del despliegue.</summary>
     private string BuildAppBackupNotice()
         => BackupBeforeDeploy && IsAppBackupConfigured
-            ? IsDataSaverActive
+            ? KeepAppBackupOnServer
                 ? $" Antes de desplegar se creará una copia de la aplicación que se queda en el VPS, sin descargarla (se conservan las {KeepCopies} más recientes)."
                 : $" Antes de desplegar se descargará una copia de la aplicación (se conservan las {KeepCopies} más recientes)."
             : string.Empty;
@@ -124,7 +130,7 @@ public partial class DeploymentsViewModel
         var created = await CreateAppBackupWithFeedbackAsync(
             server,
             "Creando copia previa al despliegue",
-            IsDataSaverActive
+            KeepAppBackupOnServer
                 ? "Volcado de PostgreSQL, proyecto y configuración guardados en el VPS (sin descargar, modo ahorro de datos) antes de tocar el servidor."
                 : "Volcado de PostgreSQL, proyecto y configuración descargados a esta máquina antes de tocar el servidor.",
             "Copia creada. Continuando con el despliegue...",
@@ -154,21 +160,27 @@ public partial class DeploymentsViewModel
         }
 
         IsAppBackupBusy = true;
+        using var cancellation = new CancellationTokenSource();
+        _appBackupCancellation = cancellation;
         BeginOperationFeedback(title, startMessage);
         var progress = new Progress<string>(AppendSnapshotLog);
+        var secret = _secretAccessor();
 
         try
         {
             var result = await _appBackups!.CreateAsync(
-                new AppBackupRequest(server, RemoteRepositoryPath.Trim(), KeepCopies, KeepOnServerOnly: IsDataSaverActive),
-                _secretAccessor(),
-                progress);
+                new AppBackupRequest(server, RemoteRepositoryPath.Trim(), KeepCopies,
+                    PostgresContainer: string.IsNullOrWhiteSpace(AppBackupPostgresContainer) ? null : AppBackupPostgresContainer.Trim(),
+                    KeepOnServerOnly: KeepAppBackupOnServer),
+                secret,
+                progress, cancellation.Token);
 
             foreach (var warning in result.Warnings) AppendSnapshotLog($"AVISO: {warning}");
             AppendSnapshotLog(result.StoredOnServer
-                ? $"Guardada en el VPS: {result.Backup.FullPath} ({FormatBytes(result.Backup.SizeBytes)}). No se descargó (modo ahorro de datos)."
+                ? $"Guardada en el VPS: {result.Backup.FullPath} ({FormatBytes(result.Backup.SizeBytes)})."
                 : $"Guardada en {result.Backup.FullPath} ({FormatBytes(result.Backup.SizeBytes)})");
-            RefreshAppBackups();
+            if (closeOnSuccess) RefreshAppBackups();
+            else await LoadBackupInventoryAsync(server, secret, CancellationToken.None);
 
             var detail = result.DatabaseIncluded ? string.Empty : " ATENCIÓN: no incluye base de datos.";
             var pruned = result.PrunedCount > 0 ? $" Se eliminaron {result.PrunedCount} copia(s) antigua(s)." : string.Empty;
@@ -184,6 +196,7 @@ public partial class DeploymentsViewModel
         }
         finally
         {
+            _appBackupCancellation = null;
             IsAppBackupBusy = false;
         }
     }

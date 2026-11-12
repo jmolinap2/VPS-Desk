@@ -163,6 +163,7 @@ public partial class DeploymentsViewModel : ObservableObject
 
     public void LoadForServer(ServerProfile? server)
     {
+        ResetBackupContext();
         _activeProjectId = null;
         _isLoadingProfile = true;
         try
@@ -201,6 +202,7 @@ public partial class DeploymentsViewModel : ObservableObject
 
     public async Task LoadForProjectAsync(ServerProfile server, ProjectWorkspace project)
     {
+        ResetBackupContext();
         _activeProjectId = project.Id;
         _isLoadingProfile = true;
         try

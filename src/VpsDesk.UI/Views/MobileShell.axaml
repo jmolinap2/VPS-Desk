@@ -151,6 +151,7 @@
             <TextBlock Text="PROYECTO" FontSize="10" FontWeight="Bold" Foreground="#56657A" Margin="14,2,0,5" />
             <Button Classes="nav" Classes.active="{Binding IsProjectsPage}" Content="{Binding LocalizedProjectsNavigationLabel}" Command="{Binding NavigateCommand}" CommandParameter="Projects" Click="OnNavItemClick" />
             <Button Classes="nav" Classes.active="{Binding IsDeploymentsPage}" Content="{DynamicResource Nav_Deployments}" Command="{Binding NavigateCommand}" CommandParameter="Deployments" Click="OnNavItemClick" />
+            <Button Classes="nav" Classes.active="{Binding IsBackupsPage}" Content="{DynamicResource Nav_Backups}" Command="{Binding NavigateCommand}" CommandParameter="Backups" Click="OnNavItemClick" />
             <Button Classes="nav" Classes.active="{Binding IsEnvironmentPage}" Content="{DynamicResource Nav_Environment}" Command="{Binding NavigateCommand}" CommandParameter="Environment" Click="OnNavItemClick" />
 
             <Border Height="1" Background="#202734" Margin="12,12" />

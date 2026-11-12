@@ -18,6 +18,7 @@ public partial class MainWindowViewModel
         if (_settingsModule != null) return;
 
         _settingsModule = new SettingsViewModel(store, settings, applyLanguage, updates);
+        DeploymentsModule.LocalBackupSettings = _settingsModule;
         _settingsModule.PreferencesChanged += (_, _) => ApplyPreferencesToModules();
         ApplyPreferencesToModules();
         OnPropertyChanged(nameof(SettingsModule));

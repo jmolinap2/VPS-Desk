@@ -14,11 +14,13 @@ public partial class MainWindowViewModel
         => _deploymentsModule ?? throw new InvalidOperationException("Deployments module has not been initialized.");
 
     public bool IsDeploymentsPage => SelectedPage == "Deployments";
+    public bool IsBackupsPage => SelectedPage == "Backups";
     public bool IsPendingOperationsPage => !IsDashboardPage
                                            && !IsServersPage
                                            && !IsContainersPage
                                            && !IsProjectsPage
                                            && !IsDeploymentsPage
+                                           && !IsBackupsPage
                                            && !IsEnvironmentPage
                                            && !IsLogsPage
                                            && !IsStoragePage
@@ -75,9 +77,14 @@ public partial class MainWindowViewModel
         if (e.PropertyName == nameof(SelectedPage))
         {
             OnPropertyChanged(nameof(IsDeploymentsPage));
+            OnPropertyChanged(nameof(IsBackupsPage));
             OnPropertyChanged(nameof(IsPendingOperationsPage));
 
-            if (SelectedPage == "Deployments")
+            if (SelectedPage == "Backups")
+            {
+                _ = RefreshBackupsPageAsync();
+            }
+            else if (SelectedPage == "Deployments")
             {
                 // Project activation already loaded the correct path/profile. Do not fall back to
                 // the old server-only profile when simply navigating between pages.
@@ -103,5 +110,12 @@ public partial class MainWindowViewModel
                     _ = _deploymentsModule.TryAutoDiscoverRepositoryAsync();
             }
         }
+    }
+
+    private async Task RefreshBackupsPageAsync()
+    {
+        DeploymentsModule.ResetBackupContext();
+        await DeploymentsModule.RefreshBackupInventoryCommand.ExecuteAsync(null);
+        await DeploymentsModule.RefreshSnapshotCommand.ExecuteAsync(null);
     }
 }

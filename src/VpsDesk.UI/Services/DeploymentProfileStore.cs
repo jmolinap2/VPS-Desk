@@ -21,7 +21,12 @@ public sealed record DeploymentProfile(
     string? MigrationModeId = null,
     bool? RunMigrations = null,
     bool? MigrationOnly = null,
-    Guid? ProjectId = null);
+    Guid? ProjectId = null,
+    bool? BackupBeforeDeploy = null,
+    int? BackupKeepCopies = null,
+    bool? StoreBackupOnServer = null,
+    bool? SnapshotBeforeDeploy = null,
+    string? BackupPostgresContainer = null);
 
 public sealed record DeploymentProfileStoreSnapshot(IReadOnlyList<DeploymentProfile> Profiles);
 

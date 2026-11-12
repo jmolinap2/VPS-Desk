@@ -303,6 +303,11 @@
                 Padding="20,8"
                 Background="#0F766E"
                 Foreground="White" />
+        <Button Grid.Row="4"
+                Content="{DynamicResource Common_Cancel}"
+                Command="{Binding CancelAppBackupOperationCommand}"
+                IsVisible="{Binding IsAppBackupBusy}"
+                HorizontalAlignment="Left" />
       </Grid>
     </Border>
   </Border>

@@ -21,6 +21,7 @@ public partial class MobilePageHost : UserControl
             ["Containers"] = ContainersPage,
             ["Projects"] = ProjectsPage,
             ["Deployments"] = DeploymentsPage,
+            ["Backups"] = BackupsPage,
             ["Environment"] = EnvironmentPage,
             ["Logs"] = LogsPage,
             ["Storage"] = StoragePage,

@@ -104,6 +104,11 @@ public partial class DeploymentsViewModel
 
     private void LoadProjectPreferences(DeploymentProfile? profile)
     {
+        BackupBeforeDeploy = profile?.BackupBeforeDeploy ?? false;
+        AppBackupKeepCopies = Math.Clamp(profile?.BackupKeepCopies ?? DefaultKeepCopies, 1, MaxKeepCopiesUi);
+        StoreAppBackupOnServer = profile?.StoreBackupOnServer ?? false;
+        AppBackupPostgresContainer = profile?.BackupPostgresContainer ?? string.Empty;
+        SnapshotBeforeDeploy = profile?.SnapshotBeforeDeploy ?? IsSnapshotConfigured;
         _preferredTargetId = profile?.DeploymentTargetId;
         _preferredMigrationModeId = profile?.MigrationModeId;
         _preferredRunMigrations = profile?.RunMigrations;

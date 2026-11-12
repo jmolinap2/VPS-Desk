@@ -16,7 +16,7 @@ namespace VpsDesk.Infrastructure.AppBackups;
 /// node_modules, la configuración del sistema y un inventario de Docker. Lo descarga,
 /// verifica el SHA-256 y rota las copias locales. Nada de esto toca los contenedores.
 /// </summary>
-public sealed class SshAppBackupService : IAppBackupService
+public sealed partial class SshAppBackupService : IAppBackupService
 {
     private const string FilePattern = "*.vpsbackup.tar";
     private const int MaxKeepCopies = 20;
@@ -37,6 +37,7 @@ public sealed class SshAppBackupService : IAppBackupService
         return new DirectoryInfo(directory)
             .EnumerateFiles(FilePattern)
             .OrderByDescending(file => file.LastWriteTimeUtc)
+            .ThenByDescending(file => file.Name, StringComparer.Ordinal)
             .Select(file => new AppBackupInfo(
                 file.Name,
                 file.FullName,
@@ -58,7 +59,7 @@ public sealed class SshAppBackupService : IAppBackupService
         }
 
         var keep = Math.Clamp(request.KeepCopies, 1, MaxKeepCopies);
-        var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N")[..8];
         var remoteWork = $"/tmp/vpsdesk-backup-{stamp}";
         var remoteFile = remoteWork + ".tar";
         var directory = GetBackupDirectory(request.Server);
@@ -108,7 +109,7 @@ public sealed class SshAppBackupService : IAppBackupService
                     .ToArray();
 
                 return new AppBackupResult(
-                    new AppBackupInfo(Path.GetFileName(remotePath), remotePath, expectedSize, DateTimeOffset.UtcNow),
+                    new AppBackupInfo(Path.GetFileName(remotePath), remotePath, expectedSize, DateTimeOffset.UtcNow, StoredOnServer: true),
                     string.Equals(markers.GetValueOrDefault("VPSDESK_DB"), "yes", StringComparison.Ordinal),
                     remoteWarnings,
                     0,
@@ -129,11 +130,12 @@ public sealed class SshAppBackupService : IAppBackupService
             }
 
             File.Move(partPath, finalPath, overwrite: false);
+            await File.WriteAllTextAsync(finalPath + ".sha256", expectedSha, CancellationToken.None);
             var info = new FileInfo(finalPath);
             var backup = new AppBackupInfo(info.Name, info.FullName, info.Length, new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero));
 
             // Solo con la copia nueva verificada se descartan las más antiguas.
-            var pruned = Prune(request.Server, keep, finalPath, progress);
+            var pruned = Prune(request.Server, keep, progress);
             var warnings = result.StandardOutput
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(line => line.StartsWith("WARN:", StringComparison.Ordinal))
@@ -153,18 +155,17 @@ public sealed class SshAppBackupService : IAppBackupService
         }
     }
 
-    private int Prune(ServerProfile server, int keep, string newestPath, IProgress<string>? progress)
+    private int Prune(ServerProfile server, int keep, IProgress<string>? progress)
     {
         var removed = 0;
-        var obsolete = List(server)
-            .Where(item => !string.Equals(item.FullPath, newestPath, StringComparison.OrdinalIgnoreCase))
-            .Skip(keep - 1);
+        var obsolete = List(server).Skip(keep);
 
         foreach (var item in obsolete)
         {
             try
             {
                 File.Delete(item.FullPath);
+                TryDelete(item.FullPath + ".sha256");
                 removed++;
                 progress?.Report($"Copia antigua eliminada por rotación: {item.FileName}");
             }
@@ -265,12 +266,12 @@ public sealed class SshAppBackupService : IAppBackupService
     }
 
     private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer, int keep, bool serverOnly)
-        => RemoteScript
-            .Replace("__STAMP__", stamp, StringComparison.Ordinal)
-            .Replace("__KEEP__", keep.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
-            .Replace("__SERVER_ONLY__", serverOnly ? "1" : "0", StringComparison.Ordinal)
-            .Replace("__REPO__", Quote(repository), StringComparison.Ordinal)
-            .Replace("__PG__", Quote(postgresContainer?.Trim() ?? string.Empty), StringComparison.Ordinal);
+        => $"STAMP={Quote(stamp)}\n"
+            + $"REPO={Quote(repository)}\n"
+            + $"PGC={Quote(postgresContainer?.Trim() ?? string.Empty)}\n"
+            + $"KEEP={keep.ToString(CultureInfo.InvariantCulture)}\n"
+            + $"SERVER_ONLY={(serverOnly ? "1" : "0")}\n"
+            + RemoteScript;
 
     private static string Quote(string value)
         => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
@@ -311,11 +312,6 @@ public sealed class SshAppBackupService : IAppBackupService
     private const string RemoteScript = """
         set -uo pipefail
         umask 077
-        STAMP=__STAMP__
-        REPO=__REPO__
-        PGC=__PG__
-        KEEP=__KEEP__
-        SERVER_ONLY=__SERVER_ONLY__
         WORK="/tmp/vpsdesk-backup-$STAMP"
         OUT="$WORK.tar"
         fail() { echo "ERR: $1"; rm -rf "$WORK" "$OUT"; exit "${2:-1}"; }
@@ -352,7 +348,7 @@ public sealed class SshAppBackupService : IAppBackupService
         fi
 
         echo "Empaquetando el proyecto (sin .git ni node_modules)..."
-        tar -czf "$WORK/content/project.tar.gz" --exclude='.git' --exclude='node_modules' -C "$(dirname "$REPO")" "$(basename "$REPO")" 2>/dev/null
+        tar -czf "$WORK/content/project.tar.gz" --exclude='.git' --exclude='node_modules' -C "$(dirname "$REPO")" -- "$(basename "$REPO")" 2>/dev/null
         RC=$?
         [ "$RC" -le 1 ] || fail "No se pudo empaquetar el proyecto (tar código $RC)." 30
 
@@ -367,6 +363,10 @@ public sealed class SshAppBackupService : IAppBackupService
         fi
 
         tar -cf "$OUT" -C "$WORK/content" . || fail "No se pudo crear el paquete final." 40
+        tar -tf "$OUT" >/dev/null || fail "El paquete final no se puede leer." 40
+        SHA=$(sha256sum "$OUT" | cut -d' ' -f1) || fail "No se pudo calcular SHA-256." 40
+        [ "${#SHA}" = "64" ] || fail "La huella SHA-256 está incompleta." 40
+        SIZE=$(stat -c %s "$OUT") || fail "No se pudo consultar el tamaño del respaldo." 40
         rm -rf "$WORK"
         if [ "$SERVER_ONLY" = "1" ]; then
           DEST="${HOME:-/root}/vpsdesk-backups"
@@ -374,11 +374,14 @@ public sealed class SshAppBackupService : IAppBackupService
           FINAL="$DEST/vpsdesk-$STAMP.vpsbackup.tar"
           mv "$OUT" "$FINAL" || fail "No se pudo guardar la copia en $DEST" 50
           OUT="$FINAL"
-          ls -1t "$DEST"/*.vpsbackup.tar 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+          printf '%s\n' "$SHA" > "$OUT.sha256" || fail "No se pudo guardar la huella de la copia" 50
+          while IFS= read -r OLD; do
+            rm -f -- "$OLD" "$OLD.sha256"
+          done < <(find "$DEST" -maxdepth 1 -type f -name '*.vpsbackup.tar' -printf '%T@ %p\n' | sort -rn | tail -n +$((KEEP + 1)) | cut -d' ' -f2-)
           echo "VPSDESK_REMOTE_PATH=$OUT"
         fi
-        echo "VPSDESK_SHA256=$(sha256sum "$OUT" | cut -d' ' -f1)"
-        echo "VPSDESK_SIZE=$(stat -c %s "$OUT")"
+        echo "VPSDESK_SHA256=$SHA"
+        echo "VPSDESK_SIZE=$SIZE"
         echo "VPSDESK_DB=$DB"
         """;
 }

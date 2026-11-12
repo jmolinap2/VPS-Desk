@@ -48,6 +48,10 @@
       <views:MobileDeploymentsView DataContext="{Binding DeploymentsModule}" />
     </Grid>
 
+    <Grid x:Name="BackupsPage" Classes="page" IsVisible="{Binding IsBackupsPage}">
+      <views:BackupsView DataContext="{Binding DeploymentsModule}" />
+    </Grid>
+
     <Grid x:Name="EnvironmentPage" Classes="page" IsVisible="{Binding IsEnvironmentPage}">
       <views:MobileEnvironmentView DataContext="{Binding FilesModule}" />
     </Grid>

@@ -23,6 +23,10 @@
       <views:DeploymentsView DataContext="{Binding DeploymentsModule}" />
     </Grid>
 
+    <Grid IsVisible="{Binding IsBackupsPage}">
+      <views:BackupsView DataContext="{Binding DeploymentsModule}" />
+    </Grid>
+
     <Grid IsVisible="{Binding IsEnvironmentPage}">
       <views:EnvironmentView DataContext="{Binding FilesModule}" />
     </Grid>

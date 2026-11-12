@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Snapshots;
@@ -21,6 +22,9 @@ public partial class DeploymentsViewModel
     private IVpsSnapshotService? _snapshots;
     private SnapshotAction _pendingSnapshotAction;
     private VpsSnapshotInfo? _currentSnapshot;
+    private Guid? _pendingSnapshotServerId;
+    private long? _pendingSnapshotId;
+    public ObservableCollection<VpsBackupInfo> ProviderBackups { get; } = new();
 
     [ObservableProperty] private bool _snapshotBeforeDeploy;
     [ObservableProperty] private bool _hasSnapshot;
@@ -32,7 +36,7 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private string _snapshotSummary = "Consultando el estado del snapshot...";
 
     public bool IsSnapshotConfigured => _snapshots?.IsConfigured == true;
-    public bool CanUseSnapshots => IsSnapshotConfigured && !IsBusy && !IsSnapshotBusy;
+    public bool CanUseSnapshots => IsSnapshotConfigured && _serverAccessor() is not null && !IsBusy && !IsSnapshotBusy && !IsAppBackupBusy;
     public bool CanRestoreSnapshot => CanUseSnapshots && HasSnapshot;
 
     partial void OnIsSnapshotBusyChanged(bool value) => NotifySnapshotAvailability();
@@ -44,6 +48,7 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(CanUseSnapshots));
         OnPropertyChanged(nameof(CanRestoreSnapshot));
         OnPropertyChanged(nameof(CanUseAppBackups));
+        NotifyBackupSelectionAvailability();
     }
 
     public void InitializeSnapshots(IVpsSnapshotService service)
@@ -53,15 +58,18 @@ public partial class DeploymentsViewModel
         NotifySnapshotAvailability();
 
         // Si hay token, por defecto cada despliegue crea su punto de restauración.
-        SnapshotBeforeDeploy = service.IsConfigured;
+        var preferences = _serverAccessor() is { } server ? _profileStore.Find(server.Id) : null;
+        SnapshotBeforeDeploy = preferences?.SnapshotBeforeDeploy ?? service.IsConfigured;
         _ = RefreshSnapshotAsync();
     }
 
     [RelayCommand]
     private async Task RefreshSnapshotAsync()
     {
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
         if (_snapshots is not { IsConfigured: true })
         {
+            ProviderBackups.Clear();
             _currentSnapshot = null;
             HasSnapshot = false;
             SnapshotSummary = "Snapshots sin configurar. Agrega HOSTINGER_API_TOKEN al .env para habilitarlos.";
@@ -70,18 +78,25 @@ public partial class DeploymentsViewModel
 
         if (_serverAccessor() is not { } server)
         {
+            ProviderBackups.Clear();
+            _currentSnapshot = null;
+            HasSnapshot = false;
             SnapshotSummary = "Selecciona un servidor para consultar su snapshot.";
             return;
         }
 
         IsSnapshotBusy = true;
+        ProviderBackups.Clear();
         try
         {
-            ApplySnapshot(await _snapshots.GetAsync(server.Host));
-            await AppendProviderBackupsNoteAsync(server.Host);
+            var snapshot = await _snapshots.GetAsync(server.Host);
+            if (_serverAccessor()?.Id != server.Id) return;
+            ApplySnapshot(snapshot);
+            await AppendProviderBackupsNoteAsync(server);
         }
         catch (Exception ex)
         {
+            if (_serverAccessor()?.Id != server.Id) return;
             _currentSnapshot = null;
             HasSnapshot = false;
             SnapshotSummary = $"No se pudo consultar el snapshot: {ex.Message}";
@@ -96,17 +111,22 @@ public partial class DeploymentsViewModel
     /// Añade al resumen los backups automáticos de Hostinger. Es informativo: si la
     /// consulta falla no debe ocultar el estado del snapshot.
     /// </summary>
-    private async Task AppendProviderBackupsNoteAsync(string host)
+    private async Task AppendProviderBackupsNoteAsync(ServerProfile server)
     {
         try
         {
-            var backups = await _snapshots!.ListBackupsAsync(host);
+            var backups = await _snapshots!.ListBackupsAsync(server.Host);
+            if (_serverAccessor()?.Id != server.Id) return;
+            ProviderBackups.Clear();
+            foreach (var backup in backups) ProviderBackups.Add(backup);
             SnapshotSummary += backups.Count == 0
                 ? " · Hostinger no tiene backups automáticos de este VPS."
                 : $" · Backups automáticos de Hostinger: {backups.Count} (último {backups[0].CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}; se restauran desde hPanel y no son descargables).";
         }
         catch (Exception ex)
         {
+            if (_serverAccessor()?.Id != server.Id) return;
+            ProviderBackups.Clear();
             SnapshotSummary += $" · No se pudieron consultar los backups de Hostinger: {ex.Message}";
         }
     }
@@ -128,6 +148,7 @@ public partial class DeploymentsViewModel
         if (!CanUseSnapshots) return;
 
         _pendingSnapshotAction = SnapshotAction.Create;
+        _pendingSnapshotServerId = _serverAccessor()?.Id;
         PendingSnapshotTitle = "Crear snapshot del servidor";
         PendingSnapshotConfirmLabel = "Crear snapshot";
         PendingSnapshotMessage = _currentSnapshot is { } existing
@@ -142,6 +163,8 @@ public partial class DeploymentsViewModel
         if (!CanRestoreSnapshot || _currentSnapshot is not { } snapshot) return;
 
         _pendingSnapshotAction = SnapshotAction.Restore;
+        _pendingSnapshotServerId = _serverAccessor()?.Id;
+        _pendingSnapshotId = snapshot.Id;
         PendingSnapshotTitle = "Restaurar el servidor completo";
         PendingSnapshotConfirmLabel = "Restaurar servidor";
         PendingSnapshotMessage =
@@ -162,12 +185,15 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private async Task ConfirmSnapshotActionAsync()
     {
-        if (!HasPendingSnapshotAction || IsBusy || IsSnapshotBusy) return;
+        if (!HasPendingSnapshotAction || !CanUseSnapshots) return;
 
         var action = _pendingSnapshotAction;
+        var serverId = _pendingSnapshotServerId;
+        var snapshotId = _pendingSnapshotId;
         CancelSnapshotAction();
 
-        if (_snapshots is not { IsConfigured: true } || _serverAccessor() is not { } server) return;
+        if (_snapshots is not { IsConfigured: true } || _serverAccessor() is not { } server || server.Id != serverId) return;
+        if (action == SnapshotAction.Restore && (!CanRestoreSnapshot || _currentSnapshot?.Id != snapshotId)) return;
 
         if (action == SnapshotAction.Create)
         {
@@ -244,7 +270,8 @@ public partial class DeploymentsViewModel
         try
         {
             await _snapshots!.CreateAsync(server.Host, progress);
-            ApplySnapshot(await _snapshots.GetAsync(server.Host));
+            var snapshot = await _snapshots.GetAsync(server.Host);
+            if (_serverAccessor()?.Id == server.Id) ApplySnapshot(snapshot);
             CompleteOperationFeedback(true, successMessage);
             if (closeOnSuccess) IsOperationFeedbackModalOpen = false;
             return true;

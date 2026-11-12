@@ -25,6 +25,8 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _backupStatus = "Aún no se ha creado ni restaurado una copia en esta sesión.";
     [ObservableProperty] private string _backupLog = string.Empty;
     [ObservableProperty] private bool _isBackupOperationRunning;
+    [ObservableProperty] private bool _encryptLocalBackup;
+    [ObservableProperty] private bool _includeBackupCredentials = true;
 
     public string SettingsPath => _store.SettingsPath;
     public string DataDirectory => Path.GetDirectoryName(_store.SettingsPath) ?? string.Empty;

@@ -33,11 +33,24 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private string _pendingSnapshotTitle = string.Empty;
     [ObservableProperty] private string _pendingSnapshotMessage = string.Empty;
     [ObservableProperty] private string _pendingSnapshotConfirmLabel = string.Empty;
+    [ObservableProperty] private bool _pendingSnapshotRequiresPhrase;
+    [ObservableProperty] private string _snapshotConfirmPhrase = string.Empty;
+    [ObservableProperty] private string _lastSnapshotText = string.Empty;
     [ObservableProperty] private string _snapshotSummary = "Consultando el estado del snapshot...";
 
     public bool IsSnapshotConfigured => _snapshots?.IsConfigured == true;
     public bool CanUseSnapshots => IsSnapshotConfigured && _serverAccessor() is not null && !IsBusy && !IsSnapshotBusy && !IsAppBackupBusy;
     public bool CanRestoreSnapshot => CanUseSnapshots && HasSnapshot;
+    public bool HasProviderBackups => ProviderBackups.Count > 0;
+    public bool CanConfirmSnapshotAction => HasPendingSnapshotAction
+        && (!PendingSnapshotRequiresPhrase
+            || string.Equals(SnapshotConfirmPhrase.Trim(), RestorePhrase, StringComparison.OrdinalIgnoreCase));
+
+    partial void OnSnapshotConfirmPhraseChanged(string value) => OnPropertyChanged(nameof(CanConfirmSnapshotAction));
+
+    partial void OnPendingSnapshotRequiresPhraseChanged(bool value) => OnPropertyChanged(nameof(CanConfirmSnapshotAction));
+
+    partial void OnHasPendingSnapshotActionChanged(bool value) => OnPropertyChanged(nameof(CanConfirmSnapshotAction));
 
     partial void OnIsSnapshotBusyChanged(bool value) => NotifySnapshotAvailability();
 
@@ -54,6 +67,7 @@ public partial class DeploymentsViewModel
     public void InitializeSnapshots(IVpsSnapshotService service)
     {
         _snapshots = service;
+        ProviderBackups.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProviderBackups));
         OnPropertyChanged(nameof(IsSnapshotConfigured));
         NotifySnapshotAvailability();
 
@@ -135,6 +149,9 @@ public partial class DeploymentsViewModel
     {
         _currentSnapshot = info;
         HasSnapshot = info is not null;
+        LastSnapshotText = info is null ? string.Empty
+            : $"{info.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}"
+              + (info.ExpiresAt is { } expires ? $" · vence {expires.ToLocalTime():dd/MM/yyyy}" : string.Empty);
         SnapshotSummary = info is null
             ? "Este VPS no tiene snapshot. Crea uno antes de un despliegue de riesgo."
             : $"Último snapshot: {info.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}"
@@ -148,6 +165,8 @@ public partial class DeploymentsViewModel
         if (!CanUseSnapshots) return;
 
         _pendingSnapshotAction = SnapshotAction.Create;
+        PendingSnapshotRequiresPhrase = false;
+        SnapshotConfirmPhrase = string.Empty;
         _pendingSnapshotServerId = _serverAccessor()?.Id;
         PendingSnapshotTitle = "Crear snapshot del servidor";
         PendingSnapshotConfirmLabel = "Crear snapshot";
@@ -163,6 +182,8 @@ public partial class DeploymentsViewModel
         if (!CanRestoreSnapshot || _currentSnapshot is not { } snapshot) return;
 
         _pendingSnapshotAction = SnapshotAction.Restore;
+        PendingSnapshotRequiresPhrase = true;
+        SnapshotConfirmPhrase = string.Empty;
         _pendingSnapshotServerId = _serverAccessor()?.Id;
         _pendingSnapshotId = snapshot.Id;
         PendingSnapshotTitle = "Restaurar el servidor completo";
@@ -180,12 +201,13 @@ public partial class DeploymentsViewModel
     {
         HasPendingSnapshotAction = false;
         PendingSnapshotMessage = string.Empty;
+        SnapshotConfirmPhrase = string.Empty;
     }
 
     [RelayCommand]
     private async Task ConfirmSnapshotActionAsync()
     {
-        if (!HasPendingSnapshotAction || !CanUseSnapshots) return;
+        if (!CanConfirmSnapshotAction || !CanUseSnapshots) return;
 
         var action = _pendingSnapshotAction;
         var serverId = _pendingSnapshotServerId;

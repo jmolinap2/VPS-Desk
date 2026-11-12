@@ -93,9 +93,11 @@ public sealed partial class SshAppBackupService
         var path = Quote(backup.FullPath);
         var script = $"set -euo pipefail\np={path}\n"
             + "test ! -L \"$p\"\n"
-            + "tar -tf \"$p\" >/dev/null\n"
-            + "tar -xOf \"$p\" ./project.tar.gz | gzip -t\n"
+            + "list=$(tar -tf \"$p\")\n"
+            + "printf '%s\\n' \"$list\" | grep -qE '^\\./(project\\.tar\\.gz|postgres-all\\.sql\\.gz|db/.+\\.dump)$'\n"
+            + "if printf '%s\\n' \"$list\" | grep -qx './project.tar.gz'; then tar -xOf \"$p\" ./project.tar.gz | gzip -t; fi\n"
             + "tar -xOf \"$p\" ./manifest.txt >/dev/null\n"
+            + "for d in $(printf '%s\\n' \"$list\" | grep -E '^\\./db/.+\\.dump$'); do test \"$(tar -xOf \"$p\" \"$d\" | head -c 5)\" = PGDMP; done\n"
             + "if tar -tf \"$p\" | grep -qx './postgres-all.sql.gz'; then tar -xOf \"$p\" ./postgres-all.sql.gz | gzip -t; fi\n"
             + "if tar -tf \"$p\" | grep -qx './system-config.tar.gz'; then tar -xOf \"$p\" ./system-config.tar.gz | gzip -t; fi\n"
             + "if [ -f \"$p.sha256\" ]; then test \"$(sha256sum \"$p\" | cut -d' ' -f1)\" = \"$(cat \"$p.sha256\")\"; fi\n";
@@ -177,18 +179,37 @@ public sealed partial class SshAppBackupService
         }
 
         using var reader = new TarReader(stream, leaveOpen: true);
-        var hasProject = false;
+        var hasPayload = false;
         var hasManifest = false;
         while (await reader.GetNextEntryAsync(cancellationToken: cancellationToken) is { } entry)
         {
             if (entry.Name == "./manifest.txt") hasManifest = entry.Length > 0;
-            if (entry.Name == "./project.tar.gz") hasProject = entry.Length > 0;
+            if (entry.Name is "./project.tar.gz" or "./postgres-all.sql.gz") hasPayload |= entry.Length > 0;
+            if (DatabaseNameFromEntry(entry.Name) is not null && entry.DataStream is { } dump)
+            {
+                // Formato personalizado de pg_dump: empieza con la firma "PGDMP".
+                var signature = new byte[5];
+                if (entry.Length < 5 || await dump.ReadAtLeastAsync(signature, 5, throwOnEndOfStream: false, cancellationToken) < 5
+                    || System.Text.Encoding.ASCII.GetString(signature) != "PGDMP")
+                    throw new InvalidDataException($"El volcado {entry.Name} no tiene el formato de pg_dump.");
+                hasPayload = true;
+            }
             if (entry.Name.EndsWith(".gz", StringComparison.Ordinal) && entry.DataStream is { } data)
             {
                 using var gzip = new GZipStream(data, CompressionMode.Decompress, leaveOpen: true);
                 await gzip.CopyToAsync(Stream.Null, cancellationToken);
             }
         }
-        if (!hasProject || !hasManifest) throw new InvalidDataException("El archivo carece del proyecto o del manifiesto del respaldo.");
+        if (!hasPayload || !hasManifest) throw new InvalidDataException("El archivo carece de contenido (proyecto o base de datos) o del manifiesto del respaldo.");
+    }
+
+    /// <summary>Nombre de la base para una entrada «./db/&lt;base&gt;.dump»; null para cualquier otra.</summary>
+    private static string? DatabaseNameFromEntry(string entryName)
+    {
+        const string prefix = "./db/";
+        const string extension = ".dump";
+        if (!entryName.StartsWith(prefix, StringComparison.Ordinal) || !entryName.EndsWith(extension, StringComparison.Ordinal)) return null;
+        var name = entryName[prefix.Length..^extension.Length];
+        return IsSafeDatabaseName(name) ? name : null;
     }
 }

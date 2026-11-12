@@ -71,6 +71,40 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(CanManageSelectedBackup));
         OnPropertyChanged(nameof(CanDownloadSelectedBackup));
         OnPropertyChanged(nameof(CanExportSelectedBackup));
+        OnPropertyChanged(nameof(CanRestoreDatabase));
+        OnPropertyChanged(nameof(CanPickDatabase));
+    }
+
+    /// <summary>Resumen para la cabecera: la copia más reciente, esté donde esté.</summary>
+    public string LastBackupText
+    {
+        get
+        {
+            var latest = AppBackupInventory.OrderByDescending(b => b.CreatedAt).FirstOrDefault();
+            return latest is null
+                ? LocalizationService.T("Backups_NoBackupsYet")
+                : $"{latest.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} · {FormatBytes(latest.SizeBytes)}";
+        }
+    }
+
+    public string LastBackupWhere
+    {
+        get
+        {
+            var latest = AppBackupInventory.OrderByDescending(b => b.CreatedAt).FirstOrDefault();
+            return latest is null ? string.Empty
+                : LocalizationService.T(latest.StoredOnServer ? "Backups_Remote" : "Backups_Local");
+        }
+    }
+
+    public string InventoryCountText
+        => LocalizationService.Current.Format("Backups_Counts", LocalAppBackups.Count, RemoteAppBackups.Count);
+
+    private void NotifyBackupOverview()
+    {
+        OnPropertyChanged(nameof(LastBackupText));
+        OnPropertyChanged(nameof(LastBackupWhere));
+        OnPropertyChanged(nameof(InventoryCountText));
     }
 
     public void ResetBackupContext()
@@ -80,6 +114,13 @@ public partial class DeploymentsViewModel
         SelectedAppBackup = null;
         LocalAppBackups.Clear();
         RemoteAppBackups.Clear();
+        PostgresContainers.Clear();
+        PostgresDatabases.Clear();
+        SelectedPostgresContainer = null;
+        SelectedBackupDatabase = null;
+        PostgresStatus = string.Empty;
+        CancelDatabaseRestore();
+        LastSnapshotText = string.Empty;
         _backupInventoryServerId = null;
         BackupInventoryStatus = string.Empty;
         CancelBackupDeletion();
@@ -91,6 +132,7 @@ public partial class DeploymentsViewModel
         RefreshAppBackups();
         OnPropertyChanged(nameof(AppBackupInventory));
         OnPropertyChanged(nameof(HasAppBackupInventory));
+        NotifyBackupOverview();
         NotifySnapshotAvailability();
     }
 
@@ -118,6 +160,7 @@ public partial class DeploymentsViewModel
         RemoteAppBackups.Clear();
         OnPropertyChanged(nameof(AppBackupInventory));
         OnPropertyChanged(nameof(HasAppBackupInventory));
+        NotifyBackupOverview();
         NotifyBackupSelectionAvailability();
         BackupInventoryStatus = "Consultando las copias del VPS…";
         try
@@ -125,7 +168,7 @@ public partial class DeploymentsViewModel
             var backups = await _appBackups!.ListRemoteAsync(server, secret, cancellationToken);
             if (_serverAccessor()?.Id != server.Id) return;
             foreach (var backup in backups) RemoteAppBackups.Add(backup);
-            BackupInventoryStatus = $"{LocalAppBackups.Count} copia(s) en este dispositivo · {backups.Count} en el VPS";
+            BackupInventoryStatus = InventoryCountText;
         }
         catch (Exception ex)
         {
@@ -134,6 +177,7 @@ public partial class DeploymentsViewModel
         }
         OnPropertyChanged(nameof(AppBackupInventory));
         OnPropertyChanged(nameof(HasAppBackupInventory));
+        NotifyBackupOverview();
         NotifyBackupSelectionAvailability();
     }
 

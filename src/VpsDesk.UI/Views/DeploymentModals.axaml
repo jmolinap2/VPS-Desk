@@ -39,9 +39,14 @@
       <StackPanel Spacing="14">
         <TextBlock Text="{Binding PendingSnapshotTitle}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
         <TextBlock Text="{Binding PendingSnapshotMessage}" TextWrapping="Wrap" />
+        <StackPanel Spacing="4" IsVisible="{Binding PendingSnapshotRequiresPhrase}">
+          <TextBlock Text="{DynamicResource Backups_TypeToConfirm}" TextWrapping="Wrap" Foreground="#FCA5A5" />
+          <TextBox Text="{Binding SnapshotConfirmPhrase}" PlaceholderText="RESTAURAR" />
+        </StackPanel>
         <WrapPanel HorizontalAlignment="Right">
           <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSnapshotActionCommand}" Margin="0,0,8,0" />
           <Button Content="{Binding PendingSnapshotConfirmLabel}" Command="{Binding ConfirmSnapshotActionCommand}"
+                  IsEnabled="{Binding CanConfirmSnapshotAction}"
                   Background="#0F766E" Foreground="White" FontWeight="SemiBold" />
         </WrapPanel>
       </StackPanel>

@@ -53,25 +53,37 @@ public sealed partial class SshAppBackupService : IAppBackupService
         CancellationToken cancellationToken = default)
     {
         var repository = request.RemoteRepositoryPath.Trim().TrimEnd('/');
-        if (string.IsNullOrWhiteSpace(repository))
+        if (request.Content != AppBackupContent.DatabaseOnly && string.IsNullOrWhiteSpace(repository))
         {
             throw new InvalidOperationException("Indica la ruta remota del proyecto: es lo que se incluye en la copia.");
         }
 
+        if (request.Database is { } database && !IsSafeDatabaseName(database))
+        {
+            throw new InvalidOperationException($"El nombre de base de datos «{database}» no es válido para una copia.");
+        }
+
         var keep = Math.Clamp(request.KeepCopies, 1, MaxKeepCopies);
         var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N")[..8];
+        var suffix = AppBackupNames.SuffixOf(request.Content);
         var remoteWork = $"/tmp/vpsdesk-backup-{stamp}";
         var remoteFile = remoteWork + ".tar";
         var directory = GetBackupDirectory(request.Server);
-        var finalPath = Path.Combine(directory, $"{Slug(request.Server)}-{stamp}.vpsbackup.tar");
+        var finalPath = Path.Combine(directory, $"{Slug(request.Server)}-{stamp}{suffix}{AppBackupNames.Extension}");
         var partPath = finalPath + ".part";
 
         Directory.CreateDirectory(directory);
 
         try
         {
-            progress?.Report("Preparando la copia en el VPS (volcado de base de datos, proyecto y configuración)...");
-            var script = BuildRemoteScript(stamp, repository, request.PostgresContainer, keep, request.KeepOnServerOnly);
+            progress?.Report(request.Content switch
+            {
+                AppBackupContent.DatabaseOnly => "Preparando la copia de la base de datos en el VPS...",
+                AppBackupContent.FilesOnly => "Preparando la copia del proyecto y la configuración en el VPS...",
+                _ => "Preparando la copia en el VPS (base de datos, proyecto y configuración)..."
+            });
+            var script = BuildRemoteScript(stamp, repository, request.PostgresContainer, keep, request.KeepOnServerOnly,
+                request.Content, request.Database);
             var command = $"printf %s '{Convert.ToBase64String(Encoding.UTF8.GetBytes(script))}' | base64 -d | bash";
 
             var result = await _ssh.ExecuteAsync(
@@ -134,8 +146,9 @@ public sealed partial class SshAppBackupService : IAppBackupService
             var info = new FileInfo(finalPath);
             var backup = new AppBackupInfo(info.Name, info.FullName, info.Length, new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero));
 
-            // Solo con la copia nueva verificada se descartan las más antiguas.
-            var pruned = Prune(request.Server, keep, progress);
+            // Solo con la copia nueva verificada se descartan las más antiguas del mismo tipo:
+            // una copia de solo base de datos no debe desplazar a las completas.
+            var pruned = Prune(request.Server, request.Content, keep, progress);
             var warnings = result.StandardOutput
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(line => line.StartsWith("WARN:", StringComparison.Ordinal))
@@ -155,10 +168,10 @@ public sealed partial class SshAppBackupService : IAppBackupService
         }
     }
 
-    private int Prune(ServerProfile server, int keep, IProgress<string>? progress)
+    private int Prune(ServerProfile server, AppBackupContent content, int keep, IProgress<string>? progress)
     {
         var removed = 0;
-        var obsolete = List(server).Skip(keep);
+        var obsolete = List(server).Where(item => item.Content == content).Skip(keep);
 
         foreach (var item in obsolete)
         {
@@ -265,13 +278,39 @@ public sealed partial class SshAppBackupService : IAppBackupService
             : $"La copia falló en el VPS (código {result.ExitCode}). {result.StandardError.Trim()}".TrimEnd();
     }
 
-    private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer, int keep, bool serverOnly)
+    private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer, int keep, bool serverOnly,
+        AppBackupContent content, string? database)
         => $"STAMP={Quote(stamp)}\n"
             + $"REPO={Quote(repository)}\n"
             + $"PGC={Quote(postgresContainer?.Trim() ?? string.Empty)}\n"
             + $"KEEP={keep.ToString(CultureInfo.InvariantCulture)}\n"
             + $"SERVER_ONLY={(serverOnly ? "1" : "0")}\n"
+            + $"KIND={Quote(content switch { AppBackupContent.DatabaseOnly => "db", AppBackupContent.FilesOnly => "files", _ => "full" })}\n"
+            + $"SUFFIX={Quote(AppBackupNames.SuffixOf(content))}\n"
+            + $"DBSEL={Quote(database?.Trim() ?? string.Empty)}\n"
+            + PostgresFunctions
             + RemoteScript;
+
+    /// <summary>Nombres que se pueden usar como archivo y en una consulta sin sorpresas.</summary>
+    internal static bool IsSafeDatabaseName(string name)
+        => name.Length is > 0 and <= 63
+           && name[0] != '.' && name[0] != '-'
+           && name.All(c => c < 128 && (char.IsLetterOrDigit(c) || c is '_' or '-' or '.' or '$'));
+
+    // Funciones comunes de los scripts remotos: detectar el contenedor y consultar PostgreSQL
+    // dentro de él con el usuario de la imagen oficial (POSTGRES_USER, por defecto postgres).
+    private const string PostgresFunctions = """
+        pg_detect() {
+          docker ps --format '{{.Names}} {{.Image}}' 2>/dev/null | awk 'tolower($2) ~ /postgres/ {print $1}'
+        }
+        pg_query() {
+          docker exec "$PGC" sh -c 'psql -U "${POSTGRES_USER:-postgres}" -d postgres -AtX -c "$1"' _ "$1"
+        }
+        pg_databases() {
+          pg_query "select datname from pg_database where not datistemplate and datallowconn order by 1"
+        }
+
+        """;
 
     private static string Quote(string value)
         => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
@@ -316,7 +355,9 @@ public sealed partial class SshAppBackupService : IAppBackupService
         OUT="$WORK.tar"
         fail() { echo "ERR: $1"; rm -rf "$WORK" "$OUT"; exit "${2:-1}"; }
 
-        [ -d "$REPO" ] || fail "El proyecto no existe en el VPS: $REPO" 11
+        if [ "$KIND" != "db" ]; then
+          [ -d "$REPO" ] || fail "El proyecto no existe en el VPS: $REPO" 11
+        fi
         AVAIL=$(df -Pk /tmp | awk 'NR==2{print $4}')
         [ "${AVAIL:-0}" -ge 512000 ] || fail "Menos de 500 MB libres en /tmp; libera espacio antes de copiar." 12
         mkdir -p "$WORK/content" || fail "No se pudo crear $WORK" 10
@@ -324,7 +365,8 @@ public sealed partial class SshAppBackupService : IAppBackupService
         {
           echo "created_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "host=$(hostname)"
-          echo "repo=$REPO"
+          echo "content=$KIND"
+          [ "$KIND" != "db" ] && echo "repo=$REPO"
           . /etc/os-release 2>/dev/null && echo "os=$PRETTY_NAME"
           echo "--- docker ps -a ---"
           docker ps -a --format '{{.Names}} | {{.Image}} | {{.Status}}' 2>&1
@@ -333,33 +375,54 @@ public sealed partial class SshAppBackupService : IAppBackupService
         } > "$WORK/content/manifest.txt"
 
         DB=no
-        if [ -z "$PGC" ]; then
-          PGC=$(docker ps --format '{{.Names}} {{.Image}}' 2>/dev/null | awk 'tolower($2) ~ /postgres/ {print $1; exit}')
-        fi
-        if [ -n "$PGC" ]; then
-          echo "Volcando PostgreSQL (contenedor $PGC, todas las bases)..."
-          docker exec "$PGC" sh -c 'pg_dumpall -U "${POSTGRES_USER:-postgres}"' | gzip -c > "$WORK/content/postgres-all.sql.gz" \
-            || fail "pg_dumpall falló en el contenedor $PGC; no se genera una copia sin base de datos." 20
-          gzip -t "$WORK/content/postgres-all.sql.gz" || fail "El volcado de PostgreSQL quedó corrupto." 20
-          [ "$(stat -c %s "$WORK/content/postgres-all.sql.gz")" -gt 200 ] || fail "El volcado de PostgreSQL salió vacío." 20
-          DB=yes
-        else
-          echo "WARN: no se encontró un contenedor PostgreSQL; la copia NO incluye base de datos."
+        if [ "$KIND" != "files" ]; then
+          [ -n "$PGC" ] || PGC=$(pg_detect | head -n 1)
+          if [ -n "$PGC" ]; then
+            DBS=$(pg_databases) || fail "No se pudieron listar las bases del contenedor $PGC." 20
+            if [ -n "$DBSEL" ]; then
+              printf '%s\n' "$DBS" | grep -qxF -- "$DBSEL" || fail "La base $DBSEL no existe en el contenedor $PGC." 21
+              DBS="$DBSEL"
+            fi
+            mkdir -p "$WORK/content/db" || fail "No se pudo crear $WORK/content/db" 10
+            echo "Copiando roles y permisos globales de PostgreSQL ($PGC)..."
+            docker exec "$PGC" sh -c 'pg_dumpall -U "${POSTGRES_USER:-postgres}" --globals-only' > "$WORK/content/db/globals.sql" \
+              || fail "No se pudieron copiar los roles de PostgreSQL en $PGC." 20
+            COUNT=0
+            while IFS= read -r D; do
+              [ -n "$D" ] || continue
+              case "$D" in
+                */*|.*|-*) echo "WARN: se omite la base con nombre no apto para archivo: $D"; continue ;;
+              esac
+              echo "Volcando la base $D..."
+              docker exec "$PGC" sh -c 'pg_dump -U "${POSTGRES_USER:-postgres}" -Fc -d "$1"' _ "$D" > "$WORK/content/db/$D.dump" \
+                || fail "pg_dump falló en la base $D; no se genera una copia incompleta." 20
+              [ -s "$WORK/content/db/$D.dump" ] || fail "El volcado de la base $D salió vacío." 20
+              COUNT=$((COUNT + 1))
+            done <<< "$DBS"
+            [ "$COUNT" -gt 0 ] || fail "El contenedor $PGC no tiene bases que copiar." 20
+            DB=yes
+          elif [ "$KIND" = "db" ]; then
+            fail "No se encontró un contenedor PostgreSQL activo en el VPS." 20
+          else
+            echo "WARN: no se encontró un contenedor PostgreSQL; la copia NO incluye base de datos."
+          fi
         fi
 
-        echo "Empaquetando el proyecto (sin .git ni node_modules)..."
-        tar -czf "$WORK/content/project.tar.gz" --exclude='.git' --exclude='node_modules' -C "$(dirname "$REPO")" -- "$(basename "$REPO")" 2>/dev/null
-        RC=$?
-        [ "$RC" -le 1 ] || fail "No se pudo empaquetar el proyecto (tar código $RC)." 30
+        if [ "$KIND" != "db" ]; then
+          echo "Empaquetando el proyecto (sin .git ni node_modules)..."
+          tar -czf "$WORK/content/project.tar.gz" --exclude='.git' --exclude='node_modules' -C "$(dirname "$REPO")" -- "$(basename "$REPO")" 2>/dev/null
+          RC=$?
+          [ "$RC" -le 1 ] || fail "No se pudo empaquetar el proyecto (tar código $RC)." 30
 
-        CFG=""
-        for P in /etc/nginx /etc/docker /etc/fail2ban /etc/ufw /etc/ssh/sshd_config; do
-          [ -e "$P" ] && CFG="$CFG $P"
-        done
-        if [ -n "$CFG" ]; then
-          echo "Empaquetando la configuración del sistema..."
-          tar -czf "$WORK/content/system-config.tar.gz" $CFG 2>/dev/null
-          [ $? -le 1 ] || echo "WARN: parte de la configuración del sistema no se pudo leer (¿falta permiso de root?)."
+          CFG=""
+          for P in /etc/nginx /etc/docker /etc/fail2ban /etc/ufw /etc/ssh/sshd_config; do
+            [ -e "$P" ] && CFG="$CFG $P"
+          done
+          if [ -n "$CFG" ]; then
+            echo "Empaquetando la configuración del sistema..."
+            tar -czf "$WORK/content/system-config.tar.gz" $CFG 2>/dev/null
+            [ $? -le 1 ] || echo "WARN: parte de la configuración del sistema no se pudo leer (¿falta permiso de root?)."
+          fi
         fi
 
         tar -cf "$OUT" -C "$WORK/content" . || fail "No se pudo crear el paquete final." 40
@@ -371,13 +434,19 @@ public sealed partial class SshAppBackupService : IAppBackupService
         if [ "$SERVER_ONLY" = "1" ]; then
           DEST="${HOME:-/root}/vpsdesk-backups"
           mkdir -p "$DEST" || fail "No se pudo crear $DEST" 50
-          FINAL="$DEST/vpsdesk-$STAMP.vpsbackup.tar"
+          FINAL="$DEST/vpsdesk-$STAMP$SUFFIX.vpsbackup.tar"
           mv "$OUT" "$FINAL" || fail "No se pudo guardar la copia en $DEST" 50
           OUT="$FINAL"
           printf '%s\n' "$SHA" > "$OUT.sha256" || fail "No se pudo guardar la huella de la copia" 50
+          # La rotación es por tipo: una copia de solo base de datos no desplaza a las completas.
+          case "$KIND" in
+            db) SAME=(-name '*-db.vpsbackup.tar') ;;
+            files) SAME=(-name '*-files.vpsbackup.tar') ;;
+            *) SAME=(-name '*.vpsbackup.tar' ! -name '*-db.vpsbackup.tar' ! -name '*-files.vpsbackup.tar') ;;
+          esac
           while IFS= read -r OLD; do
             rm -f -- "$OLD" "$OLD.sha256"
-          done < <(find "$DEST" -maxdepth 1 -type f -name '*.vpsbackup.tar' -printf '%T@ %p\n' | sort -rn | tail -n +$((KEEP + 1)) | cut -d' ' -f2-)
+          done < <(find "$DEST" -maxdepth 1 -type f "${SAME[@]}" -printf '%T@ %p\n' | sort -rn | tail -n +$((KEEP + 1)) | cut -d' ' -f2-)
           echo "VPSDESK_REMOTE_PATH=$OUT"
         fi
         echo "VPSDESK_SHA256=$SHA"

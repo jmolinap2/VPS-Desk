@@ -100,14 +100,28 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        var content = AppBackupContentKind;
+        var database = content != AppBackupContent.FilesOnly && !string.IsNullOrWhiteSpace(SelectedBackupDatabase)
+            ? SelectedBackupDatabase
+            : null;
+        var what = content switch
+        {
+            AppBackupContent.DatabaseOnly => database is null ? "todas las bases de datos" : $"la base «{database}»",
+            AppBackupContent.FilesOnly => "el proyecto y la configuración",
+            _ => "base de datos, proyecto y configuración"
+        };
+
         await CreateAppBackupWithFeedbackAsync(
             server,
-            "Creando copia de la aplicación",
-            KeepAppBackupOnServer
-                ? $"Se guardará en el VPS y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando."
-                : $"Se guardará en esta máquina y se conservarán las {KeepCopies} más recientes. El servidor sigue funcionando.",
+            "Creando copia",
+            (KeepAppBackupOnServer
+                ? $"Copia de {what}. Se guardará en el VPS y se conservarán las {KeepCopies} más recientes de este tipo."
+                : $"Copia de {what}. Se guardará en esta máquina y se conservarán las {KeepCopies} más recientes de este tipo.")
+            + " El servidor sigue funcionando.",
             "Copia creada y verificada.",
-            closeOnSuccess: false);
+            closeOnSuccess: false,
+            content,
+            database);
     }
 
     /// <summary>Línea para la confirmación del despliegue.</summary>
@@ -150,9 +164,11 @@ public partial class DeploymentsViewModel
         string title,
         string startMessage,
         string successMessage,
-        bool closeOnSuccess)
+        bool closeOnSuccess,
+        AppBackupContent content = AppBackupContent.Full,
+        string? database = null)
     {
-        if (string.IsNullOrWhiteSpace(RemoteRepositoryPath))
+        if (content != AppBackupContent.DatabaseOnly && string.IsNullOrWhiteSpace(RemoteRepositoryPath))
         {
             StatusMessage = "Indica o detecta primero la ruta remota del proyecto: es lo que se incluye en la copia.";
             Toast.Warning(StatusMessage, "Falta la ruta del proyecto");
@@ -169,9 +185,12 @@ public partial class DeploymentsViewModel
         try
         {
             var result = await _appBackups!.CreateAsync(
-                new AppBackupRequest(server, RemoteRepositoryPath.Trim(), KeepCopies,
-                    PostgresContainer: string.IsNullOrWhiteSpace(AppBackupPostgresContainer) ? null : AppBackupPostgresContainer.Trim(),
-                    KeepOnServerOnly: KeepAppBackupOnServer),
+                new AppBackupRequest(server, RemoteRepositoryPath?.Trim() ?? string.Empty, KeepCopies,
+                    PostgresContainer: !string.IsNullOrWhiteSpace(SelectedPostgresContainer) ? SelectedPostgresContainer
+                        : string.IsNullOrWhiteSpace(AppBackupPostgresContainer) ? null : AppBackupPostgresContainer.Trim(),
+                    KeepOnServerOnly: KeepAppBackupOnServer,
+                    Content: content,
+                    Database: database),
                 secret,
                 progress, cancellation.Token);
 
@@ -201,7 +220,7 @@ public partial class DeploymentsViewModel
         }
     }
 
-    private static string FormatBytes(long bytes)
+    internal static string FormatBytes(long bytes)
         => bytes switch
         {
             < 1024 * 1024 => $"{Math.Max(1, bytes / 1024)} KB",

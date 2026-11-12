@@ -23,7 +23,8 @@ param(
     [string]$Notes = '',
     [string]$OutDir,
     [string]$NetlifySiteId,
-    [switch]$Deploy
+    [switch]$Deploy,
+    [switch]$Telegram   # envía el APK por Telegram (TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en el entorno)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,4 +89,19 @@ if ($Deploy) {
     Write-Host '== Publicando en Netlify' -ForegroundColor Cyan
     & npx @args
     if ($LASTEXITCODE -ne 0) { throw 'Falló la publicación en Netlify (¿netlify login?).' }
+}
+
+if ($Telegram) {
+    if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) {
+        throw 'Define TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID (variables de entorno de usuario).'
+    }
+    Write-Host '== Enviando APK por Telegram' -ForegroundColor Cyan
+    $caption = "VPS Desk $versionName (código $versionCode)`nSHA-256: $sha"
+    if ($Notes) { $caption += "`n$Notes" }
+    $apkPath = Join-Path $OutDir $apkName
+    # curl.exe (incluido en Windows) hace el multipart; el token va en la URL, no se imprime.
+    $resp = & curl.exe -s -S -F "chat_id=$($env:TELEGRAM_CHAT_ID)" -F "caption=$caption" `
+        -F "document=@$apkPath" "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument"
+    if ($LASTEXITCODE -ne 0 -or $resp -notmatch '"ok":true') { throw "Falló el envío a Telegram: $resp" }
+    Write-Host 'APK enviado por Telegram.' -ForegroundColor Green
 }

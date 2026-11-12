@@ -41,6 +41,7 @@ public partial class DeploymentsViewModel
     partial void OnDataSaverModeIndexChanged(int value)
     {
         RefreshDataSaverStatus();
+        NotifyProtectionsChanged();
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(DataSaverPreferencePath)!);

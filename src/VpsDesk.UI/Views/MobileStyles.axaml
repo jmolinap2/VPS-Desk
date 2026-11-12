@@ -139,7 +139,7 @@
     <Setter Property="IsHitTestVisible" Value="True" />
   </Style>
   <Style Selector="Border.m-sheet">
-    <Setter Property="Background" Value="#10141D" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Raised}" />
     <Setter Property="BorderBrush" Value="#1E2735" />
     <Setter Property="BorderThickness" Value="1,1,1,0" />
     <Setter Property="CornerRadius" Value="24,24,0,0" />

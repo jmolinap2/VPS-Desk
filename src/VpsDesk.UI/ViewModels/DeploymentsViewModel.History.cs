@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Activity;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Desktop.Localization;
 using VpsDesk.Domain.Activity;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -17,19 +18,16 @@ public partial class DeploymentsViewModel
     private bool _historyRecordedForCurrentRun;
     private DateTimeOffset _observedDeploymentStartedAt;
     private readonly StringBuilder _liveDeploymentOutput = new();
-    private CancellationTokenSource? _preflightCloseCts;
-    private bool _isPreflightPointerOver;
-    private bool _isPreflightCountdownPinned;
-    private bool IsPreflightCountdownPaused => _isPreflightPointerOver || _isPreflightCountdownPinned;
+    private CancellationTokenSource? _preflightCts;
+    private bool _preflightCancelledByUser;
     private readonly ConcurrentQueue<DeploymentProgressUpdate> _progressQueue = new();
     private int _progressDrainScheduled;
     private bool _stepStreamedOutput;
     private int _stepOutputStart;
     private const int LiveOutputFlushMilliseconds = 100;
 
-    // Tiempo que el prevuelo exitoso queda visible antes de cerrarse solo.
-    // El usuario puede cerrarlo antes con "Aceptar".
-    private const int PreflightAutoCloseSeconds = 10;
+    // Plazo máximo del prevuelo: pasado ese tiempo se abandona y el modal muestra el motivo.
+    private static readonly TimeSpan PreflightTimeout = TimeSpan.FromSeconds(45);
 
     public ObservableCollection<OperationHistoryEntry> DeploymentHistory { get; } = new();
 
@@ -37,13 +35,15 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private bool _isHistoryView;
     [ObservableProperty] private bool _isPreflightModalOpen;
     [ObservableProperty] private string _preflightModalMessage = string.Empty;
-    [ObservableProperty] private bool _hasPreflightCountdown;
-    [ObservableProperty] private string _preflightCountdownText = string.Empty;
+    [ObservableProperty] private bool _isPreflightRunning;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPreflightPassed))] private int _preflightPassedCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPreflightWarnings))] private int _preflightWarningCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPreflightFailures))] private int _preflightFailedCount;
     [ObservableProperty] private bool _isPostflightModalOpen;
     [ObservableProperty] private string _postflightModalMessage = string.Empty;
-    [ObservableProperty] private int _postflightPassedCount;
-    [ObservableProperty] private int _postflightWarningCount;
-    [ObservableProperty] private int _postflightFailedCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPostflightPassed))] private int _postflightPassedCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPostflightWarnings))] private int _postflightWarningCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPostflightFailures))] private int _postflightFailedCount;
     [ObservableProperty] private bool _isDeploymentRunning;
     [ObservableProperty] private bool _isDeploymentConfigurationExpanded = true;
     [ObservableProperty] private double _deploymentProgressPercent;
@@ -91,15 +91,6 @@ public partial class DeploymentsViewModel
 
     partial void OnStatusMessageChanged(string value)
     {
-        if (value.Contains("preflight", StringComparison.OrdinalIgnoreCase)
-            || value.Contains("validación previa", StringComparison.OrdinalIgnoreCase))
-        {
-            if (IsBusy && Steps.Count == 0)
-            {
-                BeginPreflightModal();
-            }
-        }
-
         if (value.Contains("Deployment is running", StringComparison.OrdinalIgnoreCase)
             || value.Contains("despliegue está en ejecución", StringComparison.OrdinalIgnoreCase))
         {
@@ -134,11 +125,6 @@ public partial class DeploymentsViewModel
     {
         NotifySnapshotAvailability();
         if (value) return;
-
-        if (IsPreflightModalOpen && !_deploymentObserved)
-        {
-            _ = CompletePreflightModalAsync(CanDeploy);
-        }
 
         if (IsPostflightModalOpen)
         {
@@ -180,7 +166,6 @@ public partial class DeploymentsViewModel
         DeploymentProgressPercent = 0;
         DeploymentProgressText = string.Empty;
         CanDeploy = false;
-        CancelPreflightCountdown();
         IsPreflightModalOpen = false;
         IsPostflightModalOpen = false;
         IsDeploymentConfigurationExpanded = true;
@@ -199,30 +184,58 @@ public partial class DeploymentsViewModel
     private void ToggleDeploymentConfiguration()
         => IsDeploymentConfigurationExpanded = !IsDeploymentConfigurationExpanded;
 
+    /// <summary>
+    /// Cierra el modal de prevuelo. Si la comprobación sigue en curso la cancela: el usuario nunca
+    /// queda atrapado esperando a un servidor que no responde.
+    /// </summary>
     [RelayCommand]
     private void ClosePreflightModal()
     {
-        if (IsBusy) return;
+        if (IsPreflightRunning)
+        {
+            CancelPreflight();
+            return;
+        }
 
-        CancelPreflightCountdown();
         IsPreflightModalOpen = false;
     }
 
-    // Mientras el usuario lee o desplaza la lista, el prevuelo no se cierra solo.
-    // El puntero encima pausa; tocar o pulsar dentro lo deja pausado hasta "Aceptar"
-    // (en el teléfono no hay "hover": al soltar el dedo el puntero "sale").
-    public void SetPreflightPointerOver(bool isOver) => _isPreflightPointerOver = isOver;
+    [RelayCommand]
+    private void CancelPreflight()
+    {
+        _preflightCancelledByUser = true;
+        _preflightCts?.Cancel();
+    }
 
-    public void PinPreflightCountdown() => _isPreflightCountdownPinned = true;
+    /// <summary>Tras un prevuelo correcto lanzado a solas: cierra el resultado y pide la confirmación.</summary>
+    [RelayCommand]
+    private void ContinueAfterPreflight()
+    {
+        IsPreflightModalOpen = false;
+        RequestDeploy();
+    }
+
+    public bool IsPreflightFinished => IsPreflightModalOpen && !IsPreflightRunning;
+    public bool PreflightSucceeded => IsPreflightFinished && CanDeploy;
+    public bool PreflightBlocked => IsPreflightFinished && !CanDeploy;
+
+    partial void OnIsPreflightModalOpenChanged(bool value) => NotifyPreflightState();
+    partial void OnIsPreflightRunningChanged(bool value) => NotifyPreflightState();
+    partial void OnCanDeployChanged(bool value) => NotifyPreflightState();
+
+    private void NotifyPreflightState()
+    {
+        OnPropertyChanged(nameof(IsPreflightFinished));
+        OnPropertyChanged(nameof(PreflightSucceeded));
+        OnPropertyChanged(nameof(PreflightBlocked));
+    }
 
     [RelayCommand]
     private void ClosePostflightModal()
     {
-        if (!IsBusy)
-        {
-            IsPostflightModalOpen = false;
-            IsDeploymentConfigurationExpanded = true;
-        }
+        // Cerrar solo oculta el resultado: la verificación sigue y su veredicto queda en pantalla.
+        IsPostflightModalOpen = false;
+        IsDeploymentConfigurationExpanded = true;
     }
 
     public async Task RefreshHistoryAsync()
@@ -234,66 +247,29 @@ public partial class DeploymentsViewModel
         DeploymentHistory.Clear();
         foreach (var item in items) DeploymentHistory.Add(item);
         SelectedHistoryEntry = DeploymentHistory.FirstOrDefault();
+        OnPropertyChanged(nameof(HasHistory));
+        OnPropertyChanged(nameof(HasNoHistory));
     }
 
-    private void BeginPreflightModal()
+    private CancellationToken BeginPreflightModal()
     {
-        CancelPreflightCountdown();
-        _isPreflightPointerOver = false;
-        _isPreflightCountdownPinned = false;
+        _preflightCts?.Dispose();
+        var cts = _preflightCts = new CancellationTokenSource(PreflightTimeout);
+        _preflightCancelledByUser = false;
+        PreflightPassedCount = 0;
+        PreflightWarningCount = 0;
+        PreflightFailedCount = 0;
+        IsPreflightRunning = true;
         IsPreflightModalOpen = true;
-        PreflightModalMessage = "Comprobando SSH, Git, Docker, Compose, rama, archivos y entorno...";
+        PreflightModalMessage = LocalizationService.T("Deployments_PreflightRunning");
+        return cts.Token;
     }
 
-    private async Task CompletePreflightModalAsync(bool passed)
+    private void CountPreflightChecks()
     {
-        PreflightModalMessage = passed
-            ? "Prevuelo correcto. Todo está listo para continuar."
-            : "El prevuelo encontró bloqueos. Revisa los elementos marcados antes de desplegar.";
-
-        // Con bloqueos el modal se queda abierto hasta que el usuario lo cierre.
-        if (!passed) return;
-
-        // Antes se cerraba solo a los 0,65 s: imposible de leer, sobre todo en
-        // el teléfono. Ahora queda visible con una cuenta regresiva y el botón
-        // "Aceptar" para cerrarlo antes.
-        CancelPreflightCountdown();
-        var cts = _preflightCloseCts = new CancellationTokenSource();
-        try
-        {
-            HasPreflightCountdown = true;
-            var remaining = PreflightAutoCloseSeconds;
-            while (remaining > 0)
-            {
-                PreflightCountdownText = IsPreflightCountdownPaused
-                    ? "Pausado · pulsa Aceptar para continuar"
-                    : $"Se cerrará en {remaining} s";
-                await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
-                if (!IsPreflightCountdownPaused) remaining--;
-            }
-
-            IsPreflightModalOpen = false;
-        }
-        catch (OperationCanceledException)
-        {
-            // El usuario lo cerró (o empezó otro prevuelo) antes de tiempo.
-        }
-        finally
-        {
-            if (ReferenceEquals(_preflightCloseCts, cts))
-            {
-                HasPreflightCountdown = false;
-                PreflightCountdownText = string.Empty;
-            }
-        }
-    }
-
-    private void CancelPreflightCountdown()
-    {
-        _preflightCloseCts?.Cancel();
-        _preflightCloseCts = null;
-        HasPreflightCountdown = false;
-        PreflightCountdownText = string.Empty;
+        PreflightPassedCount = Checks.Count(x => x.Status == PreflightCheckStatus.Passed);
+        PreflightWarningCount = Checks.Count(x => x.Status == PreflightCheckStatus.Warning);
+        PreflightFailedCount = Checks.Count(x => x.Status == PreflightCheckStatus.Failed);
     }
 
     private void BeginPostflightModal()

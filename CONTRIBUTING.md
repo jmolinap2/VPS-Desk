@@ -28,6 +28,10 @@ Si el cambio toca localización, ejecuta además:
 ./Scripts/Validate-Localization.ps1
 ```
 
+Si el cambio toca la interfaz, sigue [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) y completa
+su lista de verificación (§11) en el pull request. El estado actual y el plan de mejora están en
+[docs/UX_AUDIT.md](docs/UX_AUDIT.md).
+
 La aplicación oficial es la implementación .NET/Avalonia de `src/`. El cliente PowerShell/WPF heredado fue retirado de `main` y permanece recuperable desde el historial de Git.
 
 ## Seguridad

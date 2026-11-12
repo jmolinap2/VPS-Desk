@@ -1,0 +1,78 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Tokens del sistema de diseño (docs/DESIGN_SYSTEM.md §3). Los colores se nombran por rol y se
+    consumen con {DynamicResource Brush.*} para que el tema claro funcione en caliente.
+    Regla: ninguna vista nueva escribe colores, radios ni duraciones a mano.
+  -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="Brush.Canvas" Color="#0B0E13" />
+      <SolidColorBrush x:Key="Brush.Surface.Bar" Color="#0E1219" />
+      <SolidColorBrush x:Key="Brush.Surface.Card" Color="#121826" />
+      <SolidColorBrush x:Key="Brush.Surface.Inset" Color="#0E131B" />
+      <SolidColorBrush x:Key="Brush.Surface.Raised" Color="#161E2C" />
+      <SolidColorBrush x:Key="Brush.Surface.Code" Color="#070A0F" />
+      <SolidColorBrush x:Key="Brush.Code.Text" Color="#CBD5E1" />
+      <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#1E2735" />
+      <SolidColorBrush x:Key="Brush.Border.Strong" Color="#2A3444" />
+      <SolidColorBrush x:Key="Brush.Text.Primary" Color="#E8EDF5" />
+      <SolidColorBrush x:Key="Brush.Text.Secondary" Color="#9AA4B2" />
+      <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="#8290A3" />
+      <SolidColorBrush x:Key="Brush.Text.Disabled" Color="#56657A" />
+      <SolidColorBrush x:Key="Brush.Accent" Color="#0F766E" />
+      <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="#0B5F58" />
+      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Accent.Text" Color="#5EEAD4" />
+      <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="#102A24" />
+      <SolidColorBrush x:Key="Brush.Success" Color="#34D399" />
+      <SolidColorBrush x:Key="Brush.Success.Subtle" Color="#102A24" />
+      <SolidColorBrush x:Key="Brush.Warning" Color="#FBBF24" />
+      <SolidColorBrush x:Key="Brush.Warning.Subtle" Color="#2A2410" />
+      <SolidColorBrush x:Key="Brush.Danger" Color="#F87171" />
+      <SolidColorBrush x:Key="Brush.Danger.Subtle" Color="#2A1416" />
+      <SolidColorBrush x:Key="Brush.Info" Color="#60A5FA" />
+      <SolidColorBrush x:Key="Brush.Info.Subtle" Color="#10203A" />
+      <SolidColorBrush x:Key="Brush.Scrim" Color="#99000000" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="Brush.Canvas" Color="#F6F7F9" />
+      <SolidColorBrush x:Key="Brush.Surface.Bar" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Surface.Card" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Surface.Inset" Color="#EEF1F5" />
+      <SolidColorBrush x:Key="Brush.Surface.Raised" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Surface.Code" Color="#0F172A" />
+      <SolidColorBrush x:Key="Brush.Code.Text" Color="#CBD5E1" />
+      <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#E2E6EC" />
+      <SolidColorBrush x:Key="Brush.Border.Strong" Color="#CBD2DC" />
+      <SolidColorBrush x:Key="Brush.Text.Primary" Color="#0F172A" />
+      <SolidColorBrush x:Key="Brush.Text.Secondary" Color="#475569" />
+      <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="#5A6577" />
+      <SolidColorBrush x:Key="Brush.Text.Disabled" Color="#94A3B8" />
+      <SolidColorBrush x:Key="Brush.Accent" Color="#0F766E" />
+      <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="#0B5F58" />
+      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Accent.Text" Color="#0F766E" />
+      <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="#E6F4F1" />
+      <SolidColorBrush x:Key="Brush.Success" Color="#047857" />
+      <SolidColorBrush x:Key="Brush.Success.Subtle" Color="#E7F6EF" />
+      <SolidColorBrush x:Key="Brush.Warning" Color="#B45309" />
+      <SolidColorBrush x:Key="Brush.Warning.Subtle" Color="#FDF3E2" />
+      <SolidColorBrush x:Key="Brush.Danger" Color="#B91C1C" />
+      <SolidColorBrush x:Key="Brush.Danger.Subtle" Color="#FCEBEB" />
+      <SolidColorBrush x:Key="Brush.Info" Color="#1D4ED8" />
+      <SolidColorBrush x:Key="Brush.Info.Subtle" Color="#E8EEFC" />
+      <SolidColorBrush x:Key="Brush.Scrim" Color="#660F172A" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- Radios (DESIGN_SYSTEM §3.4) -->
+  <CornerRadius x:Key="Radius.S">6</CornerRadius>
+  <CornerRadius x:Key="Radius.M">10</CornerRadius>
+  <CornerRadius x:Key="Radius.L">16</CornerRadius>
+  <CornerRadius x:Key="Radius.XL.Top">24,24,0,0</CornerRadius>
+  <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
+
+  <!-- Tipografía monoespaciada: Cascadia/Consolas en Windows, la mono del sistema en Android -->
+  <FontFamily x:Key="Font.Mono">Cascadia Mono,Consolas,Roboto Mono,Droid Sans Mono,monospace</FontFamily>
+</ResourceDictionary>

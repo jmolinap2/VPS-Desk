@@ -10,6 +10,9 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     // Tras terminar el comando, tiempo máximo para vaciar los flujos de salida.
     private static readonly TimeSpan PumpDrainTimeout = TimeSpan.FromSeconds(5);
 
+    // Margen sobre el plazo del comando para la ruta síncrona (conectar + ejecutar).
+    private static readonly TimeSpan SyncGrace = TimeSpan.FromSeconds(10);
+
     public async Task<SshCommandResult> ExecuteAsync(
         SshCommandRequest request,
         string? secret,
@@ -21,9 +24,22 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
 
         try
         {
-            return request.OutputReceived is null && request.OutputChunkReceived is null
-                ? await Task.Run(() => ExecuteCore(request, secret, stopwatch, linkedCts.Token), linkedCts.Token)
-                : await Task.Run(() => ExecuteStreamingAsync(request, secret, stopwatch, linkedCts.Token), linkedCts.Token);
+            if (request.OutputReceived is null && request.OutputChunkReceived is null)
+            {
+                // ExecuteCore es síncrono (Connect/Execute bloquean el hilo): el token solo se mira
+                // entre pasos y no interrumpe una conexión colgada. WaitAsync deja de esperar al
+                // cancelar el usuario o al vencer el plazo (con un margen para conectar + ejecutar),
+                // así la interfaz nunca queda atada a un socket que no responde. El hilo bloqueado
+                // termina solo cuando SSH.NET agota su propio tiempo.
+                return await Task.Run(() => ExecuteCore(request, secret, stopwatch, linkedCts.Token), linkedCts.Token)
+                    .WaitAsync(request.Timeout + SyncGrace, cancellationToken);
+            }
+
+            return await Task.Run(() => ExecuteStreamingAsync(request, secret, stopwatch, linkedCts.Token), linkedCts.Token);
+        }
+        catch (TimeoutException)
+        {
+            return new SshCommandResult(-1, string.Empty, "SSH command timed out.", stopwatch.Elapsed, true, false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

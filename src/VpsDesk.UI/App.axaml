@@ -2,8 +2,24 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="VpsDesk.Desktop.App"
              RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://VpsDesk.UI/Themes/Tokens.axaml" />
+        <ResourceInclude Source="avares://VpsDesk.UI/Themes/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
   <Application.Styles>
-    <FluentTheme />
+    <!-- El acento de los controles base (pestañas, casillas, interruptores, foco) es el del
+         producto, no el color de acento de Windows/Android: docs/DESIGN_SYSTEM.md §3.1. -->
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#0F766E" />
+        <ColorPaletteResources x:Key="Light" Accent="#0F766E" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://VpsDesk.UI/Themes/Controls.axaml" />
     <Style Selector="Window">
       <Setter Property="Background" Value="#0B0E13" />
       <Setter Property="Foreground" Value="#E8EDF5" />

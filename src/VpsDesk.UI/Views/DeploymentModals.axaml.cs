@@ -11,12 +11,11 @@ public partial class DeploymentModals : UserControl
         InitializeComponent();
     }
 
-    private void OnPreflightPointerEntered(object? sender, PointerEventArgs e)
-        => (DataContext as DeploymentsViewModel)?.SetPreflightPointerOver(true);
-
-    private void OnPreflightPointerExited(object? sender, PointerEventArgs e)
-        => (DataContext as DeploymentsViewModel)?.SetPreflightPointerOver(false);
-
-    private void OnPreflightPointerPressed(object? sender, PointerPressedEventArgs e)
-        => (DataContext as DeploymentsViewModel)?.PinPreflightCountdown();
+    // Tocar el fondo (no la tarjeta) cierra la capa superior. Un prevuelo en curso se cancela y
+    // una operación en segundo plano solo se oculta: ningún modal deja al usuario sin salida.
+    private void OnScrimPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        (DataContext as DeploymentsViewModel)?.TryDismissTopLayer();
+    }
 }

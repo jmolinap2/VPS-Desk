@@ -88,12 +88,10 @@ public partial class DeploymentsViewModel
     private void ToggleOperationFeedbackOutput()
         => IsOperationFeedbackOutputExpanded = !IsOperationFeedbackOutputExpanded;
 
+    /// <summary>
+    /// Oculta el modal. Si la operación sigue en curso continúa en segundo plano y su resultado
+    /// llega como aviso: el modal nunca es una trampa (para detenerla está "Cancelar").
+    /// </summary>
     [RelayCommand]
-    private void CloseOperationFeedbackModal()
-    {
-        if (!IsOperationFeedbackRunning)
-        {
-            IsOperationFeedbackModalOpen = false;
-        }
-    }
+    private void CloseOperationFeedbackModal() => IsOperationFeedbackModalOpen = false;
 }

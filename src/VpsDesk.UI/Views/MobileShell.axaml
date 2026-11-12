@@ -5,6 +5,7 @@
              xmlns:services="using:VpsDesk.Desktop.Services"
              xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.MobileShell"
+             Classes="mobile"
              x:DataType="vm:MainWindowViewModel">
   <UserControl.Resources>
     <conv:ConnectionToBrushConverter x:Key="ConnectionToBrush" />

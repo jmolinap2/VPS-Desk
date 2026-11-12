@@ -53,13 +53,13 @@ public sealed class DeploymentStatusMessageConverter : IValueConverter
     private static Tone Classify(string message)
     {
         if (ContainsAny(message,
-                "fall", "bloque", "inválid", "invalid", "obligator", "no hay", "no se pudo",
-                "detuvo", "problemas", "cancelad", "rechaz", "error"))
+                "fall", "fail", "bloque", "inválid", "invalid", "obligator", "no hay", "no se pudo",
+                "detuvo", "problemas", "problems", "cancelad", "rechaz", "error"))
         {
             return Tone.Error;
         }
 
-        if (ContainsAny(message, "advert", "warning", "warnings", "con advertencias", "configuración cambió"))
+        if (ContainsAny(message, "advert", "warning", "warnings", "con advertencias", "con avisos", "configuración cambió"))
         {
             return Tone.Warning;
         }

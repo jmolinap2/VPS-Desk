@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using VpsDesk.Desktop.ViewModels;
 
 namespace VpsDesk.Desktop.Views;
 
@@ -10,6 +11,7 @@ public partial class MobileShell : UserControl
 {
     private readonly ShellTelemetryController _telemetry = new(refreshOnActivation: true);
     private IInputPane? _inputPane;
+    private TopLevel? _topLevel;
 
     public MobileShell()
     {
@@ -20,11 +22,13 @@ public partial class MobileShell : UserControl
         Loaded += async (_, _) =>
         {
             AttachInputPane();
+            AttachBackHandler();
             await _telemetry.StartAsync(DataContext);
         };
         Unloaded += async (_, _) =>
         {
             DetachInputPane();
+            DetachBackHandler();
             await _telemetry.StopAsync();
         };
     }
@@ -53,6 +57,47 @@ public partial class MobileShell : UserControl
 
     private void ApplyKeyboardInset(double height)
         => Padding = new Thickness(0, 0, 0, Math.Max(0, height));
+
+    // Botón/gesto «atrás» de Android: cierra lo último que se abrió antes de salir de la app.
+    // Orden: cajón → hoja o modal abierto → volver al Panel. Solo desde el Panel, sin nada
+    // abierto, el sistema cierra la aplicación (comportamiento normal de Android).
+    private void AttachBackHandler()
+    {
+        DetachBackHandler();
+        _topLevel = TopLevel.GetTopLevel(this);
+        if (_topLevel is not null) _topLevel.BackRequested += OnBackRequested;
+    }
+
+    private void DetachBackHandler()
+    {
+        if (_topLevel is not null) _topLevel.BackRequested -= OnBackRequested;
+        _topLevel = null;
+    }
+
+    private void OnBackRequested(object? sender, RoutedEventArgs e)
+    {
+        if (Drawer.Classes.Contains("open"))
+        {
+            SetDrawerOpen(false);
+            e.Handled = true;
+            return;
+        }
+
+        if (DataContext is not MainWindowViewModel vm) return;
+
+        // Capa abierta en el módulo de la pantalla activa, o una hoja con estado en code-behind.
+        if (vm.TryDismissTopLayer() || MobileSheet.TryDismissTop())
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (!vm.IsDashboardPage)
+        {
+            vm.NavigateCommand.Execute("Dashboard");
+            e.Handled = true;
+        }
+    }
 
     private void OnMenuButtonClick(object? sender, RoutedEventArgs e) => SetDrawerOpen(!Drawer.Classes.Contains("open"));
 

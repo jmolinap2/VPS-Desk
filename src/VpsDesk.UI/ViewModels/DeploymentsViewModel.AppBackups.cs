@@ -41,6 +41,7 @@ public partial class DeploymentsViewModel
         _appBackups = service;
         OnPropertyChanged(nameof(IsAppBackupConfigured));
         OnPropertyChanged(nameof(CanUseAppBackups));
+        NotifyProtectionsChanged();
         RefreshAppBackups();
     }
 

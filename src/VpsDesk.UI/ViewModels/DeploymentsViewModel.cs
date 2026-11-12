@@ -187,6 +187,7 @@ public partial class DeploymentsViewModel : ObservableObject
             HttpHealthUrls = string.Empty;
             LoadProjectPreferences(saved);
 
+            RefreshServerContext(server);
             StatusMessage = server is null
                 ? "Selecciona y activa un servidor para usar despliegues."
                 : saved is null
@@ -220,6 +221,7 @@ public partial class DeploymentsViewModel : ObservableObject
             CleanBuildCache = saved?.CleanBuildCache ?? true;
             HttpHealthUrls = string.Empty;
             LoadProjectPreferences(saved);
+            RefreshServerContext(server);
             StatusMessage = $"Proyecto activo: {project.Name}. Detectando rama, Compose y capacidades declaradas por el proyecto...";
         }
         finally

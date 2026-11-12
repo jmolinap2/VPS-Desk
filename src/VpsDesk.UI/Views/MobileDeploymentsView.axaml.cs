@@ -13,7 +13,7 @@ public partial class MobileDeploymentsView : UserControl
         InitializeComponent();
     }
 
-    // Pestañas Salida / Proceso: solo estado de presentación, por eso viven acá
+    // Pestañas Salida / Pasos: solo estado de presentación, por eso viven acá
     // y no en el ViewModel. Cada una usa todo el ancho en vez de repartirse
     // dos columnas fijas como en escritorio.
     private void OnExecutionTabClick(object? sender, RoutedEventArgs e)
@@ -32,38 +32,22 @@ public partial class MobileDeploymentsView : UserControl
         else button.Classes.Remove("active");
     }
 
-    // El historial se abre por toque explícito (no por selección): el
-    // ViewModel autoselecciona la primera entrada al cargar y eso abriría la
-    // hoja sola al entrar a la pestaña.
+    // El historial se abre por toque explícito (no por selección): el ViewModel autoselecciona
+    // la primera entrada al cargar y eso abriría la hoja sola al entrar a la pestaña.
+    // El estado de la hoja vive en el ViewModel (IsHistorySheetOpen) para que «atrás» la cierre.
     private void OnHistoryEntryTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Control { DataContext: OperationHistoryEntry entry }
             && DataContext is DeploymentsViewModel vm)
         {
-            vm.SelectedHistoryEntry = entry;
-            SetHistorySheetOpen(true);
+            vm.OpenHistoryEntryCommand.Execute(entry);
         }
     }
 
-    private void OnHistoryScrimPressed(object? sender, PointerPressedEventArgs e) => SetHistorySheetOpen(false);
+    private void OnHistoryScrimPressed(object? sender, PointerPressedEventArgs e)
+        => (DataContext as DeploymentsViewModel)?.CloseHistorySheetCommand.Execute(null);
 
-    // La hoja de opciones es estado del ViewModel (IsAdvancedOptionsOpen); tocar el fondo la cierra.
+    // La hoja de opciones también es estado del ViewModel; tocar el fondo la cierra.
     private void OnOptionsScrimPressed(object? sender, PointerPressedEventArgs e)
         => (DataContext as DeploymentsViewModel)?.CloseAdvancedOptionsCommand.Execute(null);
-
-    private void OnHistoryCloseClick(object? sender, RoutedEventArgs e) => SetHistorySheetOpen(false);
-
-    private void SetHistorySheetOpen(bool isOpen)
-    {
-        if (isOpen)
-        {
-            HistorySheet.Classes.Add("open");
-            HistoryScrim.Classes.Add("open");
-        }
-        else
-        {
-            HistorySheet.Classes.Remove("open");
-            HistoryScrim.Classes.Remove("open");
-        }
-    }
 }

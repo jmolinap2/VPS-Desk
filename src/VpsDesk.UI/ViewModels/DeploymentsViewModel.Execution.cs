@@ -1,6 +1,7 @@
 using System.Text;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Desktop.Localization;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
 
@@ -247,13 +248,15 @@ public partial class DeploymentsViewModel
             return;
         }
 
-        if (!await RunPreflightCoreAsync()) return;
+        // Desde DESPLEGAR el prevuelo no se queda como un modal más: si pasa, se cierra y se
+        // muestra directamente la confirmación (que resume lo que se va a hacer).
+        if (!await RunPreflightCoreAsync(continueToConfirmation: true)) return;
 
         RequestDeploy();
         StatusMessage = "Todo está listo. Revisa el objetivo, las migraciones y confirma la ejecución.";
     }
 
-    private async Task<bool> RunPreflightCoreAsync()
+    private async Task<bool> RunPreflightCoreAsync(bool continueToConfirmation = false)
     {
         if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return false;
         var server = _serverAccessor();
@@ -275,45 +278,71 @@ public partial class DeploymentsViewModel
         CancelPendingDeploy();
         Checks.Clear();
         PostChecks.Clear();
-        BeginPreflightModal();
+        var token = BeginPreflightModal();
         StatusMessage = "Ejecutando prevuelo remoto del despliegue...";
 
         try
         {
+            // WaitAsync: aunque la capa SSH tarde en reaccionar, cancelar o agotar el plazo
+            // libera la pantalla al instante.
             var result = await _preflight.CheckAsync(
-                new DeploymentPreflightRequest(
-                    server,
-                    RemoteRepositoryPath.Trim(),
-                    Branch.Trim(),
-                    ComposeFile.Trim(),
-                    RequireEnvironmentFile,
-                    EnvironmentFileName.Trim(),
-                    GetRequiredServices()),
-                _secretAccessor());
+                    new DeploymentPreflightRequest(
+                        server,
+                        RemoteRepositoryPath.Trim(),
+                        Branch.Trim(),
+                        ComposeFile.Trim(),
+                        RequireEnvironmentFile,
+                        EnvironmentFileName.Trim(),
+                        GetRequiredServices()),
+                    _secretAccessor(),
+                    token)
+                .WaitAsync(token);
 
             var totalChecks = Math.Max(1, result.Checks.Count);
             for (var index = 0; index < result.Checks.Count; index++)
             {
                 var check = result.Checks[index];
                 Checks.Add(check);
-                PreflightModalMessage = $"Validando {index + 1}/{totalChecks} · {check.Label}";
-                await Task.Delay(90);
+                PreflightModalMessage = LocalizationService.Current.Format(
+                    "Deployments_PreflightChecking", index + 1, totalChecks, check.Label);
+                await Task.Delay(60, token);
             }
 
+            CountPreflightChecks();
             CanDeploy = result.CanProceed;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
             if (result.CanProceed)
             {
                 PersistProfile(server);
             }
+            PreflightModalMessage = LocalizationService.T(result.CanProceed
+                ? "Deployments_PreflightPassed"
+                : "Deployments_PreflightBlocked");
             StatusMessage = result.CanProceed
                 ? $"El prevuelo pasó. {BuildExecutionSummary()}."
                 : "El prevuelo bloqueó la ejecución. Corrige los requisitos fallidos y vuelve a ejecutar.";
             return result.CanProceed;
         }
+        catch (OperationCanceledException)
+        {
+            CanDeploy = false;
+            if (_preflightCancelledByUser)
+            {
+                // Lo canceló la persona: no hay nada que explicar, se cierra y se avisa en el estado.
+                IsPreflightModalOpen = false;
+                StatusMessage = LocalizationService.T("Deployments_PreflightCancelled");
+            }
+            else
+            {
+                PreflightModalMessage = LocalizationService.T("Deployments_PreflightTimeout");
+                StatusMessage = LocalizationService.T("Deployments_PreflightTimeout");
+            }
+            return false;
+        }
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
+            PreflightModalMessage = friendly;
             StatusMessage = $"La validación previa falló: {friendly}";
             Toast.Error(friendly, "La validación previa falló");
             CanDeploy = false;
@@ -321,6 +350,9 @@ public partial class DeploymentsViewModel
         }
         finally
         {
+            // El estado del modal se fija antes de soltar IsBusy: el botón de cierre ya no depende de él.
+            IsPreflightRunning = false;
+            if (IsPreflightModalOpen && CanDeploy && continueToConfirmation) IsPreflightModalOpen = false;
             IsBusy = false;
         }
     }
@@ -351,12 +383,20 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        RefreshServerContext();
+        PendingExecution = BuildExecutionSummary();
+        PendingDeployMessage = LocalizationService.T(server.Environment == ServerEnvironment.Production
+            ? "Deployments_ConfirmWarningProd"
+            : "Deployments_ConfirmWarning");
+
+        PendingNotices.Clear();
+        foreach (var notice in new[] { BuildSnapshotNotice(), BuildAppBackupNotice(), BuildDataSaverNotice() })
+        {
+            if (!string.IsNullOrWhiteSpace(notice)) PendingNotices.Add(notice.Trim());
+        }
+        OnPropertyChanged(nameof(HasPendingNotices));
+
         HasPendingDeploy = true;
-        var productionWarning = server.Environment == ServerEnvironment.Production
-            ? " Es un servidor de producción: los servicios seleccionados pueden recrearse o reiniciarse."
-            : " Los servicios seleccionados pueden recrearse o reiniciarse.";
-        PendingDeployMessage =
-            $"Rama '{Branch.Trim()}' · {BuildExecutionSummary()} · Compose '{ComposeFile.Trim()}'.{productionWarning}{BuildSnapshotNotice()}{BuildAppBackupNotice()}{BuildDataSaverNotice()}";
     }
 
     [RelayCommand]
@@ -386,7 +426,7 @@ public partial class DeploymentsViewModel
         DeploymentOutput = string.Empty;
         DeploymentOutcomeTitle = "Pase en curso";
         DeploymentNextAction = "Mantén la aplicación abierta. Los pasos reservan el último tramo para verificar el resultado.";
-        StatusMessage = "Deployment is running. Do not close VPS Desk until it finishes.";
+        StatusMessage = LocalizationService.T("Deployments_StatusRunning");
         CancelPendingDeploy();
 
         var deploymentServices = GetDeploymentServices();
@@ -451,7 +491,7 @@ public partial class DeploymentsViewModel
                 return;
             }
 
-            StatusMessage = "Deployment commands completed. Verifying the real container and HTTP state...";
+            StatusMessage = LocalizationService.T("Deployments_StatusVerifying");
             var verification = await _postDeployVerification.VerifyAsync(
                 new PostDeployVerificationRequest(
                     server,
@@ -469,11 +509,11 @@ public partial class DeploymentsViewModel
             DeploymentNextAction = verification.Passed
                 ? "Revisa las comprobaciones y los avisos. El resultado queda disponible al volver a esta pantalla."
                 : "Revisa las comprobaciones fallidas y los logs de los servicios antes de repetir el pase.";
-            StatusMessage = verification.Passed
-                ? hasWarnings
-                    ? $"Deployment completed in {elapsed:F1}s. The release is healthy, with maintenance/post-deploy warnings to review."
-                    : $"Deployment completed in {elapsed:F1}s and post-deploy verification passed."
-                : $"Deployment commands completed in {elapsed:F1}s, but post-deploy verification found problems. Review the checks before considering the release healthy.";
+            StatusMessage = LocalizationService.Current.Format(
+                !verification.Passed ? "Deployments_StatusDoneProblems"
+                : hasWarnings ? "Deployments_StatusDoneWarnings"
+                : "Deployments_StatusDone",
+                elapsed.ToString("F1"));
 
             if (!verification.Passed)
                 Toast.Error($"Los comandos terminaron en {elapsed:F1}s, pero la verificación posterior encontró problemas. Revisa las comprobaciones antes de dar la versión por buena.", "Despliegue con problemas");
@@ -576,6 +616,9 @@ public partial class DeploymentsViewModel
     {
         HasPendingDeploy = false;
         PendingDeployMessage = string.Empty;
+        PendingExecution = string.Empty;
+        PendingNotices.Clear();
+        OnPropertyChanged(nameof(HasPendingNotices));
     }
 
     private void PersistProfile(ServerProfile server)

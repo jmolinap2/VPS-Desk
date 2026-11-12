@@ -70,6 +70,7 @@ public partial class DeploymentsViewModel
         ProviderBackups.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProviderBackups));
         OnPropertyChanged(nameof(IsSnapshotConfigured));
         NotifySnapshotAvailability();
+        NotifyProtectionsChanged();
 
         // Si hay token, por defecto cada despliegue crea su punto de restauración.
         var preferences = _serverAccessor() is { } server ? _profileStore.Find(server.Id) : null;

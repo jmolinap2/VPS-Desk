@@ -1,0 +1,20 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Iconos vectoriales de trazo (estilo Lucide) en una cuadrícula de 20×20. Se dibujan con
+    <Path Classes="icon" Data="{StaticResource Icon.Close}" />: el estilo Path.icon de
+    Controls.axaml fija tamaño, grosor y extremos redondeados. Sustituyen a los caracteres
+    Unicode (✕ › ↻ ✓), que cada dispositivo dibuja con otra fuente (DESIGN_SYSTEM §3.6).
+  -->
+  <StreamGeometry x:Key="Icon.Close">M5,5 L15,15 M15,5 L5,15</StreamGeometry>
+  <StreamGeometry x:Key="Icon.ChevronRight">M8,4.5 L13.5,10 L8,15.5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.ChevronDown">M4.5,8 L10,13.5 L15.5,8</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Check">M4.5,10.5 L8.5,14.5 L15.5,6</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Alert">M10,5.5 L10,11 M10,14.2 L10,14.4</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Refresh">M16,10 A6,6 0 1 1 14.2,5.8 M15.5,3 L15.5,6.5 L12,6.5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Shield">M10,2.8 L16,5 L16,9.5 C16,13.3 13.4,16.1 10,17.2 C6.6,16.1 4,13.3 4,9.5 L4,5 Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Branch">M6,3.5 L6,16.5 M6,8 C6,11 14,9 14,12.5 M14,3.5 L14,7.5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Folder">M2.8,6 C2.8,5 3.6,4.2 4.6,4.2 L8,4.2 L9.8,6 L15.4,6 C16.4,6 17.2,6.8 17.2,7.8 L17.2,14.2 C17.2,15.2 16.4,16 15.4,16 L4.6,16 C3.6,16 2.8,15.2 2.8,14.2 Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Sliders">M3.5,6 L16.5,6 M3.5,14 L16.5,14 M7,3.8 L7,8.2 M13,11.8 L13,16.2</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Rocket">M10,16.5 L10,12.5 M7,12 C5,10 6,5.5 10,3 C14,5.5 15,10 13,12 Z M7.5,12.5 L5,15 M12.5,12.5 L15,15</StreamGeometry>
+</ResourceDictionary>

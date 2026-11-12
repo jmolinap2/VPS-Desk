@@ -2,319 +2,349 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:deploy="using:VpsDesk.Application.Deployments"
-             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.DeploymentModals"
              x:DataType="vm:DeploymentsViewModel">
   <!--
-    Capa de modales de despliegue (confirmar, prevuelo, postvuelo, ejecución),
-    compartida por DeploymentsView (escritorio) y MobileDeploymentsView
-    (teléfono). Cada tarjeta usa MaxWidth + Margin, así que se adapta al ancho
-    disponible en vez de salirse de la pantalla.
+    Capa de modales de despliegue (confirmar, acción de snapshot, prevuelo, postvuelo y progreso de
+    operación), compartida por escritorio y teléfono. Reglas (docs/DESIGN_SYSTEM.md §4.3-4.4, §9):
+      · escritorio: tarjeta centrada; teléfono (clase "mobile" en el control): hoja inferior;
+      · todos tienen una salida siempre visible (✕ arriba + botón) y se cierran tocando el fondo
+        o con el botón «atrás»; ninguno depende de que una operación remota termine;
+      · una sola acción principal por modal; la destructiva exige frase escrita;
+      · se animan con la clase "open" (opacidad + desplazamiento), sin IsVisible brusco.
+    Orden de apilado: el último declarado queda encima.
   -->
-  <UserControl.Resources>
-    <conv:DeploymentStatusMessageConverter x:Key="DeploymentStatusMessageConverter" />
-    <conv:PreflightStatusConverter x:Key="PreflightStatusConverter" />
-    <conv:PostflightStatusConverter x:Key="PostflightStatusConverter" />
-  </UserControl.Resources>
-
   <Grid>
-  <Border Background="#B0000000" IsVisible="{Binding HasPendingDeploy}">
-    <Border Classes="card" MaxWidth="620" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-      <StackPanel Spacing="14">
-        <TextBlock Text="{DynamicResource Deployments_ConfirmTitle}" FontSize="20" FontWeight="SemiBold" />
-        <TextBlock Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
-        <WrapPanel HorizontalAlignment="Right">
-          <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelDeployCommand}" />
-          <Button Content="{DynamicResource Deployments_Confirm}"
-                  Command="{Binding ConfirmDeployCommand}"
-                  Background="#0F766E"
-                  Foreground="White" />
-        </WrapPanel>
-      </StackPanel>
-    </Border>
-  </Border>
 
-  <Border Background="#B0000000" IsVisible="{Binding HasPendingSnapshotAction}">
-    <Border Classes="card" MaxWidth="620" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-      <StackPanel Spacing="14">
-        <TextBlock Text="{Binding PendingSnapshotTitle}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="{Binding PendingSnapshotMessage}" TextWrapping="Wrap" />
-        <StackPanel Spacing="4" IsVisible="{Binding PendingSnapshotRequiresPhrase}">
-          <TextBlock Text="{DynamicResource Backups_TypeToConfirm}" TextWrapping="Wrap" Foreground="#FCA5A5" />
-          <TextBox Text="{Binding SnapshotConfirmPhrase}" PlaceholderText="RESTAURAR" />
-        </StackPanel>
-        <WrapPanel HorizontalAlignment="Right">
-          <Button Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSnapshotActionCommand}" Margin="0,0,8,0" />
-          <Button Content="{Binding PendingSnapshotConfirmLabel}" Command="{Binding ConfirmSnapshotActionCommand}"
-                  IsEnabled="{Binding CanConfirmSnapshotAction}"
-                  Background="#0F766E" Foreground="White" FontWeight="SemiBold" />
-        </WrapPanel>
-      </StackPanel>
-    </Border>
-  </Border>
-
-  <Border Background="#B0000000" IsVisible="{Binding IsPreflightModalOpen}">
-    <Border Classes="card" MaxWidth="720" MaxHeight="650" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center"
-            PointerEntered="OnPreflightPointerEntered"
-            PointerExited="OnPreflightPointerExited"
-            PointerPressed="OnPreflightPointerPressed">
-      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <Border Width="42" Height="42" CornerRadius="21"
-                  Background="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=background}"
-                  BorderBrush="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=border}"
-                  BorderThickness="1">
-            <TextBlock Text="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=glyph}"
-                       FontSize="20"
-                       FontWeight="Bold"
-                       Foreground="{Binding StatusMessage, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-          </Border>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center">
-            <TextBlock Text="{DynamicResource Deployments_PreflightModalTitle}" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding PreflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" />
-          </StackPanel>
-        </Grid>
-
-        <Border Grid.Row="1" Background="#0E131B" CornerRadius="8" Padding="10">
-          <TextBlock Text="SSH · Git · Docker · Compose · objetivo · migraciones · entorno"
-                     Foreground="#8290A3"
-                     FontSize="11"
-                     TextAlignment="Center" />
-        </Border>
-
-        <ListBox Grid.Row="2" ItemsSource="{Binding Checks}" MinHeight="120" MaxHeight="360">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="deploy:PreflightCheckResult">
-              <Border Background="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=background}"
-                      BorderBrush="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=border}"
-                      BorderThickness="1"
-                      CornerRadius="8"
-                      Padding="10"
-                      Margin="0,3">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                  <Border Width="24" Height="24" CornerRadius="12"
-                          BorderBrush="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=border}"
-                          BorderThickness="1"
-                          VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=glyph}"
-                               Foreground="{Binding Status, Converter={StaticResource PreflightStatusConverter}}"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center" />
-                  </Border>
-                  <StackPanel Grid.Column="1">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Detail}" Foreground="#8290A3" FontSize="10" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <Border Grid.Column="2"
-                          Background="#101722"
-                          BorderBrush="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=border}"
-                          BorderThickness="1"
-                          CornerRadius="10"
-                          Padding="9,4"
-                          VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status, Converter={StaticResource PreflightStatusConverter}, ConverterParameter=label}"
-                               Foreground="{Binding Status, Converter={StaticResource PreflightStatusConverter}}"
-                               FontWeight="SemiBold"
-                               FontSize="10" />
-                  </Border>
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-          <TextBlock Text="{Binding PreflightCountdownText}"
-                     IsVisible="{Binding HasPreflightCountdown}"
-                     Foreground="#66758A"
-                     FontSize="11"
-                     VerticalAlignment="Center" />
-          <Button Grid.Column="1"
-                  Content="{DynamicResource Common_Accept}"
-                  Command="{Binding ClosePreflightModalCommand}"
-                  IsVisible="{Binding HasPreflightCountdown}"
-                  Background="#0F766E"
-                  Foreground="White"
-                  FontWeight="SemiBold"
-                  Padding="20,8" />
-          <Button Grid.Column="1"
-                  Content="{DynamicResource Common_Close}"
-                  Command="{Binding ClosePreflightModalCommand}"
-                  IsVisible="{Binding !HasPreflightCountdown}"
-                  HorizontalAlignment="Right"
-                  IsEnabled="{Binding !IsBusy}" />
-        </Grid>
-      </Grid>
-    </Border>
-  </Border>
-
-  <Border Background="#B0000000" IsVisible="{Binding IsPostflightModalOpen}">
-    <Border Classes="card" MaxWidth="760" MaxHeight="680" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="14">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-          <Border Width="48" Height="48" CornerRadius="24" Background="#102A24" BorderBrush="#0F766E" BorderThickness="1">
-            <TextBlock Text="✓" FontSize="24" FontWeight="Bold" Foreground="#5EEAD4" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Border>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-            <TextBlock Text="{DynamicResource Deployments_PostflightModalTitle}" FontSize="21" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding PostflightModalMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" MaxWidth="620" />
-          </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="10">
-          <Border Background="#102A24" CornerRadius="8" Padding="12">
-            <StackPanel>
-              <TextBlock Text="OK" Foreground="#5EEAD4" FontSize="10" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding PostflightPassedCount}" FontSize="24" FontWeight="SemiBold" />
+    <!-- ═══════════ Confirmar despliegue ═══════════ -->
+    <Border Classes="modal-scrim" Classes.open="{Binding HasPendingDeploy}" PointerPressed="OnScrimPressed">
+      <Border Classes="modal-card">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Classes="t-title" Text="{DynamicResource Deployments_ConfirmTitle}" VerticalAlignment="Center" />
+                <Border Classes="status danger" IsVisible="{Binding IsProductionServer}">
+                  <TextBlock Text="{Binding EnvironmentLabel}" />
+                </Border>
+                <Border Classes="status warning" IsVisible="{Binding IsStagingServer}">
+                  <TextBlock Text="{Binding EnvironmentLabel}" />
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="t-body-s" Text="{Binding ActiveServerName}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
-          </Border>
-          <Border Grid.Column="1" Background="#2A2410" CornerRadius="8" Padding="12">
-            <StackPanel>
-              <TextBlock Text="WARN" Foreground="#FBBF24" FontSize="10" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding PostflightWarningCount}" FontSize="24" FontWeight="SemiBold" />
-            </StackPanel>
-          </Border>
-          <Border Grid.Column="2" Background="#2A1215" CornerRadius="8" Padding="12">
-            <StackPanel>
-              <TextBlock Text="FAIL" Foreground="#F87171" FontSize="10" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding PostflightFailedCount}" FontSize="24" FontWeight="SemiBold" />
-            </StackPanel>
-          </Border>
-        </Grid>
-
-        <TextBlock Grid.Row="2" Text="{DynamicResource Deployments_PostDeployHelp}" Foreground="#66758A" FontSize="10" />
-
-        <ListBox Grid.Row="3" ItemsSource="{Binding PostChecks}" MinHeight="120" MaxHeight="360">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="deploy:PostDeployCheckResult">
-              <Border Background="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=background}"
-                      BorderBrush="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=border}"
-                      BorderThickness="1"
-                      CornerRadius="8"
-                      Padding="11"
-                      Margin="0,3">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                  <Border Width="24" Height="24" CornerRadius="12"
-                          BorderBrush="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=border}"
-                          BorderThickness="1"
-                          VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=glyph}"
-                               Foreground="{Binding Status, Converter={StaticResource PostflightStatusConverter}}"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center" />
-                  </Border>
-                  <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Detail}" Foreground="#8290A3" FontSize="10" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <Border Grid.Column="2"
-                          Background="#101722"
-                          BorderBrush="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=border}"
-                          BorderThickness="1"
-                          CornerRadius="10"
-                          Padding="9,4"
-                          VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status, Converter={StaticResource PostflightStatusConverter}, ConverterParameter=label}"
-                               Foreground="{Binding Status, Converter={StaticResource PostflightStatusConverter}}"
-                               FontWeight="SemiBold"
-                               FontSize="10" />
-                  </Border>
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
-          <TextBlock Text="El postvuelo queda abierto para revisión manual antes de continuar."
-                     Foreground="#66758A"
-                     FontSize="10"
-                     VerticalAlignment="Center" />
-          <Button Grid.Column="1"
-                  Content="{DynamicResource Common_Close}"
-                  Command="{Binding ClosePostflightModalCommand}"
-                  IsEnabled="{Binding !IsBusy}"
-                  Padding="18,8" />
-        </Grid>
-      </Grid>
-    </Border>
-  </Border>
-
-  <Border Background="#B0000000" IsVisible="{Binding IsOperationFeedbackModalOpen}">
-    <Border Classes="card" MaxWidth="650" MaxHeight="690" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="14">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-          <Border Width="56" Height="56" CornerRadius="16" Background="#102A24" BorderBrush="#0F766E" BorderThickness="1">
-            <Grid>
-              <Grid IsVisible="{Binding IsOperationFeedbackRunning}">
-                <Ellipse Width="9" Height="9" Fill="#5EEAD4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" />
-                <Ellipse Width="6" Height="6" Fill="#14B8A6" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <Ellipse Width="9" Height="9" Fill="#34D399" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" />
-              </Grid>
-              <TextBlock Text="✓" FontSize="27" FontWeight="Bold" Foreground="#5EEAD4"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                         IsVisible="{Binding OperationFeedbackSucceeded}" />
-              <TextBlock Text="!" FontSize="25" FontWeight="Bold" Foreground="#F87171"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                         IsVisible="{Binding IsOperationFeedbackFailed}" />
-            </Grid>
-          </Border>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-            <TextBlock Text="{Binding OperationFeedbackTitle}" FontSize="21" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding OperationFeedbackMessage}" Foreground="#A8B4C5" TextWrapping="Wrap" MaxWidth="540" />
-          </StackPanel>
-        </Grid>
-
-        <Border Grid.Row="1" Background="#0E1B20" BorderBrush="#245F54" BorderThickness="1" CornerRadius="9" Padding="11"
-                IsVisible="{Binding IsOperationFeedbackRunning}">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
-            <ProgressBar Width="74" Height="6" IsIndeterminate="True" Foreground="#14B8A6" Background="#173B36" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Text="Conexión activa · la operación sigue en curso" Foreground="#8DE7CE" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Grid.Column="1" Classes="btn-icon" Command="{Binding CancelDeployCommand}"
+                    AutomationProperties.Name="{DynamicResource Common_Close}"
+                    ToolTip.Tip="{DynamicResource Common_Close}">
+              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+            </Button>
           </Grid>
-        </Border>
 
-        <Button Grid.Row="2"
-                Content="{DynamicResource Deployments_OperationToggleTerminal}"
-                Command="{Binding ToggleOperationFeedbackOutputCommand}"
-                HorizontalAlignment="Left"
-                Background="Transparent"
-                BorderBrush="#314158"
-                Foreground="#A8B4C5" />
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14">
+              <Border Classes="surface-inset">
+                <StackPanel Spacing="10">
+                  <Grid ColumnDefinitions="110,*">
+                    <TextBlock Classes="t-label" Text="{DynamicResource Deployments_Branch}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Classes="t-body" Text="{Binding Branch}" TextWrapping="Wrap" />
+                  </Grid>
+                  <Grid ColumnDefinitions="110,*">
+                    <TextBlock Classes="t-label" Text="{DynamicResource Deployments_Compose}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Classes="t-mono" Text="{Binding ComposeFile}" TextWrapping="Wrap" />
+                  </Grid>
+                  <Grid ColumnDefinitions="110,*">
+                    <TextBlock Classes="t-label" Text="{DynamicResource Deployments_WhatRuns}" />
+                    <TextBlock Grid.Column="1" Classes="t-body" Text="{Binding PendingExecution}" TextWrapping="Wrap" />
+                  </Grid>
+                </StackPanel>
+              </Border>
 
-        <Border Grid.Row="3" Background="#05080C" BorderBrush="#245F54" BorderThickness="1" CornerRadius="8"
-                MinHeight="130" MaxHeight="330" IsVisible="{Binding IsOperationFeedbackOutputExpanded}">
-          <TextBox Text="{Binding OperationFeedbackOutput}"
-                   IsReadOnly="True"
-                   AcceptsReturn="True"
-                   TextWrapping="NoWrap"
-                   FontFamily="Cascadia Mono,Consolas,monospace"
-                   FontSize="12"
-                   Background="Transparent"
-                   BorderThickness="0"
-                   Padding="14"
-                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                   ScrollViewer.VerticalScrollBarVisibility="Auto" />
-        </Border>
+              <Border Classes="surface-inset" Background="{DynamicResource Brush.Warning.Subtle}"
+                      IsVisible="{Binding IsProductionServer}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Path Classes="icon warning" Data="{StaticResource Icon.Alert}" VerticalAlignment="Top" />
+                  <TextBlock Grid.Column="1" Classes="t-body-s warning" Text="{Binding PendingDeployMessage}" TextWrapping="Wrap" />
+                </Grid>
+              </Border>
+              <TextBlock Classes="t-body-s" Text="{Binding PendingDeployMessage}" TextWrapping="Wrap"
+                         IsVisible="{Binding !IsProductionServer}" />
 
-        <Button Grid.Row="4"
-                Content="{DynamicResource Common_Accept}"
-                Command="{Binding CloseOperationFeedbackModalCommand}"
-                IsEnabled="{Binding !IsOperationFeedbackRunning}"
-                HorizontalAlignment="Right"
-                Padding="20,8"
-                Background="#0F766E"
-                Foreground="White" />
-        <Button Grid.Row="4"
-                Content="{DynamicResource Common_Cancel}"
-                Command="{Binding CancelAppBackupOperationCommand}"
-                IsVisible="{Binding IsAppBackupBusy}"
-                HorizontalAlignment="Left" />
-      </Grid>
+              <StackPanel Spacing="8" IsVisible="{Binding HasPendingNotices}">
+                <TextBlock Classes="t-overline" Text="{DynamicResource Deployments_BeforeDeploy}" />
+                <ItemsControl ItemsSource="{Binding PendingNotices}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,0,0,8">
+                        <Path Classes="icon accent" Data="{StaticResource Icon.Shield}" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0" />
+                        <TextBlock Grid.Column="1" Classes="t-body-s" Text="{Binding}" TextWrapping="Wrap" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Button Classes="btn-secondary" MinWidth="110" Content="{DynamicResource Common_Cancel}"
+                    Command="{Binding CancelDeployCommand}" />
+            <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch"
+                    Content="{DynamicResource Deployments_Confirm}" Command="{Binding ConfirmDeployCommand}" />
+          </Grid>
+        </Grid>
+      </Border>
     </Border>
-  </Border>
+
+    <!-- ═══════════ Acción de snapshot (crear / restaurar) ═══════════ -->
+    <Border Classes="modal-scrim" Classes.open="{Binding HasPendingSnapshotAction}" PointerPressed="OnScrimPressed">
+      <Border Classes="modal-card">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="t-title" Text="{Binding PendingSnapshotTitle}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="btn-icon" Command="{Binding CancelSnapshotActionCommand}"
+                    AutomationProperties.Name="{DynamicResource Common_Close}"
+                    ToolTip.Tip="{DynamicResource Common_Close}">
+              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </Grid>
+
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14">
+              <TextBlock Classes="t-body" Text="{Binding PendingSnapshotMessage}" TextWrapping="Wrap" />
+              <StackPanel Spacing="6" IsVisible="{Binding PendingSnapshotRequiresPhrase}">
+                <TextBlock Classes="t-label danger" Text="{DynamicResource Backups_TypeToConfirm}" TextWrapping="Wrap" />
+                <TextBox Text="{Binding SnapshotConfirmPhrase}" PlaceholderText="RESTAURAR" MinHeight="48" VerticalContentAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Button Classes="btn-secondary" MinWidth="110" Content="{DynamicResource Common_Cancel}"
+                    Command="{Binding CancelSnapshotActionCommand}" />
+            <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch"
+                    Content="{Binding PendingSnapshotConfirmLabel}" Command="{Binding ConfirmSnapshotActionCommand}"
+                    IsVisible="{Binding !PendingSnapshotRequiresPhrase}" />
+            <Button Grid.Column="1" Classes="btn-danger" HorizontalAlignment="Stretch"
+                    Content="{Binding PendingSnapshotConfirmLabel}" Command="{Binding ConfirmSnapshotActionCommand}"
+                    IsEnabled="{Binding CanConfirmSnapshotAction}"
+                    IsVisible="{Binding PendingSnapshotRequiresPhrase}" />
+          </Grid>
+        </Grid>
+      </Border>
+    </Border>
+
+    <!-- ═══════════ Prevuelo ═══════════ -->
+    <Border Classes="modal-scrim" Classes.open="{Binding IsPreflightModalOpen}" PointerPressed="OnScrimPressed">
+      <Border Classes="modal-card">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4" VerticalAlignment="Center">
+              <TextBlock Classes="t-title" Text="{DynamicResource Deployments_PreflightModalTitle}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-body-s" Text="{Binding PreflightModalMessage}" TextWrapping="Wrap" />
+            </StackPanel>
+            <!-- ✕ nunca está deshabilitado: si el prevuelo sigue en curso, lo cancela -->
+            <Button Grid.Column="1" Classes="btn-icon" Command="{Binding ClosePreflightModalCommand}"
+                    AutomationProperties.Name="{DynamicResource Common_Close}"
+                    ToolTip.Tip="{DynamicResource Common_Close}">
+              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </Grid>
+
+          <Panel Grid.Row="1">
+            <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding IsPreflightRunning}" />
+            <WrapPanel IsVisible="{Binding IsPreflightFinished}">
+              <Border Classes="status success" Margin="0,0,8,0" IsVisible="{Binding HasPreflightPassed}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding PreflightPassedCount}" />
+                  <TextBlock Text="{DynamicResource Deployments_CountPassed}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="status warning" Margin="0,0,8,0" IsVisible="{Binding HasPreflightWarnings}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding PreflightWarningCount}" />
+                  <TextBlock Text="{DynamicResource Deployments_CountWarning}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="status danger" IsVisible="{Binding HasPreflightFailures}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding PreflightFailedCount}" />
+                  <TextBlock Text="{DynamicResource Deployments_CountFailed}" />
+                </StackPanel>
+              </Border>
+            </WrapPanel>
+          </Panel>
+
+          <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Checks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="deploy:PreflightCheckResult">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,0,0,14">
+                    <Border Classes="check-icon"
+                            Classes.passed="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static deploy:PreflightCheckStatus.Passed}}"
+                            Classes.warning="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static deploy:PreflightCheckStatus.Warning}}"
+                            Classes.failed="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static deploy:PreflightCheckStatus.Failed}}">
+                      <Panel>
+                        <Path Classes="icon success ok" Data="{StaticResource Icon.Check}" />
+                        <Path Classes="icon warning warn" Data="{StaticResource Icon.Alert}" />
+                        <Path Classes="icon danger bad" Data="{StaticResource Icon.Close}" />
+                      </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                      <TextBlock Classes="t-body" FontWeight="Medium" Text="{Binding Label}" TextWrapping="Wrap" />
+                      <TextBlock Classes="t-body-s" Text="{Binding Detail}" TextWrapping="Wrap"
+                                 IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <Panel Grid.Row="3">
+            <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Cancel}"
+                    Command="{Binding CancelPreflightCommand}" IsVisible="{Binding IsPreflightRunning}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding PreflightSucceeded}">
+              <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
+                      Command="{Binding ClosePreflightModalCommand}" />
+              <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch"
+                      Content="{DynamicResource Deployments_Continue}" Command="{Binding ContinueAfterPreflightCommand}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding PreflightBlocked}">
+              <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
+                      Command="{Binding ClosePreflightModalCommand}" />
+              <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch"
+                      Content="{DynamicResource Deployments_Retry}" Command="{Binding RunPreflightCommand}" />
+            </Grid>
+          </Panel>
+        </Grid>
+      </Border>
+    </Border>
+
+    <!-- ═══════════ Postvuelo ═══════════ -->
+    <Border Classes="modal-scrim" Classes.open="{Binding IsPostflightModalOpen}" PointerPressed="OnScrimPressed">
+      <Border Classes="modal-card">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4" VerticalAlignment="Center">
+              <TextBlock Classes="t-title" Text="{DynamicResource Deployments_PostflightModalTitle}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-body-s" Text="{Binding PostflightModalMessage}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="btn-icon" Command="{Binding ClosePostflightModalCommand}"
+                    AutomationProperties.Name="{DynamicResource Common_Close}"
+                    ToolTip.Tip="{DynamicResource Common_Close}">
+              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </Grid>
+
+          <Panel Grid.Row="1">
+            <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding IsBusy}" />
+            <WrapPanel IsVisible="{Binding !IsBusy}">
+              <Border Classes="status success" Margin="0,0,8,0" IsVisible="{Binding HasPostflightPassed}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding PostflightPassedCount}" />
+                  <TextBlock Text="{DynamicResource Deployments_CountPassed}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="status warning" Margin="0,0,8,0" IsVisible="{Binding HasPostflightWarnings}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding PostflightWarningCount}" />
+                  <TextBlock Text="{DynamicResource Deployments_CountWarning}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="status danger" IsVisible="{Binding HasPostflightFailures}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding PostflightFailedCount}" />
+                  <TextBlock Text="{DynamicResource Deployments_CountFailed}" />
+                </StackPanel>
+              </Border>
+            </WrapPanel>
+          </Panel>
+
+          <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding PostChecks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="deploy:PostDeployCheckResult">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,0,0,14">
+                    <Border Classes="check-icon"
+                            Classes.passed="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static deploy:PostDeployCheckStatus.Passed}}"
+                            Classes.warning="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static deploy:PostDeployCheckStatus.Warning}}"
+                            Classes.failed="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static deploy:PostDeployCheckStatus.Failed}}">
+                      <Panel>
+                        <Path Classes="icon success ok" Data="{StaticResource Icon.Check}" />
+                        <Path Classes="icon warning warn" Data="{StaticResource Icon.Alert}" />
+                        <Path Classes="icon danger bad" Data="{StaticResource Icon.Close}" />
+                      </Panel>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                      <TextBlock Classes="t-body" FontWeight="Medium" Text="{Binding Label}" TextWrapping="Wrap" />
+                      <TextBlock Classes="t-body-s" Text="{Binding Detail}" TextWrapping="Wrap"
+                                 IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <Button Grid.Row="3" Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
+                  Command="{Binding ClosePostflightModalCommand}" />
+        </Grid>
+      </Border>
+    </Border>
+
+    <!-- ═══════════ Progreso de una operación (copia, snapshot, traer cambios…) ═══════════ -->
+    <Border Classes="modal-scrim" Classes.open="{Binding IsOperationFeedbackModalOpen}" PointerPressed="OnScrimPressed">
+      <Border Classes="modal-card">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource Brush.Surface.Inset}" VerticalAlignment="Top">
+              <Panel>
+                <Path Classes="icon accent" Data="{StaticResource Icon.Refresh}" IsVisible="{Binding IsOperationFeedbackRunning}" />
+                <Path Classes="icon success" Data="{StaticResource Icon.Check}" IsVisible="{Binding OperationFeedbackSucceeded}" />
+                <Path Classes="icon danger" Data="{StaticResource Icon.Alert}" IsVisible="{Binding IsOperationFeedbackFailed}" />
+              </Panel>
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+              <TextBlock Classes="t-title" Text="{Binding OperationFeedbackTitle}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-body-s" Text="{Binding OperationFeedbackMessage}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="btn-icon" Command="{Binding CloseOperationFeedbackModalCommand}"
+                    AutomationProperties.Name="{DynamicResource Common_Close}"
+                    ToolTip.Tip="{DynamicResource Common_Close}">
+              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </Grid>
+
+          <StackPanel Grid.Row="1" Spacing="6" IsVisible="{Binding IsOperationFeedbackRunning}">
+            <ProgressBar IsIndeterminate="True" Height="4" />
+            <TextBlock Classes="t-label" Text="{DynamicResource Deployments_OperationActive}" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <Button Grid.Row="2" Classes="btn-ghost" HorizontalAlignment="Left" MinHeight="40"
+                  Content="{DynamicResource Deployments_ShowDetails}"
+                  Command="{Binding ToggleOperationFeedbackOutputCommand}" />
+
+          <Border Grid.Row="3" Background="{DynamicResource Brush.Surface.Code}" BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                  BorderThickness="1" CornerRadius="{DynamicResource Radius.M}" MinHeight="130" MaxHeight="300"
+                  IsVisible="{Binding IsOperationFeedbackOutputExpanded}">
+            <TextBox Text="{Binding OperationFeedbackOutput}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                     FontFamily="{DynamicResource Font.Mono}" FontSize="12" Background="Transparent" BorderThickness="0" Padding="14"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          </Border>
+
+          <Panel Grid.Row="4">
+            <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding IsOperationFeedbackRunning}">
+              <Button Classes="btn-secondary" Content="{DynamicResource Common_Cancel}" Margin="0,0,12,0"
+                      Command="{Binding CancelAppBackupOperationCommand}" IsVisible="{Binding IsAppBackupBusy}" />
+              <Button Grid.Column="1" Classes="btn-secondary" HorizontalAlignment="Stretch"
+                      Content="{DynamicResource Deployments_Hide}" Command="{Binding CloseOperationFeedbackModalCommand}" />
+            </Grid>
+            <Button Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
+                    Command="{Binding CloseOperationFeedbackModalCommand}" IsVisible="{Binding !IsOperationFeedbackRunning}" />
+          </Panel>
+        </Grid>
+      </Border>
+    </Border>
+
   </Grid>
 </UserControl>

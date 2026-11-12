@@ -1,5 +1,10 @@
 # Especificación de interfaz VPS Desk v2
 
+> Este documento describe **qué** muestra cada pantalla. Las normas visuales y de interacción
+> (colores, tipografía, movimiento, componentes, patrones móviles, accesibilidad) están en
+> [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) y prevalecen sobre la sección "Dirección visual".
+> En particular, el acento es verde azulado (`#0F766E` / `#5EEAD4`), no azul/cian.
+
 ## Dirección visual
 
 Objetivo: una consola profesional de infraestructura, no una terminal decorada.

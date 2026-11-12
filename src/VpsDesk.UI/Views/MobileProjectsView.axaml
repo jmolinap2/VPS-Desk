@@ -10,22 +10,6 @@
     barra fija abajo. Menos elementos juntos, cada uno con espacio para leerse.
   -->
   <UserControl.Styles>
-    <Style Selector="Button.seg">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="0,9" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-      <Setter Property="Foreground" Value="#8290A3" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="FontSize" Value="12.5" />
-    </Style>
-    <Style Selector="Button.seg.active">
-      <Setter Property="Background" Value="#1C2838" />
-      <Setter Property="Foreground" Value="#F8FAFC" />
-      <Setter Property="FontWeight" Value="Bold" />
-    </Style>
     <Style Selector="ListBox.projects ListBoxItem">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Margin" Value="0,0,0,8" />
@@ -49,16 +33,16 @@
 
     <!-- selector de lista + estado -->
     <StackPanel Grid.Row="1" Margin="16,12,16,8" Spacing="8">
-      <Border Padding="3" Background="#10141D" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="13">
+      <Border Classes="seg-track">
         <Grid ColumnDefinitions="*,*" ColumnSpacing="2">
           <Button x:Name="AssociatedTab" Classes="seg active" Click="OnTabClick" Tag="associated">
             <TextBlock>
-              <Run Text="Asociados" /><Run Text="  " /><Run Text="{Binding AssociatedProjects.Count}" Foreground="#5EEAD4" />
+              <Run Text="Asociados" /><Run Text="  " /><Run Text="{Binding AssociatedProjects.Count}" Foreground="{DynamicResource Brush.Accent.Text}" />
             </TextBlock>
           </Button>
           <Button x:Name="DiscoveredTab" Grid.Column="1" Classes="seg" Click="OnTabClick" Tag="discovered">
             <TextBlock>
-              <Run Text="Descubiertos" /><Run Text="  " /><Run Text="{Binding DiscoveredProjects.Count}" Foreground="#5EEAD4" />
+              <Run Text="Descubiertos" /><Run Text="  " /><Run Text="{Binding DiscoveredProjects.Count}" Foreground="{DynamicResource Brush.Accent.Text}" />
             </TextBlock>
           </Button>
         </Grid>

@@ -14,46 +14,25 @@
   </UserControl.Resources>
 
   <UserControl.Styles>
-    <!-- chips de objetivo: el seleccionado se rellena en verde -->
-    <Style Selector="ListBox.chips">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="0" />
-    </Style>
-    <Style Selector="ListBox.chips &gt; ListBoxItem">
+    <!-- chips de objetivo: estilo compartido en Themes/Controls.axaml; en escritorio, más compactos -->
+    <Style Selector="ListBox.chips > ListBoxItem">
       <Setter Property="MinHeight" Value="36" />
-      <Setter Property="Padding" Value="14,0" />
-      <Setter Property="Margin" Value="0,0,8,8" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="Foreground" Value="#A8B4C5" />
-    </Style>
-    <Style Selector="ListBox.chips &gt; ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#0E131B" />
-      <Setter Property="BorderBrush" Value="#2A3A52" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="10" />
-    </Style>
-    <Style Selector="ListBox.chips &gt; ListBoxItem:selected">
-      <Setter Property="Foreground" Value="White" />
-    </Style>
-    <Style Selector="ListBox.chips &gt; ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#0F766E" />
-      <Setter Property="BorderBrush" Value="#14B8A6" />
-    </Style>
-    <Style Selector="ListBox.chips &gt; ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#0F766E" />
     </Style>
   </UserControl.Styles>
 
   <Grid Margin="24" RowDefinitions="Auto,*" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <Button Content="{DynamicResource Deployments_NewDeployment}" Command="{Binding ShowNewDeploymentCommand}" />
-        <Button Content="{DynamicResource Deployments_History}" Command="{Binding ShowHistoryCommand}" />
-        <TextBlock Text="{Binding DeploymentHistory.Count, StringFormat={}{0} registros}"
-                   Foreground="#66758A"
-                   VerticalAlignment="Center"
-                   Margin="8,0,0,0" />
+        <Border Classes="seg-track">
+          <StackPanel Orientation="Horizontal" Spacing="2">
+            <Button Classes="seg" Classes.active="{Binding IsNewDeploymentView}" MinHeight="34" MinWidth="150"
+                    Content="{DynamicResource Deployments_NewDeployment}" Command="{Binding ShowNewDeploymentCommand}" />
+            <Button Classes="seg" Classes.active="{Binding IsHistoryView}" MinHeight="34" MinWidth="110"
+                    Content="{DynamicResource Deployments_History}" Command="{Binding ShowHistoryCommand}" />
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="t-label" Text="{Binding DeploymentHistory.Count, StringFormat={}{0} registros}"
+                   VerticalAlignment="Center" Margin="4,0,0,0" />
       </StackPanel>
 
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -67,24 +46,31 @@
                     HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="14">
           <Border Classes="card" Padding="0" ClipToBounds="True">
-            <Grid RowDefinitions="Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto">
               <Button Command="{Binding ToggleDeploymentConfigurationCommand}"
                       HorizontalContentAlignment="Stretch"
                       Background="Transparent"
                       BorderThickness="0"
                       Padding="18,14">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="{Binding RemoteRepositoryPath}"
-                               FontWeight="SemiBold"
-                               FontFamily="Cascadia Mono,Consolas,monospace"
-                               TextTrimming="CharacterEllipsis" />
+                  <StackPanel Spacing="5">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                      <TextBlock Text="{Binding Branch}" Foreground="#8290A3" FontSize="11" />
-                      <TextBlock Text="·" Foreground="#465468" FontSize="11" />
-                      <TextBlock Text="{Binding ComposeFile}" Foreground="#8290A3" FontSize="11" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Text="·" Foreground="#465468" FontSize="11" />
-                      <TextBlock Text="{Binding SelectedTargetLabel}" Foreground="#5EEAD4" FontSize="11" />
+                      <TextBlock Classes="t-headline" Text="{Binding ActiveServerName}" VerticalAlignment="Center" />
+                      <Border Classes="status danger" IsVisible="{Binding IsProductionServer}">
+                        <TextBlock Text="{Binding EnvironmentLabel}" />
+                      </Border>
+                      <Border Classes="status warning" IsVisible="{Binding IsStagingServer}">
+                        <TextBlock Text="{Binding EnvironmentLabel}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Classes="t-mono" Text="{Binding RemoteRepositoryPath}" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Path Classes="icon tertiary" Data="{StaticResource Icon.Branch}" Width="16" Height="16" />
+                      <TextBlock Classes="t-label" Text="{Binding Branch}" />
+                      <TextBlock Classes="t-label" Text="·" />
+                      <TextBlock Classes="t-label" Text="{Binding ComposeFile}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="t-label" Text="·" />
+                      <TextBlock Classes="t-label accent" Text="{Binding SelectedTargetLabel}" />
                     </StackPanel>
                   </StackPanel>
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -103,14 +89,50 @@
                                    TextTrimming="CharacterEllipsis" />
                       </StackPanel>
                     </Border>
-                    <TextBlock Text="⌃" IsVisible="{Binding IsDeploymentConfigurationExpanded}" FontSize="18" Foreground="#8290A3" />
-                    <TextBlock Text="⌄" IsVisible="{Binding IsDeploymentConfigurationCollapsed}" FontSize="18" Foreground="#8290A3" />
+                    <Path Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" IsVisible="{Binding IsDeploymentConfigurationCollapsed}" />
+                    <Path Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" RenderTransform="rotate(180deg)"
+                          IsVisible="{Binding IsDeploymentConfigurationExpanded}" />
                   </StackPanel>
                 </Grid>
               </Button>
 
-              <Border Grid.Row="1"
-                      BorderBrush="#202A38"
+              <!-- acciones siempre visibles: antes solo existían con la configuración desplegada -->
+              <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="0,1,0,0" Padding="18,12">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <StackPanel Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Classes="t-label accent" Text="{Binding ExecutionSummaryLine}" TextTrimming="CharacterEllipsis" />
+                    <WrapPanel>
+                      <Border Classes="status" Classes.success="{Binding HasBackupProtection}" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Path Classes="icon success" Data="{StaticResource Icon.Check}" Width="14" Height="14" IsVisible="{Binding HasBackupProtection}" />
+                          <TextBlock Text="{DynamicResource Deployments_ProtCopy}" />
+                        </StackPanel>
+                      </Border>
+                      <Border Classes="status" Classes.success="{Binding HasSnapshotProtection}" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Path Classes="icon success" Data="{StaticResource Icon.Check}" Width="14" Height="14" IsVisible="{Binding HasSnapshotProtection}" />
+                          <TextBlock Text="{DynamicResource Deployments_ProtSnapshot}" />
+                        </StackPanel>
+                      </Border>
+                      <Border Classes="status" Classes.success="{Binding HasDataSaverProtection}">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Path Classes="icon success" Data="{StaticResource Icon.Check}" Width="14" Height="14" IsVisible="{Binding HasDataSaverProtection}" />
+                          <TextBlock Text="{DynamicResource Deployments_ProtDataSaver}" />
+                        </StackPanel>
+                      </Border>
+                    </WrapPanel>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button Classes="btn-secondary" MinHeight="40" Content="{DynamicResource Deployments_PreflightShort}"
+                            Command="{Binding RunPreflightCommand}" IsEnabled="{Binding !IsBusy}" />
+                    <Button Classes="btn-primary" MinHeight="40" Content="{DynamicResource Deployments_Execute}"
+                            Command="{Binding StartDeploymentCommand}" IsEnabled="{Binding !IsBusy}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <Border Grid.Row="2"
+                      BorderBrush="{DynamicResource Brush.Border.Subtle}"
                       BorderThickness="0,1,0,0"
                       IsVisible="{Binding IsDeploymentConfigurationExpanded}">
                 <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
@@ -131,31 +153,16 @@
                       </ComboBox>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                    <TextBlock Text="{Binding ExecutionSummaryLine}" Foreground="#5EEAD4" FontSize="11" FontWeight="SemiBold"
-                               HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" MaxWidth="520" />
-                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                      <Button Content="{DynamicResource Deployments_Discover}"
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                      <Button Classes="btn-secondary" MinHeight="40" Content="{DynamicResource Deployments_Discover}"
                               Command="{Binding DiscoverRemoteOptionsCommand}"
                               IsEnabled="{Binding !IsBusy}"
                               Margin="0,0,8,0" />
-                      <Button Content="{DynamicResource Deployments_PullSource}"
+                      <Button Classes="btn-secondary" MinHeight="40" Content="{DynamicResource Deployments_PullSource}"
                               Command="{Binding PullSourceCommand}"
                               ToolTip.Tip="{DynamicResource Deployments_PullSourceTooltip}"
-                              IsEnabled="{Binding !IsBusy}"
-                              Margin="0,0,8,0" />
-                      <Button Content="{DynamicResource Deployments_RunPreflight}"
-                              Command="{Binding RunPreflightCommand}"
-                              IsEnabled="{Binding !IsBusy}"
-                              Margin="0,0,8,0" />
-                      <Button Content="{DynamicResource Deployments_Execute}"
-                              Command="{Binding StartDeploymentCommand}"
-                              IsEnabled="{Binding !IsBusy}"
-                              Background="#0F766E"
-                              Foreground="White"
-                              FontWeight="SemiBold" />
+                              IsEnabled="{Binding !IsBusy}" />
                     </WrapPanel>
-                    </StackPanel>
                   </Grid>
 
                   <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">

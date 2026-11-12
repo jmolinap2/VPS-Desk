@@ -11,6 +11,13 @@ public partial class BackupsView : UserControl
 {
     public BackupsView() => InitializeComponent();
 
+    // Tocar el fondo (no la tarjeta) cierra la capa superior, igual que «atrás» en el teléfono.
+    private void OnModalScrimPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        (DataContext as DeploymentsViewModel)?.TryDismissTopLayer();
+    }
+
     private async void ExportBackup_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not DeploymentsViewModel { CanExportSelectedBackup: true } model

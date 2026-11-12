@@ -17,4 +17,6 @@
   <StreamGeometry x:Key="Icon.Folder">M2.8,6 C2.8,5 3.6,4.2 4.6,4.2 L8,4.2 L9.8,6 L15.4,6 C16.4,6 17.2,6.8 17.2,7.8 L17.2,14.2 C17.2,15.2 16.4,16 15.4,16 L4.6,16 C3.6,16 2.8,15.2 2.8,14.2 Z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Sliders">M3.5,6 L16.5,6 M3.5,14 L16.5,14 M7,3.8 L7,8.2 M13,11.8 L13,16.2</StreamGeometry>
   <StreamGeometry x:Key="Icon.Rocket">M10,16.5 L10,12.5 M7,12 C5,10 6,5.5 10,3 C14,5.5 15,10 13,12 Z M7.5,12.5 L5,15 M12.5,12.5 L15,15</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Server">M4,4.5 L16,4.5 C16.55,4.5 17,4.95 17,5.5 L17,8.5 C17,9.05 16.55,9.5 16,9.5 L4,9.5 C3.45,9.5 3,9.05 3,8.5 L3,5.5 C3,4.95 3.45,4.5 4,4.5 Z M4,10.5 L16,10.5 C16.55,10.5 17,10.95 17,11.5 L17,14.5 C17,15.05 16.55,15.5 16,15.5 L4,15.5 C3.45,15.5 3,15.05 3,14.5 L3,11.5 C3,10.95 3.45,10.5 4,10.5 Z M6.5,7 L6.5,7.1 M6.5,13 L6.5,13.1</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Box">M10,2.8 L16.5,6.4 L16.5,13.6 L10,17.2 L3.5,13.6 L3.5,6.4 Z M3.5,6.4 L10,10 L16.5,6.4 M10,10 L10,17.2</StreamGeometry>
 </ResourceDictionary>

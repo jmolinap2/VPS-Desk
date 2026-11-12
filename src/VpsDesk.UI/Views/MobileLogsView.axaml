@@ -1,57 +1,110 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.MobileLogsView"
              x:DataType="vm:LogsViewModel">
-  <DockPanel LastChildFill="True" Margin="18,16,18,16">
+  <!--
+    Registros para teléfono (docs/DESIGN_SYSTEM.md). El título ya está en la barra superior, así
+    que aquí no se repite. La fuente se muestra como una tarjeta-resumen ("Contenedor Docker ·
+    holos-api") con la etiqueta «Cambiar»; al tocarla se despliegan los campos justo debajo, y al
+    cargar los registros se vuelven a plegar para dejar la pantalla al visor.
+  -->
+  <UserControl.Resources>
+    <conv:LogSourceLabelConverter x:Key="SourceLabel" />
+  </UserControl.Resources>
+
+  <DockPanel LastChildFill="True" Margin="16,12,16,16">
     <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,12">
-      <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Spacing="2">
-          <TextBlock Text="{DynamicResource Logs_Title}" Classes="m-title" />
-          <TextBlock Text="{DynamicResource Logs_Subtitle}" Classes="m-subtitle" />
-        </StackPanel>
-        <TextBlock Grid.Column="1" Text="{Binding LastLoaded}" Classes="m-subtitle" VerticalAlignment="Top" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Logs_Subtitle}" TextWrapping="Wrap" />
+        <Border Grid.Column="1" Classes="status" VerticalAlignment="Top">
+          <TextBlock Text="{Binding LastLoaded}" />
+        </Border>
       </Grid>
 
-      <!-- origen y líneas: plegable para dejar más espacio al registro -->
-      <Expander Header="{DynamicResource Logs_Source}" IsExpanded="True" Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="16" Padding="14">
-        <StackPanel Spacing="10" Margin="0,8,0,0">
-          <TextBlock Text="{DynamicResource Logs_SourceType}" Classes="m-label" />
-          <ComboBox ItemsSource="{Binding SourceTypes}" SelectedItem="{Binding SelectedSourceType}" HorizontalAlignment="Stretch" />
-          <TextBlock Text="{DynamicResource Logs_Source}" Classes="m-label" />
-          <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" PlaceholderText="{DynamicResource Logs_SourcePlaceholder}" HorizontalAlignment="Stretch" />
-          <TextBlock Text="{DynamicResource Logs_TailLines}" Classes="m-label" />
-          <NumericUpDown Minimum="20" Maximum="5000" Increment="50" Value="{Binding TailLines}" HorizontalAlignment="Stretch" />
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-            <Button Classes="m-action" Content="{DynamicResource Logs_RefreshSources}" Command="{Binding RefreshSourcesCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-            <Button Grid.Column="1" Classes="m-primary" Content="{DynamicResource Logs_Load}" Command="{Binding LoadLogsCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+      <!-- fuente: resumen pulsable -->
+      <Button x:Name="SourceHeader" Classes="row" Click="OnSourceHeaderClick"
+              AutomationProperties.Name="{DynamicResource Logs_Source}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Spacing="4" VerticalAlignment="Center">
+            <TextBlock Classes="t-overline" Text="{DynamicResource Logs_Source}" />
+            <TextBlock Classes="t-body" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+              <Run Text="{Binding SelectedSourceType, Converter={StaticResource SourceLabel}}" /><Run Text="  ·  " /><Run Text="{Binding SelectedSource}" />
+            </TextBlock>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock x:Name="SourceActionLabel" Classes="t-label accent" Text="{DynamicResource Logs_Change}" VerticalAlignment="Center" />
+            <Path x:Name="SourceChevronDown" Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" />
+            <Path x:Name="SourceChevronUp" Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" RenderTransform="rotate(180deg)" IsVisible="False" />
+          </StackPanel>
+        </Grid>
+      </Button>
+
+      <Border x:Name="SourceFields" Classes="surface" IsVisible="False">
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="t-label" Text="{DynamicResource Logs_SourceType}" />
+            <ComboBox ItemsSource="{Binding SourceTypes}" SelectedItem="{Binding SelectedSourceType}" HorizontalAlignment="Stretch" MinHeight="48">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding Converter={StaticResource SourceLabel}}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="t-label" Text="{DynamicResource Logs_Source}" />
+            <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" PlaceholderText="{DynamicResource Logs_SourcePlaceholder}"
+                      HorizontalAlignment="Stretch" MinHeight="48" />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="t-label" Text="{DynamicResource Logs_TailLines}" />
+            <NumericUpDown Minimum="20" Maximum="5000" Increment="50" Value="{Binding TailLines}" HorizontalAlignment="Stretch" MinHeight="48" VerticalContentAlignment="Center" />
+          </StackPanel>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Logs_RefreshSources}"
+                    Command="{Binding RefreshSourcesCommand}" IsEnabled="{Binding !IsBusy}" />
+            <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Logs_Load}"
+                    Command="{Binding LoadLogsCommand}" IsEnabled="{Binding !IsBusy}" Click="OnLoadClick" />
           </Grid>
         </StackPanel>
-      </Expander>
+      </Border>
+
+      <!-- cargar sin abrir la tarjeta: con una fuente elegida basta un toque -->
+      <Button Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Logs_Load}"
+              Command="{Binding LoadLogsCommand}" IsEnabled="{Binding !IsBusy}" x:Name="QuickLoadButton" />
 
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox Text="{Binding SearchText}" PlaceholderText="{DynamicResource Logs_FilterPlaceholder}" />
-        <Button Grid.Column="1" Classes="m-action" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearLogsCommand}" />
+        <TextBox Text="{Binding SearchText}" PlaceholderText="{DynamicResource Logs_FilterPlaceholder}" MinHeight="48" VerticalContentAlignment="Center" />
+        <Button Grid.Column="1" Classes="btn-secondary" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearLogsCommand}" />
       </Grid>
 
-      <Border Classes="m-inset" Padding="10,8">
-        <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
-      </Border>
+      <TextBlock Classes="t-label" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="2,0" />
     </StackPanel>
 
     <!-- registro: ocupa el resto de la pantalla y se desplaza en ambos ejes -->
-    <Border Classes="m-card" Padding="0" ClipToBounds="True">
-      <TextBox Text="{Binding LogText}"
-               IsReadOnly="True"
-               AcceptsReturn="True"
-               TextWrapping="NoWrap"
-               FontFamily="Cascadia Mono,Consolas,monospace"
-               FontSize="11.5"
-               Background="#080B10"
-               BorderThickness="0"
-               Padding="12"
-               ScrollViewer.HorizontalScrollBarVisibility="Auto"
-               ScrollViewer.VerticalScrollBarVisibility="Auto" />
+    <Border Classes="surface" Padding="0" ClipToBounds="True">
+      <Panel>
+        <TextBox Text="{Binding LogText}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="NoWrap"
+                 FontFamily="{DynamicResource Font.Mono}"
+                 FontSize="12"
+                 Foreground="{DynamicResource Brush.Code.Text}"
+                 Background="{DynamicResource Brush.Surface.Code}"
+                 BorderThickness="0"
+                 Padding="12"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+        <!-- estado vacío: dice qué hacer en vez de mostrar un recuadro en blanco -->
+        <StackPanel IsVisible="{Binding LogText, Converter={x:Static StringConverters.IsNullOrEmpty}}"
+                    IsHitTestVisible="False" VerticalAlignment="Center" Spacing="10" Margin="24">
+          <Path Classes="icon tertiary" Data="{StaticResource Icon.Folder}" Width="28" Height="28" />
+          <TextBlock Classes="t-body-s" Text="{DynamicResource Logs_Empty}" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Panel>
     </Border>
   </DockPanel>
 </UserControl>

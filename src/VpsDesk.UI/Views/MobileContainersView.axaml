@@ -2,98 +2,74 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:containers="using:VpsDesk.Domain.Containers"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              x:Class="VpsDesk.Desktop.Views.MobileContainersView"
              x:DataType="vm:MainWindowViewModel">
+  <!--
+    Contenedores para teléfono (docs/DESIGN_SYSTEM.md). Resumen con contadores, lista de tarjetas y
+    una hoja de detalle con las acciones. Las acciones que detienen o reinician piden confirmación
+    dentro de la propia hoja. La hoja se cierra con ✕, tocando el fondo o con «atrás».
+  -->
+  <UserControl.Resources>
+    <conv:ContainerStateLabelConverter x:Key="StateLabel" />
+  </UserControl.Resources>
+
   <UserControl.Styles>
-    <Style Selector="Border.chip">
-      <Setter Property="Background" Value="#121826" />
-      <Setter Property="BorderBrush" Value="#1E2735" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="999" />
-      <Setter Property="Padding" Value="13,8" />
-    </Style>
     <Style Selector="ListBox#ContainersList ListBoxItem">
       <Setter Property="Padding" Value="0" />
-      <Setter Property="Margin" Value="0,0,0,9" />
-      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Margin" Value="0,0,0,10" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.L}" />
       <Setter Property="Background" Value="Transparent" />
     </Style>
-
-    <!-- hoja de detalle: se desliza desde abajo, igual que el drawer -->
-    <Style Selector="Border.scrim">
-      <Setter Property="Opacity" Value="0" />
-      <Setter Property="IsHitTestVisible" Value="False" />
-      <Setter Property="Transitions">
-        <Transitions>
-          <DoubleTransition Property="Opacity" Duration="0:0:0.22" Easing="CubicEaseOut" />
-        </Transitions>
-      </Setter>
+    <Style Selector="ListBox#ContainersList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
     </Style>
-    <Style Selector="Border.scrim.open">
-      <Setter Property="Opacity" Value="0.6" />
-      <Setter Property="IsHitTestVisible" Value="True" />
-    </Style>
-
-    <Style Selector="Border.sheet">
-      <Setter Property="RenderTransform" Value="translateY(650px)" />
-      <Setter Property="IsHitTestVisible" Value="False" />
-      <Setter Property="Transitions">
-        <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="CubicEaseOut" />
-        </Transitions>
-      </Setter>
-    </Style>
-    <Style Selector="Border.sheet.open">
-      <Setter Property="RenderTransform" Value="translateY(0)" />
-      <Setter Property="IsHitTestVisible" Value="True" />
+    <Style Selector="ListBox#ContainersList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
     </Style>
   </UserControl.Styles>
 
   <Grid>
     <DockPanel LastChildFill="True">
-      <Grid DockPanel.Dock="Top" Margin="16,14,16,10" ColumnDefinitions="*,Auto">
-        <StackPanel>
-          <TextBlock Text="{Binding ContainerModule.StatusMessage}" FontSize="11" Foreground="#6B7686" TextWrapping="Wrap" />
-        </StackPanel>
-        <Button Grid.Column="1" Command="{Binding ContainerModule.RefreshCommand}" IsEnabled="{Binding !ContainerModule.IsBusy}"
-                Width="38" Height="38" Padding="0" Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="11">
-          <TextBlock Text="&#8635;" FontSize="15" Foreground="#9AA4B2" />
+      <Grid DockPanel.Dock="Top" Margin="16,12,8,8" ColumnDefinitions="*,Auto">
+        <TextBlock Classes="t-body-s" Text="{Binding ContainerModule.StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="btn-icon" Command="{Binding ContainerModule.RefreshCommand}" IsEnabled="{Binding !ContainerModule.IsBusy}"
+                AutomationProperties.Name="{DynamicResource Common_Refresh}" ToolTip.Tip="{DynamicResource Common_Refresh}">
+          <Path Classes="icon" Data="{StaticResource Icon.Refresh}" />
         </Button>
       </Grid>
 
-      <!-- chips resumen -->
-      <ScrollViewer DockPanel.Dock="Top" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="16,0,16,12">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Border Classes="chip">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Ellipse Width="7" Height="7" Fill="#60A5FA" VerticalAlignment="Center" />
-              <TextBlock Text="{DynamicResource Containers_Total}" FontSize="12" Foreground="#C7D0DD" />
-              <TextBlock Text="{Binding ContainerModule.TotalCount}" FontSize="12" FontWeight="Bold" />
+      <!-- resumen: texto + punto de color (nunca solo color) -->
+      <WrapPanel DockPanel.Dock="Top" Margin="16,0,16,4">
+          <Border Classes="status" Margin="0,0,8,8">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource Brush.Info}" VerticalAlignment="Center" />
+              <TextBlock Text="{DynamicResource Containers_Total}" />
+              <TextBlock Text="{Binding ContainerModule.TotalCount}" Foreground="{DynamicResource Brush.Text.Primary}" />
             </StackPanel>
           </Border>
-          <Border Classes="chip">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Ellipse Width="7" Height="7" Fill="#34D399" VerticalAlignment="Center" />
-              <TextBlock Text="{DynamicResource Containers_Running}" FontSize="12" Foreground="#C7D0DD" />
-              <TextBlock Text="{Binding ContainerModule.RunningCount}" FontSize="12" FontWeight="Bold" />
+          <Border Classes="status success" Margin="0,0,8,8">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource Brush.Success}" VerticalAlignment="Center" />
+              <TextBlock Text="{DynamicResource Containers_Running}" />
+              <TextBlock Text="{Binding ContainerModule.RunningCount}" />
             </StackPanel>
           </Border>
-          <Border Classes="chip">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Ellipse Width="7" Height="7" Fill="#6B7686" VerticalAlignment="Center" />
-              <TextBlock Text="{DynamicResource Containers_Stopped}" FontSize="12" Foreground="#C7D0DD" />
-              <TextBlock Text="{Binding ContainerModule.StoppedCount}" FontSize="12" FontWeight="Bold" />
+          <Border Classes="status" Margin="0,0,8,8">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource Brush.Text.Tertiary}" VerticalAlignment="Center" />
+              <TextBlock Text="{DynamicResource Containers_Stopped}" />
+              <TextBlock Text="{Binding ContainerModule.StoppedCount}" Foreground="{DynamicResource Brush.Text.Primary}" />
             </StackPanel>
           </Border>
-          <Border Classes="chip">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Ellipse Width="7" Height="7" Fill="#F87171" VerticalAlignment="Center" />
-              <TextBlock Text="{DynamicResource Containers_Unhealthy}" FontSize="12" Foreground="#C7D0DD" />
-              <TextBlock Text="{Binding ContainerModule.UnhealthyCount}" FontSize="12" FontWeight="Bold" />
+          <Border Classes="status danger" Margin="0,0,8,8">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource Brush.Danger}" VerticalAlignment="Center" />
+              <TextBlock Text="{DynamicResource Containers_Unhealthy}" />
+              <TextBlock Text="{Binding ContainerModule.UnhealthyCount}" />
             </StackPanel>
           </Border>
-        </StackPanel>
-      </ScrollViewer>
+      </WrapPanel>
 
       <!-- lista de contenedores: tarjetas de ancho completo -->
       <ScrollViewer Margin="16,0,16,16">
@@ -101,24 +77,29 @@
                  Background="Transparent" Padding="0">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="containers:DockerContainerInfo">
-              <Border Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="16" Padding="13,14">
+              <Border Classes="surface" Padding="14">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                   <Panel VerticalAlignment="Center">
-                    <Ellipse Width="9" Height="9" Fill="#34D399" IsVisible="{Binding IsRunning}" />
-                    <Ellipse Width="9" Height="9" Fill="#6B7686" IsVisible="{Binding !IsRunning}" />
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource Brush.Success}" IsVisible="{Binding IsRunning}" />
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource Brush.Text.Tertiary}" IsVisible="{Binding !IsRunning}" />
                   </Panel>
-                  <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                      <TextBlock FontSize="11" Foreground="#6B7686">
-                        <Run Text="CPU " /><Run Text="{Binding CpuPercent, StringFormat={}{0:F1}%}" Foreground="#9AA4B2" FontWeight="SemiBold" />
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                      <TextBlock Classes="t-label">
+                        <Run Text="CPU " /><Run Text="{Binding CpuPercent, StringFormat={}{0:F1}%}" Foreground="{DynamicResource Brush.Text.Secondary}" />
                       </TextBlock>
-                      <TextBlock FontSize="11" Foreground="#6B7686">
-                        <Run Text="RAM " /><Run Text="{Binding MemoryPercent, StringFormat={}{0:F1}%}" Foreground="#9AA4B2" FontWeight="SemiBold" />
+                      <TextBlock Classes="t-label">
+                        <Run Text="RAM " /><Run Text="{Binding MemoryPercent, StringFormat={}{0:F1}%}" Foreground="{DynamicResource Brush.Text.Secondary}" />
                       </TextBlock>
                     </StackPanel>
                   </StackPanel>
-                  <TextBlock Grid.Column="2" Text="&#8250;" FontSize="16" Foreground="#4A5568" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Classes="status" IsVisible="{Binding !IsRunning}">
+                      <TextBlock Text="{Binding State, Converter={StaticResource StateLabel}}" />
+                    </Border>
+                    <Path Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
+                  </StackPanel>
                 </Grid>
               </Border>
             </DataTemplate>
@@ -128,91 +109,92 @@
     </DockPanel>
 
     <!-- scrim -->
-    <Border Classes="scrim" Classes.open="{Binding ContainerModule.HasSelection}" Background="#000000"
-            PointerPressed="OnScrimPointerPressed" />
+    <Border Classes="m-scrim" Classes.open="{Binding ContainerModule.HasSelection}" PointerPressed="OnScrimPointerPressed" />
 
     <!-- hoja de detalle -->
-    <Border Classes="sheet" Classes.open="{Binding ContainerModule.HasSelection}"
-            VerticalAlignment="Bottom" Background="#10141D" BorderBrush="#1E2735" BorderThickness="1,1,1,0"
-            CornerRadius="22,22,0,0" Padding="0" MaxHeight="620">
-      <StackPanel Spacing="0">
-        <Border Width="38" Height="4" CornerRadius="2" Background="#2A3444" Margin="0,10,0,4" HorizontalAlignment="Center" />
-
-        <StackPanel Margin="20,10,20,20" Spacing="14">
-          <StackPanel Orientation="Horizontal" Spacing="12">
-            <Border Width="40" Height="40" CornerRadius="12" Background="#0F241C" BorderBrush="#1C4433" BorderThickness="1">
-              <Viewbox Width="18" Height="18">
-                <Canvas Width="24" Height="24">
-                  <Rectangle Canvas.Left="3" Canvas.Top="3" Width="7" Height="7" RadiusX="1.5" RadiusY="1.5" Stroke="#34D399" StrokeThickness="1.7" />
-                  <Rectangle Canvas.Left="14" Canvas.Top="3" Width="7" Height="7" RadiusX="1.5" RadiusY="1.5" Stroke="#34D399" StrokeThickness="1.7" Opacity=".5" />
-                  <Rectangle Canvas.Left="3" Canvas.Top="14" Width="7" Height="7" RadiusX="1.5" RadiusY="1.5" Stroke="#34D399" StrokeThickness="1.7" Opacity=".5" />
-                  <Rectangle Canvas.Left="14" Canvas.Top="14" Width="7" Height="7" RadiusX="1.5" RadiusY="1.5" Stroke="#34D399" StrokeThickness="1.7" />
-                </Canvas>
-              </Viewbox>
-            </Border>
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="{Binding ContainerModule.SelectedContainer.Name}" FontSize="15.5" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxWidth="260" />
-              <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
-                <Ellipse Width="7" Height="7" Fill="#34D399" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding ContainerModule.SelectedContainer.State}" FontSize="11.5" Foreground="#6EE7B7" FontWeight="SemiBold" />
+    <Border Classes="m-sheet" Classes.open="{Binding ContainerModule.HasSelection}" VerticalAlignment="Bottom" MaxHeight="640">
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="sheet-handle" Margin="0,10,0,4" />
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="20,4,20,24" Spacing="14">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+              <Border Width="44" Height="44" CornerRadius="{DynamicResource Radius.M}" Background="{DynamicResource Brush.Accent.Subtle}" VerticalAlignment="Center">
+                <Path Classes="icon accent" Data="{StaticResource Icon.Box}" />
+              </Border>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                <TextBlock Classes="t-headline" Text="{Binding ContainerModule.SelectedContainer.Name}" TextTrimming="CharacterEllipsis" />
+                <Border Classes="status" HorizontalAlignment="Left"
+                        Classes.success="{Binding ContainerModule.SelectedContainer.IsRunning}">
+                  <TextBlock Text="{Binding ContainerModule.SelectedContainer.State, Converter={StaticResource StateLabel}}" />
+                </Border>
               </StackPanel>
-            </StackPanel>
-          </StackPanel>
-
-          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-            <Border Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="12" Padding="10">
-              <StackPanel HorizontalAlignment="Center" Spacing="2">
-                <TextBlock Text="CPU" FontSize="9.5" FontWeight="Bold" Foreground="#6B7686" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding ContainerModule.SelectedContainer.CpuPercent, StringFormat={}{0:F1}%}" FontSize="15" FontWeight="Bold" HorizontalAlignment="Center" />
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="1" Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="12" Padding="10">
-              <StackPanel HorizontalAlignment="Center" Spacing="2">
-                <TextBlock Text="{DynamicResource Containers_Memory}" FontSize="9.5" FontWeight="Bold" Foreground="#6B7686" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding ContainerModule.SelectedContainer.MemoryUsage}" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="2" Background="#121826" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="12" Padding="10">
-              <StackPanel HorizontalAlignment="Center" Spacing="2">
-                <TextBlock Text="{DynamicResource Containers_Health}" FontSize="9.5" FontWeight="Bold" Foreground="#6B7686" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding ContainerModule.SelectedContainer.Health}" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              </StackPanel>
-            </Border>
-          </Grid>
-
-          <StackPanel Spacing="9">
-            <Grid ColumnDefinitions="Auto,*">
-              <TextBlock Text="{DynamicResource Containers_Network}" FontSize="12" Foreground="#8290A3" />
-              <TextBlock Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.NetworkIo}" FontSize="12" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+              <Button Grid.Column="2" Classes="btn-icon" Click="OnCloseSheetClick"
+                      AutomationProperties.Name="{DynamicResource Common_Close}" ToolTip.Tip="{DynamicResource Common_Close}">
+                <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+              </Button>
             </Grid>
-            <Grid ColumnDefinitions="Auto,*">
-              <TextBlock Text="{DynamicResource Containers_Ports}" FontSize="12" Foreground="#8290A3" />
-              <TextBlock Grid.Column="1" Text="{Binding ContainerModule.SelectedContainer.Ports}" FontSize="12" HorizontalAlignment="Right" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+              <Border Classes="surface-inset" Padding="10">
+                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                  <TextBlock Classes="t-overline" Text="CPU" HorizontalAlignment="Center" />
+                  <TextBlock Classes="t-headline" Text="{Binding ContainerModule.SelectedContainer.CpuPercent, StringFormat={}{0:F1}%}" HorizontalAlignment="Center" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="1" Classes="surface-inset" Padding="10">
+                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                  <TextBlock Classes="t-overline" Text="{DynamicResource Containers_Memory}" HorizontalAlignment="Center" />
+                  <TextBlock Classes="t-body-s" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}" Text="{Binding ContainerModule.SelectedContainer.MemoryUsage}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="2" Classes="surface-inset" Padding="10">
+                <StackPanel HorizontalAlignment="Center" Spacing="4">
+                  <TextBlock Classes="t-overline" Text="{DynamicResource Containers_Health}" HorizontalAlignment="Center" />
+                  <TextBlock Classes="t-body-s" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}" Text="{Binding ContainerModule.SelectedContainer.Health}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
             </Grid>
-          </StackPanel>
 
-          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-            <Button Content="{DynamicResource Common_Start}" Command="{Binding ContainerModule.RequestStartCommand}" IsEnabled="{Binding ContainerModule.CanStartSelected}"
-                    HorizontalContentAlignment="Center" Padding="0,12" Background="#121826" BorderBrush="#1E2735" CornerRadius="12" />
-            <Button Grid.Column="1" Content="{DynamicResource Common_Stop}" Command="{Binding ContainerModule.RequestStopCommand}" IsEnabled="{Binding ContainerModule.CanStopSelected}"
-                    HorizontalContentAlignment="Center" Padding="0,12" Background="#2A1416" BorderBrush="#4A1F22" Foreground="#F87171" CornerRadius="12" />
-            <Button Grid.Column="2" Content="{DynamicResource Common_Restart}" Command="{Binding ContainerModule.RequestRestartCommand}" IsEnabled="{Binding ContainerModule.CanRestartSelected}"
-                    HorizontalContentAlignment="Center" Padding="0,12" Background="#0F766E" Foreground="White" FontWeight="Bold" CornerRadius="12" BorderThickness="0" />
-          </Grid>
-
-          <Border Background="#201A12" BorderBrush="#55452E" BorderThickness="1" CornerRadius="12" Padding="12" IsVisible="{Binding ContainerModule.HasPendingAction}">
             <StackPanel Spacing="10">
-              <TextBlock Text="{Binding ContainerModule.PendingActionMessage}" TextWrapping="Wrap" FontSize="12.5" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="{DynamicResource Containers_ConfirmAction}" Command="{Binding ContainerModule.ConfirmActionCommand}" CornerRadius="9" />
-                <Button Content="{DynamicResource Common_Cancel}" Command="{Binding ContainerModule.CancelActionCommand}" CornerRadius="9" />
-              </StackPanel>
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <TextBlock Classes="t-label" Text="{DynamicResource Containers_Network}" />
+                <TextBlock Grid.Column="1" Classes="t-body-s" Text="{Binding ContainerModule.SelectedContainer.NetworkIo}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+              </Grid>
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <TextBlock Classes="t-label" Text="{DynamicResource Containers_Ports}" />
+                <TextBlock Grid.Column="1" Classes="t-mono" Text="{Binding ContainerModule.SelectedContainer.Ports}" HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap" />
+              </Grid>
             </StackPanel>
-          </Border>
 
-          <TextBlock Text="{DynamicResource Containers_SafetyNote}" Foreground="#6B7686" FontSize="10.5" TextWrapping="Wrap" />
-        </StackPanel>
-      </StackPanel>
+            <!-- acciones: reiniciar es la principal; detener es destructiva y pide confirmación -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+              <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Padding="8,0" Content="{DynamicResource Common_Start}"
+                      Command="{Binding ContainerModule.RequestStartCommand}" IsEnabled="{Binding ContainerModule.CanStartSelected}" />
+              <Button Grid.Column="1" Classes="btn-danger" HorizontalAlignment="Stretch" Padding="8,0" Content="{DynamicResource Common_Stop}"
+                      Command="{Binding ContainerModule.RequestStopCommand}" IsEnabled="{Binding ContainerModule.CanStopSelected}" />
+              <Button Grid.Column="2" Classes="btn-primary" HorizontalAlignment="Stretch" Padding="8,0" Content="{DynamicResource Common_Restart}"
+                      Command="{Binding ContainerModule.RequestRestartCommand}" IsEnabled="{Binding ContainerModule.CanRestartSelected}" />
+            </Grid>
+
+            <!-- confirmación de la acción pedida -->
+            <Border Classes="surface-inset" Background="{DynamicResource Brush.Warning.Subtle}" IsVisible="{Binding ContainerModule.HasPendingAction}">
+              <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Path Classes="icon warning" Data="{StaticResource Icon.Alert}" VerticalAlignment="Top" />
+                  <TextBlock Grid.Column="1" Classes="t-body-s warning" Text="{Binding ContainerModule.PendingActionMessage}" TextWrapping="Wrap" />
+                </Grid>
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Button Classes="btn-secondary" MinWidth="110" Content="{DynamicResource Common_Cancel}" Command="{Binding ContainerModule.CancelActionCommand}" />
+                  <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Containers_ConfirmAction}"
+                          Command="{Binding ContainerModule.ConfirmActionCommand}" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Classes="t-label" Text="{DynamicResource Containers_SafetyNote}" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
     </Border>
   </Grid>
 </UserControl>

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Desktop.Localization;
 using VpsDesk.Desktop.Services;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -20,6 +21,8 @@ public partial class LogsViewModel : ObservableObject
     private bool _sourcesLoaded;
 
     public IReadOnlyList<string> SourceTypes { get; } = [DockerSource, SystemdSource];
+
+    private string SourceTypeLabel => LocalizationService.T(SelectedSourceType == DockerSource ? "Logs_SourceDocker" : "Logs_SourceSystemd");
     public ObservableCollection<string> Sources { get; } = new();
 
     [ObservableProperty] private string _selectedSourceType = DockerSource;
@@ -27,8 +30,8 @@ public partial class LogsViewModel : ObservableObject
     [ObservableProperty] private int _tailLines = 250;
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private string _logText = string.Empty;
-    [ObservableProperty] private string _statusMessage = "Choose a log source to inspect the active VPS.";
-    [ObservableProperty] private string _lastLoaded = "Never";
+    [ObservableProperty] private string _statusMessage = LocalizationService.T("Logs_StatusChoose");
+    [ObservableProperty] private string _lastLoaded = LocalizationService.T("Logs_NeverLoaded");
     [ObservableProperty] private bool _isBusy;
 
     public bool HasSources => Sources.Count > 0;
@@ -68,8 +71,8 @@ public partial class LogsViewModel : ObservableObject
         SelectedSource = null;
         _rawLogText = string.Empty;
         LogText = string.Empty;
-        LastLoaded = "Never";
-        StatusMessage = "Choose a log source to inspect the active VPS.";
+        LastLoaded = LocalizationService.T("Logs_NeverLoaded");
+        StatusMessage = LocalizationService.T("Logs_StatusChoose");
         _sourcesLoaded = false;
         OnPropertyChanged(nameof(HasSources));
         OnPropertyChanged(nameof(HasLogs));
@@ -83,12 +86,12 @@ public partial class LogsViewModel : ObservableObject
         if (server == null)
         {
             Reset();
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Logs_StatusNoServer");
             return;
         }
 
         IsBusy = true;
-        StatusMessage = $"Loading {SelectedSourceType} sources...";
+        StatusMessage = LocalizationService.Current.Format("Logs_StatusLoadingSources", SourceTypeLabel);
         var previous = SelectedSource;
 
         try
@@ -115,15 +118,15 @@ public partial class LogsViewModel : ObservableObject
                 : Sources.FirstOrDefault();
             _sourcesLoaded = true;
             StatusMessage = Sources.Count == 0
-                ? $"No {SelectedSourceType} sources found."
-                : $"{Sources.Count} sources available.";
+                ? LocalizationService.Current.Format("Logs_StatusNoSources", SourceTypeLabel)
+                : LocalizationService.Current.Format("Logs_StatusSources", Sources.Count);
             OnPropertyChanged(nameof(HasSources));
         }
         catch (Exception ex)
         {
             _sourcesLoaded = false;
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to load log sources: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Logs_StatusSourcesError", friendly);
             Toast.Error(friendly, "No se pudieron cargar las fuentes de logs");
         }
         finally
@@ -139,19 +142,19 @@ public partial class LogsViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Logs_StatusNoServer");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(SelectedSource))
         {
-            StatusMessage = "Select a log source first.";
+            StatusMessage = LocalizationService.T("Logs_StatusSelectSource");
             return;
         }
 
         TailLines = Math.Clamp(TailLines, 20, 5000);
         IsBusy = true;
-        StatusMessage = $"Reading the latest {TailLines} lines from {SelectedSource}...";
+        StatusMessage = LocalizationService.Current.Format("Logs_StatusReading", TailLines, SelectedSource);
 
         try
         {
@@ -164,13 +167,13 @@ public partial class LogsViewModel : ObservableObject
             var lineCount = string.IsNullOrEmpty(_rawLogText)
                 ? 0
                 : _rawLogText.Split('\n').Length;
-            StatusMessage = $"Loaded {lineCount} lines from {SelectedSource}.";
+            StatusMessage = LocalizationService.Current.Format("Logs_StatusLoaded", lineCount, SelectedSource);
             OnPropertyChanged(nameof(HasLogs));
         }
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to read logs: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Logs_StatusReadError", friendly);
             Toast.Error(friendly, "No se pudieron leer los logs");
         }
         finally
@@ -184,7 +187,7 @@ public partial class LogsViewModel : ObservableObject
     {
         _rawLogText = string.Empty;
         LogText = string.Empty;
-        StatusMessage = "Log view cleared locally.";
+        StatusMessage = LocalizationService.T("Logs_StatusCleared");
         OnPropertyChanged(nameof(HasLogs));
     }
 

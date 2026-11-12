@@ -5,26 +5,18 @@
              x:Class="VpsDesk.Desktop.Views.MobileServersView"
              x:DataType="vm:MainWindowViewModel">
   <!--
-    Servidores para teléfono. Una sola columna: lista de tarjetas arriba y, al
-    tocar una, una hoja inferior con el editor. La vista de escritorio usa dos
-    columnas fijas de 340px + resto, que en un teléfono dejaba el editor fuera
-    de pantalla. El mensaje de estado (resultado de Probar conexión, errores de
-    SSH) se muestra arriba, siempre visible.
+    Servidores para teléfono (docs/DESIGN_SYSTEM.md). Una sola columna: lista de tarjetas y, al
+    tocar una, una hoja inferior con el editor. Cada tarjeta muestra el entorno (PROD/STAGING) para
+    no confundir servidores. La acción principal («Nuevo servidor») queda fija al pie.
   -->
   <UserControl.Styles>
-    <!-- tarjeta de servidor con retroalimentación al tocar -->
+    <!-- retroalimentación al tocar una tarjeta -->
     <Style Selector="Button.serverCard">
-      <Setter Property="Background" Value="#121826" />
-      <Setter Property="BorderBrush" Value="#1E2735" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="14" />
+      <Setter Property="RenderTransform" Value="scale(1)" />
       <Setter Property="Transitions">
         <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
-          <BrushTransition Property="Background" Duration="0:0:0.18" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" Easing="CubicEaseOut" />
         </Transitions>
       </Setter>
     </Style>
@@ -32,77 +24,77 @@
       <Setter Property="RenderTransform" Value="scale(0.985)" />
     </Style>
 
-    <Style Selector="Button.sheetAction">
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="Padding" Value="0,12" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-    </Style>
-
-    <!-- resultado de "Probar conexion": neutro mientras prueba, verde si conecta, rojo si falla -->
+    <!-- resultado de "Probar conexión": neutro mientras prueba, verde si conecta, rojo si falla -->
     <Style Selector="Border.testResult">
-      <Setter Property="Background" Value="#101B2A" />
-      <Setter Property="BorderBrush" Value="#294A70" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Info.Subtle}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
       <Setter Property="Padding" Value="12,10" />
     </Style>
     <Style Selector="Border.testResult.ok">
-      <Setter Property="Background" Value="#0D241F" />
-      <Setter Property="BorderBrush" Value="#0F766E" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Success.Subtle}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
     </Style>
     <Style Selector="Border.testResult.failed">
-      <Setter Property="Background" Value="#2A1215" />
-      <Setter Property="BorderBrush" Value="#B91C1C" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Danger.Subtle}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
     </Style>
     <Style Selector="Border.testResult TextBlock.msg">
-      <Setter Property="Foreground" Value="#9CC8F5" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Info}" />
     </Style>
     <Style Selector="Border.testResult.ok TextBlock.msg">
-      <Setter Property="Foreground" Value="#7EE7CD" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
     </Style>
     <Style Selector="Border.testResult.failed TextBlock.msg">
-      <Setter Property="Foreground" Value="#FCA5A5" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
     </Style>
   </UserControl.Styles>
 
   <Grid>
     <DockPanel LastChildFill="True">
-      <!-- cabecera y estado -->
-      <StackPanel DockPanel.Dock="Top" Margin="18,16,18,12" Spacing="10">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Servers_Title}" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="{DynamicResource Servers_SavedLocally}" FontSize="11" Foreground="#6B7686" TextWrapping="Wrap" />
-        </StackPanel>
-        <Border Background="#0E1219" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="12" Padding="12,10">
-          <TextBlock Text="{Binding ServerEditorMessage}" FontSize="12" Foreground="#9AA4B2" TextWrapping="Wrap" />
+      <!-- estado del editor (resultado de probar conexión, errores SSH) -->
+      <StackPanel DockPanel.Dock="Top" Margin="16,12,16,12" Spacing="10">
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Servers_SavedLocally}" TextWrapping="Wrap" />
+        <Border Classes="surface-inset">
+          <TextBlock Classes="t-body-s" Text="{Binding ServerEditorMessage}" TextWrapping="Wrap" />
         </Border>
       </StackPanel>
 
-      <!-- botón principal de alta, fijo al pie -->
-      <Border DockPanel.Dock="Bottom" Padding="18,10,18,18" Background="#0B0E14" BorderBrush="#1A2130" BorderThickness="0,1,0,0">
-        <Button Content="{DynamicResource Servers_New}" Click="OnNewServerClick"
-                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                Padding="0,13" CornerRadius="14" Background="#0F766E" Foreground="White" FontWeight="SemiBold" BorderThickness="0" />
+      <!-- acción principal, fija al pie -->
+      <Border DockPanel.Dock="Bottom" Padding="16,12" Background="{DynamicResource Brush.Surface.Bar}"
+              BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="0,1,0,0">
+        <Button Classes="btn-primary" Content="{DynamicResource Servers_New}" Click="OnNewServerClick" HorizontalAlignment="Stretch" />
       </Border>
 
       <!-- lista de tarjetas -->
-      <ScrollViewer Margin="18,0,18,0">
+      <ScrollViewer Margin="16,0">
         <ItemsControl ItemsSource="{Binding Servers}" Margin="0,0,0,12">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="servers:ServerProfile">
-              <Button Classes="serverCard" Click="OnServerCardClick" Margin="0,0,0,10">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="14,14">
-                  <Border Width="38" Height="38" CornerRadius="12" Background="#0F241C" BorderBrush="#1C4433" BorderThickness="1"
+              <Button Classes="row serverCard" Click="OnServerCardClick" Margin="0,0,0,10">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                  <Border Width="40" Height="40" CornerRadius="{DynamicResource Radius.M}" Background="{DynamicResource Brush.Accent.Subtle}"
                           VerticalAlignment="Center">
-                    <TextBlock Text="&#9638;" FontSize="16" Foreground="#34D399" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Path Classes="icon accent" Data="{StaticResource Icon.Server}" />
                   </Border>
-                  <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock FontSize="11.5" Foreground="#6B7686" TextTrimming="CharacterEllipsis">
+                  <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Classes="t-headline" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      <Border Classes="status danger"
+                              IsVisible="{Binding Environment, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static servers:ServerEnvironment.Production}}">
+                        <TextBlock Text="{DynamicResource Deployments_EnvProd}" />
+                      </Border>
+                      <Border Classes="status warning"
+                              IsVisible="{Binding Environment, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static servers:ServerEnvironment.Staging}}">
+                        <TextBlock Text="{DynamicResource Deployments_EnvStaging}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Classes="t-mono" TextTrimming="CharacterEllipsis">
                       <Run Text="{Binding Username}" /><Run Text="@" /><Run Text="{Binding Host}" /><Run Text=":" /><Run Text="{Binding Port}" />
                     </TextBlock>
                   </StackPanel>
-                  <TextBlock Grid.Column="2" Text="&#8250;" FontSize="18" Foreground="#4A5568" VerticalAlignment="Center" />
+                  <Path Grid.Column="2" Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
                 </Grid>
               </Button>
             </DataTemplate>
@@ -115,91 +107,90 @@
     <Border x:Name="Scrim" Classes="m-scrim" PointerPressed="OnScrimPointerPressed" />
 
     <!-- hoja del editor -->
-    <Border x:Name="Sheet" Classes="m-sheet" VerticalAlignment="Bottom" MaxHeight="640">
+    <Border x:Name="Sheet" Classes="m-sheet" VerticalAlignment="Bottom" MaxHeight="660">
       <Grid RowDefinitions="Auto,*,Auto">
-        <StackPanel Grid.Row="0" Spacing="0">
-          <Border Width="40" Height="4" CornerRadius="2" Background="#2A3444" Margin="0,10,0,6" HorizontalAlignment="Center" />
-          <Grid ColumnDefinitions="*,Auto" Margin="20,4,14,8">
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Servers_ConnectionProfile}" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding SelectedServerInList.Name}"
-                         FontSize="11" Foreground="#6B7686" TextTrimming="CharacterEllipsis" />
+        <StackPanel Grid.Row="0">
+          <Border Classes="sheet-handle" Margin="0,10,0,4" />
+          <Grid ColumnDefinitions="*,Auto" Margin="20,4,8,8">
+            <StackPanel VerticalAlignment="Center" Spacing="2">
+              <TextBlock Classes="t-title" Text="{DynamicResource Servers_ConnectionProfile}" />
+              <TextBlock Classes="t-label" Text="{Binding SelectedServerInList.Name}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
-            <Button Grid.Column="1" Content="{DynamicResource Common_Close}" Click="OnCloseSheetClick"
-                    Background="Transparent" BorderThickness="0" Padding="10,6" Foreground="#9AA4B2" />
+            <Button Grid.Column="1" Classes="btn-icon" Click="OnCloseSheetClick"
+                    AutomationProperties.Name="{DynamicResource Common_Close}" ToolTip.Tip="{DynamicResource Common_Close}">
+              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+            </Button>
           </Grid>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" Padding="20,4,20,8">
-          <StackPanel Spacing="12">
-            <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Servers_Name}" FontSize="11" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorName}" PlaceholderText="{DynamicResource Servers_NamePlaceholder}" />
+          <StackPanel Spacing="14">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_Name}" />
+              <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorName}" PlaceholderText="{DynamicResource Servers_NamePlaceholder}" />
             </StackPanel>
-            <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Servers_Provider}" FontSize="11" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorProvider}" PlaceholderText="{DynamicResource Servers_ProviderPlaceholder}" />
+            <StackPanel Spacing="6">
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_Provider}" />
+              <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorProvider}" PlaceholderText="{DynamicResource Servers_ProviderPlaceholder}" />
             </StackPanel>
-            <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Servers_Host}" FontSize="11" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorHost}" PlaceholderText="203.0.113.10" />
+            <StackPanel Spacing="6">
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_Host}" />
+              <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorHost}" PlaceholderText="203.0.113.10" />
             </StackPanel>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-              <StackPanel Spacing="4">
-                <TextBlock Text="{DynamicResource Servers_SshPort}" FontSize="11" Foreground="#8290A3" />
-                <NumericUpDown Minimum="1" Maximum="65535" Value="{Binding EditorPort}" />
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Servers_SshPort}" />
+                <NumericUpDown MinHeight="48" Minimum="1" Maximum="65535" Value="{Binding EditorPort}" VerticalContentAlignment="Center" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock Text="{DynamicResource Servers_Username}" FontSize="11" Foreground="#8290A3" />
-                <TextBox Text="{Binding EditorUsername}" />
+              <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Servers_Username}" />
+                <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorUsername}" />
               </StackPanel>
             </Grid>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-              <StackPanel Spacing="4">
-                <TextBlock Text="{DynamicResource Servers_Environment}" FontSize="11" Foreground="#8290A3" />
-                <ComboBox ItemsSource="{Binding EnvironmentOptions}" SelectedItem="{Binding EditorEnvironment}" HorizontalAlignment="Stretch" />
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Servers_Environment}" />
+                <ComboBox MinHeight="48" ItemsSource="{Binding EnvironmentOptions}" SelectedItem="{Binding EditorEnvironment}" HorizontalAlignment="Stretch" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock Text="{DynamicResource Servers_Authentication}" FontSize="11" Foreground="#8290A3" />
-                <ComboBox ItemsSource="{Binding AuthenticationOptions}" SelectedItem="{Binding EditorAuthenticationType}" HorizontalAlignment="Stretch" />
+              <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Servers_Authentication}" />
+                <ComboBox MinHeight="48" ItemsSource="{Binding AuthenticationOptions}" SelectedItem="{Binding EditorAuthenticationType}" HorizontalAlignment="Stretch" />
               </StackPanel>
             </Grid>
-            <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Servers_PrivateKeyPath}" FontSize="11" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorPrivateKeyPath}" PlaceholderText="C:\Users\you\.ssh\id_ed25519" />
+            <StackPanel Spacing="6">
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_PrivateKeyPath}" />
+              <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorPrivateKeyPath}" PlaceholderText="C:\Users\you\.ssh\id_ed25519" />
             </StackPanel>
-            <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Servers_PasswordSession}" FontSize="11" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorSecret}" PasswordChar="●" />
+            <StackPanel Spacing="6">
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_PasswordSession}" />
+              <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorSecret}" PasswordChar="●" />
             </StackPanel>
-            <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Servers_HostFingerprint}" FontSize="11" Foreground="#8290A3" />
-              <TextBox Text="{Binding EditorHostKeyFingerprint}" PlaceholderText="SHA256:..." />
-              <TextBlock Text="{DynamicResource Servers_HostFingerprintHelp}" FontSize="10" Foreground="#66758A" TextWrapping="Wrap" />
+            <StackPanel Spacing="6">
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_HostFingerprint}" />
+              <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding EditorHostKeyFingerprint}" PlaceholderText="SHA256:..." />
+              <TextBlock Classes="t-label" Text="{DynamicResource Servers_HostFingerprintHelp}" TextWrapping="Wrap" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="2" Spacing="8" Margin="20,8,20,20">
-          <!-- resultado visible junto a los botones: la tarjeta de la pagina queda tapada por la hoja -->
+        <StackPanel Grid.Row="2" Spacing="10" Margin="20,8,20,20">
+          <!-- resultado visible junto a los botones: la tarjeta de la página queda tapada por la hoja -->
           <Border Classes="testResult" Classes.ok="{Binding ServerTestSucceeded}" Classes.failed="{Binding ServerTestFailed}">
             <StackPanel Spacing="8">
-              <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsTestingServer}" Height="3" Foreground="#5EEAD4" />
-              <TextBlock Classes="msg" Text="{Binding ServerEditorMessage}" FontSize="12.5" TextWrapping="Wrap" />
+              <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsTestingServer}" Height="3" />
+              <TextBlock Classes="msg" Text="{Binding ServerEditorMessage}" FontSize="13" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
-          <Button Classes="sheetAction" Content="{DynamicResource Servers_TestConnection}" Command="{Binding TestServerCommand}"
+          <Button Classes="btn-secondary" Content="{DynamicResource Servers_TestConnection}" Command="{Binding TestServerCommand}"
                   IsEnabled="{Binding !IsTestingServer}" HorizontalAlignment="Stretch" Click="OnActionClick" />
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-            <Button Classes="sheetAction" Content="{DynamicResource Servers_SaveProfile}" Command="{Binding SaveServerCommand}"
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button Classes="btn-secondary" Content="{DynamicResource Servers_SaveProfile}" Command="{Binding SaveServerCommand}"
                     HorizontalAlignment="Stretch" Click="OnActionClick" />
-            <Button Grid.Column="1" Classes="sheetAction" Content="{DynamicResource Servers_UseServer}" Command="{Binding ActivateServerCommand}"
-                    HorizontalAlignment="Stretch" Background="#0F766E" Foreground="White" FontWeight="SemiBold" BorderThickness="0"
-                    Click="OnActivateClick" />
+            <Button Grid.Column="1" Classes="btn-primary" Content="{DynamicResource Servers_UseServer}" Command="{Binding ActivateServerCommand}"
+                    HorizontalAlignment="Stretch" Click="OnActivateClick" />
           </Grid>
-          <Button Classes="sheetAction" Content="{DynamicResource Common_Delete}" Command="{Binding DeleteServerCommand}"
-                  HorizontalAlignment="Stretch" Background="#2A1416" BorderBrush="#4A1F22" Foreground="#F87171"
-                  Click="OnDeleteClick" />
+          <Button Classes="btn-danger" Content="{DynamicResource Common_Delete}" Command="{Binding DeleteServerCommand}"
+                  HorizontalAlignment="Stretch" Click="OnDeleteClick" />
         </StackPanel>
       </Grid>
     </Border>

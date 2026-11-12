@@ -1,3 +1,4 @@
+using VpsDesk.Desktop.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using VpsDesk.Application.Deployments;
@@ -47,7 +48,7 @@ public partial class DeploymentsViewModel : ObservableObject
     [ObservableProperty] private bool _hasPendingDeploy;
     [ObservableProperty] private string _pendingDeployMessage = string.Empty;
     [ObservableProperty] private string _statusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
-    [ObservableProperty] private string _lastChecked = "Never";
+    [ObservableProperty] private string _lastChecked = LocalizationService.T("Common_Never");
     [ObservableProperty] private string _deploymentOutcomeTitle = "Pase";
     [ObservableProperty] private string _deploymentNextAction = string.Empty;
     [ObservableProperty] private string _deploymentOutput = string.Empty;
@@ -155,7 +156,7 @@ public partial class DeploymentsViewModel : ObservableObject
         HasProjectSuggestions = false;
         CanDeploy = false;
         DeploymentOutput = string.Empty;
-        LastChecked = "Never";
+        LastChecked = LocalizationService.T("Common_Never");
         StatusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
         ResetProjectModel();
         CancelPendingDeploy();
@@ -188,6 +189,8 @@ public partial class DeploymentsViewModel : ObservableObject
             LoadProjectPreferences(saved);
 
             RefreshServerContext(server);
+            // Con un proyecto ya configurado la tarjeta de destino basta; se abre sola si falta configurar.
+            IsDeploymentConfigurationExpanded = string.IsNullOrWhiteSpace(RemoteRepositoryPath);
             StatusMessage = server is null
                 ? "Selecciona y activa un servidor para usar despliegues."
                 : saved is null
@@ -222,6 +225,7 @@ public partial class DeploymentsViewModel : ObservableObject
             HttpHealthUrls = string.Empty;
             LoadProjectPreferences(saved);
             RefreshServerContext(server);
+            IsDeploymentConfigurationExpanded = string.IsNullOrWhiteSpace(RemoteRepositoryPath);
             StatusMessage = $"Proyecto activo: {project.Name}. Detectando rama, Compose y capacidades declaradas por el proyecto...";
         }
         finally

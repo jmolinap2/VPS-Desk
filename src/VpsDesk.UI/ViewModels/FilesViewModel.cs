@@ -1,3 +1,4 @@
+using VpsDesk.Desktop.Localization;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -26,7 +27,7 @@ public partial class FilesViewModel : ObservableObject
     [ObservableProperty] private string _editorPath = string.Empty;
     [ObservableProperty] private string _editorContent = string.Empty;
     [ObservableProperty] private string _statusMessage = "Open Files to browse the active VPS over SFTP.";
-    [ObservableProperty] private string _lastUpdated = "Never";
+    [ObservableProperty] private string _lastUpdated = LocalizationService.T("Common_Never");
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _hasOpenTextFile;
     [ObservableProperty] private bool _hasPendingSave;
@@ -97,7 +98,7 @@ public partial class FilesViewModel : ObservableObject
         SelectedEntry = null;
         ClearEditorState();
         CloseImagePreview();
-        LastUpdated = "Never";
+        LastUpdated = LocalizationService.T("Common_Never");
         StatusMessage = "Select an active server, then browse files.";
         _lastRefreshUtc = null;
         CancelPendingSave();

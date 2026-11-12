@@ -23,6 +23,24 @@
     <conv:OutcomeLabelConverter x:Key="OutcomeLabel" />
   </UserControl.Resources>
 
+  <UserControl.Styles>
+    <!-- la configuración aparece con un fundido y un leve descenso desde la tarjeta de destino -->
+    <Style Selector="StackPanel.reveal">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="RenderTransform" Value="translateY(0px)" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.24" Easing="CubicEaseOut" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.24" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="StackPanel.reveal.enter">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="RenderTransform" Value="translateY(-10px)" />
+    </Style>
+  </UserControl.Styles>
+
   <Grid RowDefinitions="Auto,*,Auto">
 
     <!-- selector Nuevo despliegue / Historial -->
@@ -62,13 +80,88 @@
                 <TextBlock Classes="t-label" Text="{Binding ComposeFile}" TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </StackPanel>
-            <Panel Grid.Column="1" VerticalAlignment="Center">
-              <Path Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" IsVisible="{Binding IsDeploymentConfigurationCollapsed}" />
-              <Path Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" RenderTransform="rotate(180deg)"
-                    IsVisible="{Binding IsDeploymentConfigurationExpanded}" />
-            </Panel>
+            <!-- acción explícita: «Editar» / «Ocultar» + flecha que gira -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <TextBlock Classes="t-label accent" Text="{DynamicResource Deployments_EditConfig}" VerticalAlignment="Center"
+                         IsVisible="{Binding IsDeploymentConfigurationCollapsed}" />
+              <TextBlock Classes="t-label accent" Text="{DynamicResource Deployments_Hide}" VerticalAlignment="Center"
+                         IsVisible="{Binding IsDeploymentConfigurationExpanded}" />
+              <Panel VerticalAlignment="Center">
+                <Path Classes="icon accent" Data="{StaticResource Icon.ChevronDown}" IsVisible="{Binding IsDeploymentConfigurationCollapsed}" />
+                <Path Classes="icon accent" Data="{StaticResource Icon.ChevronDown}" RenderTransform="rotate(180deg)"
+                      IsVisible="{Binding IsDeploymentConfigurationExpanded}" />
+              </Panel>
+            </StackPanel>
           </Grid>
         </Button>
+
+        <!-- configuración editable (se despliega desde la tarjeta de destino) -->
+        <StackPanel x:Name="ConfigPanel" Classes="reveal" Spacing="12" IsVisible="{Binding IsDeploymentConfigurationExpanded}">
+          <Border Classes="surface">
+            <StackPanel Spacing="14">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_RemoteRepository}" />
+                <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding RemoteRepositoryPath}"
+                         PlaceholderText="{DynamicResource Deployments_ProjectPathPlaceholder}" />
+                <ComboBox HorizontalAlignment="Stretch" MinHeight="48"
+                          ItemsSource="{Binding AvailableProjects}"
+                          SelectedItem="{Binding SelectedProjectSuggestion}"
+                          IsVisible="{Binding HasProjectSuggestions}"
+                          PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
+                      <TextBlock Text="{Binding RemoteRepositoryPath}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_Branch}" />
+                <ComboBox HorizontalAlignment="Stretch" MinHeight="48" ItemsSource="{Binding AvailableBranches}"
+                          SelectedItem="{Binding Branch}"
+                          PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_ComposeFile}" />
+                <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
+                <ComboBox HorizontalAlignment="Stretch" MinHeight="48"
+                          ItemsSource="{Binding AvailableComposeFiles}" SelectedItem="{Binding SelectedComposeSuggestion}"
+                          PlaceholderText="{DynamicResource Deployments_ComposePlaceholder}" />
+              </StackPanel>
+
+              <!-- acciones secundarias: envuelven en vez de cortarse -->
+              <WrapPanel>
+                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_Discover}"
+                        Command="{Binding DiscoverRemoteOptionsCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_PullSource}"
+                        Command="{Binding PullSourceCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_SaveProfile}"
+                        Command="{Binding SaveProfileCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,0,8" />
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="surface">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="t-headline" Text="{DynamicResource Deployments_ProjectModel}" />
+                  <TextBlock Classes="t-body-s" Text="{Binding ProjectModelStatus}" TextWrapping="Wrap"
+                             Foreground="{Binding ProjectModelStatus, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}" />
+                </StackPanel>
+                <Border Grid.Column="1" Classes="status success" IsVisible="{Binding HasProjectRecipe}" VerticalAlignment="Top">
+                  <TextBlock Text="{Binding ProjectRecipeFileName}" />
+                </Border>
+              </Grid>
+              <TextBlock Classes="t-body-s" IsVisible="{Binding !HasProjectRecipe}" TextWrapping="Wrap"
+                         Text="{DynamicResource Deployments_ProjectModelNoRecipe}" />
+              <TextBlock Classes="t-body-s" IsVisible="{Binding HasProjectRecipe}" TextWrapping="Wrap"
+                         Text="{DynamicResource Deployments_ProjectModelRecipe}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
 
         <!-- 2 · Qué desplegar -->
         <Border Classes="surface">
@@ -145,74 +238,6 @@
             <Path Grid.Column="1" Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
           </Grid>
         </Button>
-
-        <!-- configuración editable (se despliega desde la tarjeta de destino) -->
-        <StackPanel Spacing="12" IsVisible="{Binding IsDeploymentConfigurationExpanded}">
-          <Border Classes="surface">
-            <StackPanel Spacing="14">
-              <StackPanel Spacing="6">
-                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_RemoteRepository}" />
-                <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding RemoteRepositoryPath}"
-                         PlaceholderText="{DynamicResource Deployments_ProjectPathPlaceholder}" />
-                <ComboBox HorizontalAlignment="Stretch" MinHeight="48"
-                          ItemsSource="{Binding AvailableProjects}"
-                          SelectedItem="{Binding SelectedProjectSuggestion}"
-                          IsVisible="{Binding HasProjectSuggestions}"
-                          PlaceholderText="{DynamicResource Deployments_ProjectPlaceholder}">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="deploy:DeploymentProjectCandidate">
-                      <TextBlock Text="{Binding RemoteRepositoryPath}" TextTrimming="CharacterEllipsis" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-              </StackPanel>
-
-              <StackPanel Spacing="6">
-                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_Branch}" />
-                <ComboBox HorizontalAlignment="Stretch" MinHeight="48" ItemsSource="{Binding AvailableBranches}"
-                          SelectedItem="{Binding Branch}"
-                          PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
-              </StackPanel>
-
-              <StackPanel Spacing="6">
-                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_ComposeFile}" />
-                <TextBox MinHeight="48" VerticalContentAlignment="Center" Text="{Binding ComposeFile}" PlaceholderText="docker-compose.yml" />
-                <ComboBox HorizontalAlignment="Stretch" MinHeight="48"
-                          ItemsSource="{Binding AvailableComposeFiles}" SelectedItem="{Binding SelectedComposeSuggestion}"
-                          PlaceholderText="{DynamicResource Deployments_ComposePlaceholder}" />
-              </StackPanel>
-
-              <!-- acciones secundarias: envuelven en vez de cortarse -->
-              <WrapPanel>
-                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_Discover}"
-                        Command="{Binding DiscoverRemoteOptionsCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
-                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_PullSource}"
-                        Command="{Binding PullSourceCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
-                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_SaveProfile}"
-                        Command="{Binding SaveProfileCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,0,8" />
-              </WrapPanel>
-            </StackPanel>
-          </Border>
-
-          <Border Classes="surface">
-            <StackPanel Spacing="8">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <StackPanel Spacing="2">
-                  <TextBlock Classes="t-headline" Text="{DynamicResource Deployments_ProjectModel}" />
-                  <TextBlock Classes="t-body-s" Text="{Binding ProjectModelStatus}" TextWrapping="Wrap"
-                             Foreground="{Binding ProjectModelStatus, Converter={StaticResource DeploymentStatusMessageConverter}, ConverterParameter=foreground}" />
-                </StackPanel>
-                <Border Grid.Column="1" Classes="status success" IsVisible="{Binding HasProjectRecipe}" VerticalAlignment="Top">
-                  <TextBlock Text="{Binding ProjectRecipeFileName}" />
-                </Border>
-              </Grid>
-              <TextBlock Classes="t-body-s" IsVisible="{Binding !HasProjectRecipe}" TextWrapping="Wrap"
-                         Text="{DynamicResource Deployments_ProjectModelNoRecipe}" />
-              <TextBlock Classes="t-body-s" IsVisible="{Binding HasProjectRecipe}" TextWrapping="Wrap"
-                         Text="{DynamicResource Deployments_ProjectModelRecipe}" />
-            </StackPanel>
-          </Border>
-        </StackPanel>
 
         <!-- estado actual -->
         <Border CornerRadius="{DynamicResource Radius.M}" Padding="14" BorderThickness="1"

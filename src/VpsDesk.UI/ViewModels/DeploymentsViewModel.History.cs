@@ -168,7 +168,7 @@ public partial class DeploymentsViewModel
         CanDeploy = false;
         IsPreflightModalOpen = false;
         IsPostflightModalOpen = false;
-        IsDeploymentConfigurationExpanded = true;
+        IsDeploymentConfigurationExpanded = string.IsNullOrWhiteSpace(RemoteRepositoryPath);
         CancelPendingDeploy();
         StatusMessage = "Nuevo despliegue preparado. Revisa la configuración y ejecuta el prevuelo.";
     }

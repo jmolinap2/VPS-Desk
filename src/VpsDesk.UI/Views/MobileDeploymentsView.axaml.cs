@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using VpsDesk.Desktop.ViewModels;
@@ -8,9 +10,35 @@ namespace VpsDesk.Desktop.Views;
 
 public partial class MobileDeploymentsView : UserControl
 {
+    private DeploymentsViewModel? _model;
+
     public MobileDeploymentsView()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) => AttachModel();
+    }
+
+    // Al abrir la configuración desde la tarjeta de destino, aparece con una animación corta y la
+    // pantalla se desplaza hasta ella: se ve qué cambió, no solo crece la barra de desplazamiento.
+    private void AttachModel()
+    {
+        if (_model is not null) _model.PropertyChanged -= OnModelPropertyChanged;
+        _model = DataContext as DeploymentsViewModel;
+        if (_model is not null) _model.PropertyChanged += OnModelPropertyChanged;
+    }
+
+    private void OnModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(DeploymentsViewModel.IsDeploymentConfigurationExpanded)
+            || _model is not { IsDeploymentConfigurationExpanded: true }) return;
+
+        ConfigPanel.Classes.Add("enter");
+        DispatcherTimer.RunOnce(() =>
+        {
+            ConfigPanel.Classes.Remove("enter");
+            // Solo el arranque de los campos: así la tarjeta de destino sigue a la vista.
+            ConfigPanel.BringIntoView(new Avalonia.Rect(0, 0, ConfigPanel.Bounds.Width, 140));
+        }, TimeSpan.FromMilliseconds(30));
     }
 
     // Pestañas Salida / Pasos: solo estado de presentación, por eso viven acá

@@ -1,3 +1,4 @@
+using VpsDesk.Desktop.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -22,12 +23,12 @@ public partial class MainWindowViewModel : ObservableObject
     public IReadOnlyList<string> AuthenticationOptions { get; } = ["PrivateKey", "Password"];
     public IReadOnlyList<string> EnvironmentOptions { get; } = ["Development", "Staging", "Production"];
 
-    [ObservableProperty] private string _selectedServerName = "No server selected";
+    [ObservableProperty] private string _selectedServerName = LocalizationService.T("Common_NoServerSelected");
     [ObservableProperty] private string _connectionStatus = "Not checked";
     [ObservableProperty] private string _compatibilityLabel = "Compatibility unknown";
     [ObservableProperty] private string _dockerStatus = "Unknown";
     [ObservableProperty] private string _nginxStatus = "Unknown";
-    [ObservableProperty] private string _lastChecked = "Never";
+    [ObservableProperty] private string _lastChecked = LocalizationService.T("Common_Never");
     [ObservableProperty] private string _loadSummary = "Load -- / -- / --";
     [ObservableProperty] private string _memorySummary = "Awaiting connection";
     [ObservableProperty] private string _networkSummary = "Network RX/TX --";
@@ -63,7 +64,7 @@ public partial class MainWindowViewModel : ObservableObject
     // dentro de la hoja del formulario (la tarjeta de estado de la pagina queda tapada).
     [ObservableProperty] private bool _serverTestSucceeded;
     [ObservableProperty] private bool _serverTestFailed;
-    [ObservableProperty] private string _serverEditorMessage = "Secrets are kept in memory only and are not written to servers.json.";
+    [ObservableProperty] private string _serverEditorMessage = LocalizationService.T("Servers_SecretsNote");
 
     public bool IsDashboardPage => SelectedPage == "Dashboard";
     public bool IsServersPage => SelectedPage == "Servers";
@@ -471,7 +472,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (_server == null)
         {
-            SelectedServerName = "No server selected";
+            SelectedServerName = LocalizationService.T("Common_NoServerSelected");
             ConnectionStatus = "Offline";
             CompatibilityLabel = "Compatibility unknown";
             return;

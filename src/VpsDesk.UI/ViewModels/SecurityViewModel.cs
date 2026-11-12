@@ -1,3 +1,4 @@
+using VpsDesk.Desktop.Localization;
 using System.Collections.ObjectModel;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -26,7 +27,7 @@ public partial class SecurityViewModel : ObservableObject
     [ObservableProperty] private int _passedCount;
     [ObservableProperty] private int _warningCount;
     [ObservableProperty] private int _criticalCount;
-    [ObservableProperty] private string _lastChecked = "Never";
+    [ObservableProperty] private string _lastChecked = LocalizationService.T("Common_Never");
     [ObservableProperty] private string _statusMessage = "Run a read-only audit to inspect SSH posture and public listeners.";
 
     public SecurityViewModel(
@@ -55,7 +56,7 @@ public partial class SecurityViewModel : ObservableObject
         PassedCount = 0;
         WarningCount = 0;
         CriticalCount = 0;
-        LastChecked = "Never";
+        LastChecked = LocalizationService.T("Common_Never");
         StatusMessage = "Run a read-only audit to inspect SSH posture and public listeners.";
         _lastAuditUtc = null;
     }

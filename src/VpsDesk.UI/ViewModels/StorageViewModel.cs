@@ -1,3 +1,4 @@
+using VpsDesk.Desktop.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -30,7 +31,7 @@ public partial class StorageViewModel : ObservableObject
     [ObservableProperty] private string _rootTotal = "--";
     [ObservableProperty] private string _rootAvailable = "--";
     [ObservableProperty] private string _statusMessage = "Open Storage to inspect disk and Docker usage.";
-    [ObservableProperty] private string _lastUpdated = "Never";
+    [ObservableProperty] private string _lastUpdated = LocalizationService.T("Common_Never");
     [ObservableProperty] private string _imagesReclaimable = "--";
     [ObservableProperty] private string _buildCacheReclaimable = "--";
     [ObservableProperty] private string _volumesReclaimable = "--";
@@ -80,7 +81,7 @@ public partial class StorageViewModel : ObservableObject
         Images.Clear();
         Volumes.Clear();
         HeavyDirectories.Clear();
-        LastUpdated = "Never";
+        LastUpdated = LocalizationService.T("Common_Never");
         StatusMessage = "Select an active server, then refresh storage.";
         CleanupOutput = string.Empty;
         _lastRefreshUtc = null;

@@ -1,3 +1,4 @@
+using VpsDesk.Desktop.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -28,7 +29,7 @@ public partial class ContainersViewModel : ObservableObject
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _autoRefreshEnabled;
     [ObservableProperty] private string _statusMessage = "Open Containers to inspect Docker on the active VPS.";
-    [ObservableProperty] private string _lastUpdated = "Never";
+    [ObservableProperty] private string _lastUpdated = LocalizationService.T("Common_Never");
     [ObservableProperty] private int _totalCount;
     [ObservableProperty] private int _runningCount;
     [ObservableProperty] private int _stoppedCount;
@@ -81,7 +82,7 @@ public partial class ContainersViewModel : ObservableObject
         StoppedCount = 0;
         UnhealthyCount = 0;
         ProjectCount = 0;
-        LastUpdated = "Never";
+        LastUpdated = LocalizationService.T("Common_Never");
         StatusMessage = "Select an active server, then refresh Docker containers.";
         AutoRefreshEnabled = false;
         _lastRefreshUtc = null;

@@ -184,7 +184,7 @@ public sealed partial class SshAppBackupService
         }, cancellationToken);
 
     private static string Wrap(string script)
-        => $"printf %s '{Convert.ToBase64String(Encoding.UTF8.GetBytes(script))}' | base64 -d | bash";
+        => $"printf %s '{Convert.ToBase64String(Encoding.UTF8.GetBytes(Unix(script)))}' | base64 -d | bash";
 
     // Restaura cada base en una sola transacción (si falla, la base queda como estaba).
     // De los roles solo se crean los que faltan: reaplicar globals.sql completo
@@ -229,6 +229,8 @@ public sealed partial class SshAppBackupService
           [ -e "$F" ] || continue
           D=$(basename "$F" .dump)
           [ -z "$DBSEL" ] || [ "$D" = "$DBSEL" ] || continue
+          # La base de mantenimiento «postgres» solo se restaura si se elige explícitamente.
+          [ -n "$DBSEL" ] || [ "$D" != "postgres" ] || continue
           E=${D//\'/\'\'}
           if [ -z "$(pg_query "select 1 from pg_database where datname = '$E'")" ]; then
             echo "Creando la base $D..."

@@ -100,7 +100,7 @@ public partial class DeploymentsViewModel
         }
         catch (Exception ex)
         {
-            if (_serverAccessor()?.Id == server.Id) PostgresStatus = $"No se pudo consultar PostgreSQL. {UserFacingErrors.Describe(ex)}";
+            if (_serverAccessor()?.Id == server.Id) PostgresStatus = UserFacingErrors.Describe(ex);
         }
         finally
         {

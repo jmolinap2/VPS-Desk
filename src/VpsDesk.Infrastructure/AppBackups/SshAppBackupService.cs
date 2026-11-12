@@ -280,7 +280,7 @@ public sealed partial class SshAppBackupService : IAppBackupService
 
     private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer, int keep, bool serverOnly,
         AppBackupContent content, string? database)
-        => $"STAMP={Quote(stamp)}\n"
+        => Unix($"STAMP={Quote(stamp)}\n"
             + $"REPO={Quote(repository)}\n"
             + $"PGC={Quote(postgresContainer?.Trim() ?? string.Empty)}\n"
             + $"KEEP={keep.ToString(CultureInfo.InvariantCulture)}\n"
@@ -289,7 +289,13 @@ public sealed partial class SshAppBackupService : IAppBackupService
             + $"SUFFIX={Quote(AppBackupNames.SuffixOf(content))}\n"
             + $"DBSEL={Quote(database?.Trim() ?? string.Empty)}\n"
             + PostgresFunctions
-            + RemoteScript;
+            + RemoteScript);
+
+    /// <summary>
+    /// Los scripts son literales del codigo fuente: si el archivo esta guardado con CRLF,
+    /// bash los rechaza (syntax error near unexpected token). Siempre se envian con LF.
+    /// </summary>
+    internal static string Unix(string script) => script.Replace("\r\n", "\n", StringComparison.Ordinal);
 
     /// <summary>Nombres que se pueden usar como archivo y en una consulta sin sorpresas.</summary>
     internal static bool IsSafeDatabaseName(string name)

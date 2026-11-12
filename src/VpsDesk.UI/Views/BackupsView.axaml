@@ -33,8 +33,7 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="14,10" />
-      <Setter Property="Margin" Value="0,0,10,10" />
-      <Setter Property="MinWidth" Value="190" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
     <Style Selector="Border.badge">
       <Setter Property="CornerRadius" Value="6" />
@@ -60,7 +59,7 @@
           <StackPanel Margin="8,12,8,16" Spacing="16" MaxWidth="1100" HorizontalAlignment="Stretch">
 
             <!-- Estado de un vistazo -->
-            <WrapPanel>
+            <StackPanel Spacing="10">
               <Border Classes="stat">
                 <StackPanel Spacing="2">
                   <TextBlock Classes="label" Text="{DynamicResource Backups_SummaryLastBackup}" />
@@ -81,7 +80,7 @@
                   <TextBlock Classes="stat" Text="{Binding PostgresStatus}" />
                 </StackPanel>
               </Border>
-            </WrapPanel>
+            </StackPanel>
 
             <!-- Crear copia -->
             <Border Classes="card">

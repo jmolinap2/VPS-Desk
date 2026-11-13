@@ -173,7 +173,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             "Read deployment status",
             $"cd -- {repo} && docker compose -f {compose} ps{serviceArguments}",
             TimeSpan.FromSeconds(45),
-            true));
+            false));
 
         if (request.DeployApplication && request.CleanBuildCache)
         {
@@ -222,14 +222,32 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                         IsBlocking: step.IsBlocking));
                 };
 
-            var result = await ssh.ExecuteAsync(
-                new SshCommandRequest(
-                    request.Server,
-                    "export NO_COLOR=1 COMPOSE_ANSI=never BUILDKIT_PROGRESS=plain;\n" + commandText,
-                    step.Timeout,
-                    OutputChunkReceived: onChunk),
-                secret,
-                cancellationToken);
+            var stepRequest = new SshCommandRequest(
+                request.Server,
+                "export NO_COLOR=1 COMPOSE_ANSI=never BUILDKIT_PROGRESS=plain;\n" + commandText,
+                step.Timeout,
+                OutputChunkReceived: onChunk);
+
+            var result = await ssh.ExecuteAsync(stepRequest, secret, cancellationToken);
+
+            // Si el TRANSPORTE se cortó (exit -1, sin plazo agotado ni cancelación) en un paso que se
+            // puede repetir sin efectos, se reintenta: p. ej. "Software caused connection abort" al
+            // abrir la conexión justo después de un `up` largo. `up` y las migraciones NO se repiten
+            // aquí: si el corte fue a mitad de comando podría seguir ejecutándose en el VPS.
+            var retry = 0;
+            while (IdempotentStepCodes.Contains(step.Code)
+                   && IsTransportFailure(result)
+                   && retry < MaxIdempotentStepRetries)
+            {
+                retry++;
+                terminal.Append($"\n[Conexión interrumpida ({result.StandardError.Trim()}). Reintentando {retry} de {MaxIdempotentStepRetries}...]\n");
+                ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                    step.Code, step.Label, DeploymentProgressState.OutputSnapshot,
+                    Output: LogSanitizer.Sanitize(terminal.GetText()), StepIndex: stepIndex,
+                    TotalSteps: commands.Count, IsBlocking: step.IsBlocking));
+                await Task.Delay(TimeSpan.FromSeconds(2 * retry), cancellationToken);
+                result = await ssh.ExecuteAsync(stepRequest, secret, cancellationToken);
+            }
 
             var output = CombineOutput(result.StandardOutput, result.StandardError);
             if (terminal.GetText().Length == 0) terminal.Append(output);
@@ -276,6 +294,16 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             previousCommit,
             deployedCommit);
     }
+
+    private static readonly HashSet<string> IdempotentStepCodes = new(StringComparer.Ordinal)
+    {
+        "fetch", "checkout", "pull", "compose_ps"
+    };
+
+    private const int MaxIdempotentStepRetries = 2;
+
+    private static bool IsTransportFailure(SshCommandResult result)
+        => result.ConnectionLost && !result.TimedOut && !result.Cancelled;
 
     /// <summary>Tope de salida que vuelve al dispositivo por paso en modo ahorro de datos.</summary>
     private const int DataSaverMaxStepOutputBytes = 16 * 1024;

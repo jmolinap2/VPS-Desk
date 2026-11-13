@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Text;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 using VpsDesk.Application.Abstractions;
 
 namespace VpsDesk.Infrastructure.Ssh;
@@ -51,8 +53,19 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         }
         catch (Exception ex)
         {
-            return new SshCommandResult(-1, string.Empty, ex.Message, stopwatch.Elapsed, false, false);
+            return new SshCommandResult(-1, string.Empty, ex.Message, stopwatch.Elapsed, false, false,
+                ConnectionLost: IsConnectionFailure(ex));
         }
+    }
+
+    private static bool IsConnectionFailure(Exception exception)
+    {
+        // La autenticación y las discrepancias de huella no son cortes transitorios.
+        if (exception is Renci.SshNet.Common.SshAuthenticationException or InvalidOperationException)
+            return false;
+        return exception is System.Net.Sockets.SocketException or System.IO.IOException
+            or Renci.SshNet.Common.SshConnectionException
+            || exception.InnerException is { } inner && IsConnectionFailure(inner);
     }
 
     // Paquetes de unos pocos bytes: evitan que un NAT de red móvil cierre un paso largo sin salida.
@@ -66,10 +79,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
-        client.KeepAliveInterval = KeepAliveInterval;
-        var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
-        ConnectExplainingHostKey(client, policy);
+        using var client = ConnectWithRetry(request, secret, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         using var command = client.CreateCommand(NormalizeRemoteCommand(request.Command));
@@ -77,7 +87,8 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         var stdout = command.Execute();
         var stderr = command.Error ?? string.Empty;
         var exitCode = command.ExitStatus ?? -1;
-        client.Disconnect();
+        // El resultado ya llegó. Dispose cierra la sesión; no enviar otro mensaje
+        // de desconexión que pueda convertir un comando exitoso en un fallo de red.
 
         return new SshCommandResult(exitCode, stdout ?? string.Empty, stderr, stopwatch.Elapsed, false, false);
     }
@@ -95,10 +106,7 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
-        client.KeepAliveInterval = KeepAliveInterval;
-        var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
-        ConnectExplainingHostKey(client, policy);
+        using var client = ConnectWithRetry(request, secret, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         // Un solo canal conserva el orden de stdout/stderr tal como lo escribe el proceso.
@@ -143,7 +151,6 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         }
 
         var exitCode = command.ExitStatus ?? -1;
-        client.Disconnect();
 
         return new SshCommandResult(
             exitCode,
@@ -208,6 +215,57 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
             throw new InvalidOperationException(policy.Mismatch.Describe(), ex);
         }
     }
+
+    // Reintentos SOLO de la fase de conexión: todavía no se ha enviado ningún comando, así que
+    // repetirla nunca puede aplicar nada dos veces. Un corte transitorio del transporte (cambio de
+    // red, "Software caused connection abort", reinicio de la pila de red del teléfono) no debe
+    // tirar un pase. Las credenciales rechazadas, la huella distinta y los plazos agotados NO se
+    // reintentan: repetirlos solo cargaría al servidor o alargaría la espera.
+    private static readonly TimeSpan[] ConnectRetryDelays = [TimeSpan.FromMilliseconds(800), TimeSpan.FromMilliseconds(2500)];
+
+    private static SshClient ConnectWithRetry(SshCommandRequest request, string? secret, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
+            try
+            {
+                client.KeepAliveInterval = KeepAliveInterval;
+                var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
+                ConnectExplainingHostKey(client, policy);
+                return client;
+            }
+            catch (Exception ex) when (attempt < ConnectRetryDelays.Length && IsTransientConnectFailure(ex))
+            {
+                client.Dispose();
+                // Espera que se corta al cancelar, en vez de un Sleep ciego.
+                if (cancellationToken.WaitHandle.WaitOne(ConnectRetryDelays[attempt]))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
+        }
+    }
+
+    private static bool IsTransientConnectFailure(Exception ex)
+        => ex switch
+        {
+            SshAuthenticationException => false,
+            SshOperationTimeoutException => false,
+            TimeoutException => false,
+            OperationCanceledException => false,
+            InvalidOperationException => false,   // huella distinta (ConnectExplainingHostKey) u otro error lógico
+            SocketException => true,
+            SshConnectionException => true,
+            System.IO.IOException => true,
+            _ => ex.InnerException is not null && IsTransientConnectFailure(ex.InnerException)
+        };
 
     private static string NormalizeRemoteCommand(string command)
         => command

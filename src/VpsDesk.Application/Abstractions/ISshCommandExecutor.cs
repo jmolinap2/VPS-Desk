@@ -25,7 +25,8 @@ public sealed record SshCommandResult(
     string StandardError,
     TimeSpan Duration,
     bool TimedOut,
-    bool Cancelled)
+    bool Cancelled,
+    bool ConnectionLost = false)
 {
     public bool Succeeded => ExitCode == 0 && !TimedOut && !Cancelled;
 }

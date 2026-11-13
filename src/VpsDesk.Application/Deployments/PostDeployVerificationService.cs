@@ -78,7 +78,7 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
             "if [ -z \"$IDS\" ]; then echo __VPSDESK_NO_CONTAINERS__; exit 0; fi; " +
             "docker inspect --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $IDS";
 
-        var result = await ssh.ExecuteAsync(
+        var result = await SshReadRetry.ExecuteAsync(ssh,
             new SshCommandRequest(request.Server, command, TimeSpan.FromSeconds(20)),
             secret,
             cancellationToken);

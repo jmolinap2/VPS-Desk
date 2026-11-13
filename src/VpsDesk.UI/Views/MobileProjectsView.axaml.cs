@@ -16,8 +16,8 @@ public partial class MobileProjectsView : UserControl
     {
         var showDiscovered = sender is Button { Tag: "discovered" };
 
-        AssociatedList.IsVisible = !showDiscovered;
-        DiscoveredList.IsVisible = showDiscovered;
+        AssociatedPane.IsVisible = !showDiscovered;
+        DiscoveredPane.IsVisible = showDiscovered;
         AssociatedActions.IsVisible = !showDiscovered;
         DiscoveredActions.IsVisible = showDiscovered;
 

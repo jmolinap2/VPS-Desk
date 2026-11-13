@@ -30,7 +30,7 @@ public partial class StorageViewModel : ObservableObject
     [ObservableProperty] private string _rootUsed = "--";
     [ObservableProperty] private string _rootTotal = "--";
     [ObservableProperty] private string _rootAvailable = "--";
-    [ObservableProperty] private string _statusMessage = "Open Storage to inspect disk and Docker usage.";
+    [ObservableProperty] private string _statusMessage = LocalizationService.T("Storage_StatusInitial");
     [ObservableProperty] private string _lastUpdated = LocalizationService.T("Common_Never");
     [ObservableProperty] private string _imagesReclaimable = "--";
     [ObservableProperty] private string _buildCacheReclaimable = "--";
@@ -82,7 +82,7 @@ public partial class StorageViewModel : ObservableObject
         Volumes.Clear();
         HeavyDirectories.Clear();
         LastUpdated = LocalizationService.T("Common_Never");
-        StatusMessage = "Select an active server, then refresh storage.";
+        StatusMessage = LocalizationService.T("Storage_StatusSelectServer");
         CleanupOutput = string.Empty;
         _lastRefreshUtc = null;
         CancelCleanup();
@@ -97,12 +97,12 @@ public partial class StorageViewModel : ObservableObject
         if (server == null)
         {
             Reset();
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServer");
             return;
         }
 
         IsBusy = true;
-        StatusMessage = "Reading filesystem, Docker storage and large directories...";
+        StatusMessage = LocalizationService.T("Storage_StatusReading");
 
         try
         {
@@ -131,7 +131,7 @@ public partial class StorageViewModel : ObservableObject
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to read storage: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Storage_StatusReadFailed", friendly);
             Toast.Error(friendly, "No se pudo leer el almacenamiento");
         }
         finally
@@ -156,7 +156,7 @@ public partial class StorageViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "The active server changed. Cleanup cancelled.";
+            StatusMessage = LocalizationService.T("Storage_StatusServerChanged");
             CancelCleanup();
             return;
         }
@@ -189,7 +189,7 @@ public partial class StorageViewModel : ObservableObject
         {
             CleanupOutput = ex.Message;
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Cleanup failed: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Storage_StatusCleanupFailed", friendly);
             Toast.Error(friendly, "Falló la limpieza");
             await RecordCleanupExceptionAsync(server, startedAt, kind, ex);
         }
@@ -220,7 +220,7 @@ public partial class StorageViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServer");
             return;
         }
 

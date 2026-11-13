@@ -5,17 +5,14 @@
              Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileSettingsView"
              x:DataType="vm:SettingsViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <Grid>
-    <ScrollViewer Padding="16,16,16,24">
+    <ScrollViewer Padding="16,12,16,24">
       <StackPanel Spacing="12">
-        <StackPanel Spacing="3">
-          <TextBlock Text="{DynamicResource Nav_Settings}" Classes="t-title" />
-          <TextBlock Text="{DynamicResource Ui_LocalVPSDeskPreferencesPasswordsPrivate}" Classes="t-body-s" />
-        </StackPanel>
+        <TextBlock Text="{DynamicResource Ui_LocalVPSDeskPreferencesPasswordsPrivate}" Classes="t-body-s" TextWrapping="Wrap" />
 
         <Border Classes="surface" DataContext="{Binding Updates}" IsVisible="{Binding IsAvailableOnPlatform}" x:DataType="vm:UpdatesViewModel">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="{DynamicResource Ui_Updates}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Classes="t-headline" Text="{DynamicResource Ui_Updates}" />
               <TextBlock Text="{DynamicResource Ui_VPSDeskChecksForUpdatesAt}" Classes="t-body-s" />
             </StackPanel>
             <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" TextWrapping="Wrap" />
@@ -29,13 +26,13 @@
         <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="{DynamicResource Ui_General}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Classes="t-headline" Text="{DynamicResource Ui_General}" />
               <TextBlock Text="{DynamicResource Ui_LanguageAndRefreshFrequencyLabel}" Classes="t-body-s" />
             </StackPanel>
             <TextBlock Text="{DynamicResource Ui_Language}" Classes="t-label" />
-            <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch" />
+            <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch" MinHeight="48" />
             <TextBlock Text="{DynamicResource Ui_AutomaticRefreshSeconds}" Classes="t-label" />
-            <ComboBox ItemsSource="{Binding RefreshIntervalOptions}" SelectedItem="{Binding RefreshIntervalSeconds}" HorizontalAlignment="Stretch" />
+            <ComboBox ItemsSource="{Binding RefreshIntervalOptions}" SelectedItem="{Binding RefreshIntervalSeconds}" HorizontalAlignment="Stretch" MinHeight="48" />
           </StackPanel>
         </Border>
 
@@ -44,7 +41,7 @@
         <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="{DynamicResource Ui_RemoteEditing}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Classes="t-headline" Text="{DynamicResource Ui_RemoteEditing}" />
               <TextBlock Text="{DynamicResource Ui_ProtectionsWhenEditingFilesOverSFTP}" Classes="t-body-s" />
             </StackPanel>
             <CheckBox IsChecked="{Binding BackupBeforeRemoteSave}" Content="{DynamicResource Ui_CreateABakCopyBeforeOverwriting}" />
@@ -54,13 +51,13 @@
         <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="{DynamicResource Nav_Terminal}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Classes="t-headline" Text="{DynamicResource Nav_Terminal}" />
               <TextBlock Text="{DynamicResource Ui_CommandsAndOutputAreNeverSaved}" Classes="t-body-s" />
             </StackPanel>
             <TextBlock Text="{DynamicResource Ui_FontSize}" Classes="t-label" />
-            <NumericUpDown Minimum="11" Maximum="22" Increment="1" Value="{Binding TerminalFontSize}" HorizontalAlignment="Stretch" />
+            <NumericUpDown Minimum="11" Maximum="22" Increment="1" Value="{Binding TerminalFontSize}" HorizontalAlignment="Stretch" MinHeight="48" VerticalContentAlignment="Center" />
             <TextBlock Text="{DynamicResource Ui_ScrollbackLines}" Classes="t-label" />
-            <ComboBox ItemsSource="{Binding TerminalScrollbackOptions}" SelectedItem="{Binding TerminalScrollbackLines}" HorizontalAlignment="Stretch" />
+            <ComboBox ItemsSource="{Binding TerminalScrollbackOptions}" SelectedItem="{Binding TerminalScrollbackLines}" HorizontalAlignment="Stretch" MinHeight="48" />
             <CheckBox IsChecked="{Binding ConfirmMultilineTerminalPaste}" Content="{DynamicResource Ui_ConfirmBeforePastingMultipleLines}" />
           </StackPanel>
         </Border>
@@ -68,7 +65,7 @@
         <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="{DynamicResource Ui_LocalData}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Classes="t-headline" Text="{DynamicResource Ui_LocalData}" />
               <TextBlock Text="{DynamicResource Ui_ProfilesHistoryAndPreferencesAreStored}" Classes="t-body-s" />
             </StackPanel>
             <Border Classes="surface-inset">
@@ -76,7 +73,7 @@
             </Border>
             <Button Classes="btn-secondary" Content="{DynamicResource Ui_OpenFolder}" Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Stretch" />
             <Button Classes="btn-danger" Content="{DynamicResource Ui_ResetPreferences}" Command="{Binding ResetDefaultsCommand}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="t-label" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
       </StackPanel>

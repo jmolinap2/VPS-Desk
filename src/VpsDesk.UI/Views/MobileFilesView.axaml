@@ -32,48 +32,42 @@
 
   <Grid>
     <DockPanel LastChildFill="True">
-      <StackPanel DockPanel.Dock="Top" Margin="18,16,18,10" Spacing="12">
-        <StackPanel Spacing="2">
-          <TextBlock Text="{DynamicResource Files_Title}" Classes="t-title" />
-          <TextBlock Text="{Binding LastUpdated}" Classes="t-body-s" />
-        </StackPanel>
-
-        <!-- ruta actual -->
+      <StackPanel DockPanel.Dock="Top" Margin="16,12,16,10" Spacing="12">
+        <!-- ruta actual: subir · ruta · ir · actualizar (el título ya está en la barra superior) -->
         <Border Classes="surface" Padding="10">
-          <StackPanel Spacing="8">
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-              <Button Classes="btn-icon" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" AutomationProperties.Name="{DynamicResource Common_Up}" ToolTip.Tip="{DynamicResource Common_Up}"><Path Classes="icon" Data="{StaticResource Icon.ArrowUp}" /></Button>
-              <TextBox Grid.Column="1" Text="{Binding CurrentPath}" PlaceholderText="/var/www" FontFamily="{DynamicResource Font.Mono}" />
-              <Button Grid.Column="2" Classes="btn-primary" Content="{DynamicResource Common_Go}" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" Padding="14,10" />
-            </Grid>
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-              <Button Classes="btn-secondary" Content="{DynamicResource Common_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-              <Button Grid.Column="1" Classes="btn-secondary" Content="/" Command="{Binding GoRootCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-            </Grid>
-          </StackPanel>
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
+            <Button Classes="btn-icon" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" AutomationProperties.Name="{DynamicResource Common_Up}" ToolTip.Tip="{DynamicResource Common_Up}"><Path Classes="icon" Data="{StaticResource Icon.ArrowUp}" /></Button>
+            <TextBox Grid.Column="1" Text="{Binding CurrentPath}" PlaceholderText="/var/www" FontFamily="{DynamicResource Font.Mono}" MinHeight="48" VerticalContentAlignment="Center" />
+            <Button Grid.Column="2" Classes="btn-primary" Content="{DynamicResource Common_Go}" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" Padding="14,0" />
+            <Button Grid.Column="3" Classes="btn-icon" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{DynamicResource Common_Refresh}" ToolTip.Tip="{DynamicResource Common_Refresh}"><Path Classes="icon" Data="{StaticResource Icon.Refresh}" /></Button>
+          </Grid>
         </Border>
 
         <!-- accesos rápidos -->
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="btn-secondary" Content="{DynamicResource Ui_Home}" Command="{Binding GoHomeCommand}" />
-            <Button Classes="btn-secondary" Content="/opt" Command="{Binding GoOptCommand}" />
-            <Button Classes="btn-secondary" Content="/etc" Command="{Binding GoEtcCommand}" />
-            <Button Classes="btn-secondary" Content="/var/log" Command="{Binding GoVarLogCommand}" />
-            <Button Classes="btn-secondary" Content="/srv" Command="{Binding GoSrvCommand}" />
+            <Button Classes="btn-secondary" MinHeight="40" Padding="16,0" Content="{DynamicResource Ui_Home}" Command="{Binding GoHomeCommand}" />
+            <Button Classes="btn-secondary" MinHeight="40" Padding="16,0" Content="/" Command="{Binding GoRootCommand}" />
+            <Button Classes="btn-secondary" MinHeight="40" Padding="16,0" Content="/opt" Command="{Binding GoOptCommand}" />
+            <Button Classes="btn-secondary" MinHeight="40" Padding="16,0" Content="/etc" Command="{Binding GoEtcCommand}" />
+            <Button Classes="btn-secondary" MinHeight="40" Padding="16,0" Content="/var/log" Command="{Binding GoVarLogCommand}" />
+            <Button Classes="btn-secondary" MinHeight="40" Padding="16,0" Content="/srv" Command="{Binding GoSrvCommand}" />
           </StackPanel>
         </ScrollViewer>
 
-        <Border Classes="surface-inset" Padding="10,8">
-          <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
-        </Border>
+        <TextBlock Classes="t-label" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="2,0" />
       </StackPanel>
 
-      <TextBlock DockPanel.Dock="Bottom" Margin="18,6,18,14" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}"
-                 Text="{Binding Entries.Count, StringFormat={}{0} elementos}" />
+      <TextBlock DockPanel.Dock="Bottom" Classes="t-label" Margin="18,6,18,14" IsVisible="{Binding !HasNoEntries}">
+        <Run Text="{Binding Entries.Count}" /><Run Text=" " /><Run Text="{DynamicResource Files_ItemsLabel}" />
+      </TextBlock>
 
       <!-- lista de entradas: tarjetas de ancho completo -->
       <Panel Margin="16,0,16,0">
+        <StackPanel IsVisible="{Binding HasNoEntries}" VerticalAlignment="Top" Spacing="10" Margin="24,32" IsHitTestVisible="False">
+          <Path Classes="icon tertiary" Data="{StaticResource Icon.Folder}" Width="28" Height="28" HorizontalAlignment="Center" />
+          <TextBlock Classes="t-body-s" Text="{DynamicResource Files_EmptyFolder}" TextAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
         <ListBox Classes="file-entries" x:Name="EntriesHost" ItemsSource="{Binding Entries}" Margin="0,0,0,8">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="files:RemoteFileEntry">
@@ -87,18 +81,18 @@
                   </Border>
 
                   <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="t-body" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{Binding CategoryLabel}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" />
                       <TextBlock Text="{Binding SizeLabel}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" IsVisible="{Binding !IsDirectory}" />
-                      <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.S}" Padding="6,1" IsVisible="{Binding IsSensitive}">
-                        <TextBlock Text="{DynamicResource Files_Sensitive}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
+                      <Border Classes="status warning" IsVisible="{Binding IsSensitive}">
+                        <TextBlock Text="{DynamicResource Files_Sensitive}" />
                       </Border>
                     </StackPanel>
                   </StackPanel>
 
                   <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <Button Classes="btn-secondary" Content="{DynamicResource Files_Edit}" IsVisible="{Binding CanEdit}"
+                    <Button Classes="btn-secondary" MinHeight="40" Padding="14,0" Content="{DynamicResource Files_Edit}" IsVisible="{Binding CanEdit}"
                             Command="{Binding #EntriesHost.((vm:FilesViewModel)DataContext).EditEntryCommand}"
                             CommandParameter="{Binding}" />
                     <Path Classes="icon" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" IsVisible="{Binding !CanEdit}"  />

@@ -6,8 +6,8 @@
   <Grid>
     <Border Classes="surface">
       <StackPanel Spacing="12">
-        <TextBlock Text="{DynamicResource Backups_LocalDataTitle}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="{DynamicResource Backups_LocalDataHelp}" Foreground="{DynamicResource Brush.Text.Secondary}" TextWrapping="Wrap" />
+        <TextBlock Classes="t-headline" Text="{DynamicResource Backups_LocalDataTitle}" TextWrapping="Wrap" />
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_LocalDataHelp}" TextWrapping="Wrap" />
         <StackPanel Spacing="8" IsEnabled="{Binding !IsBackupOperationRunning}">
           <CheckBox IsChecked="{Binding EncryptLocalBackup}" HorizontalAlignment="Stretch">
             <TextBlock Text="{DynamicResource Backups_EncryptLocal}" TextWrapping="Wrap" />
@@ -17,8 +17,8 @@
           </CheckBox>
           <TextBlock Text="{DynamicResource Backups_PlaintextHelp}" IsVisible="{Binding !EncryptLocalBackup}" Foreground="{DynamicResource Brush.Warning}" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.12}" />
           <WrapPanel>
-            <Button Content="{DynamicResource Backups_ExportLocal}" Click="ExportLocal_Click" Margin="0,0,8,6" Background="{DynamicResource Brush.Accent}" Foreground="White" />
-            <Button Content="{DynamicResource Backups_ImportLocal}" Click="ImportLocal_Click" Margin="0,0,8,6" />
+            <Button Classes="btn-primary" Content="{DynamicResource Backups_ExportLocal}" Click="ExportLocal_Click" Margin="0,0,8,6" />
+            <Button Classes="btn-secondary" Content="{DynamicResource Backups_ImportLocal}" Click="ImportLocal_Click" Margin="0,0,8,6" />
           </WrapPanel>
         </StackPanel>
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBackupOperationRunning}" Height="4" />

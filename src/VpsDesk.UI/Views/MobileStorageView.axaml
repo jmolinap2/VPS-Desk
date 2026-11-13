@@ -10,12 +10,12 @@
   </UserControl.Resources>
 
   <Grid>
-    <ScrollViewer Padding="16,16,16,24">
+    <ScrollViewer Padding="16,12,16,24">
       <StackPanel Spacing="12">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-          <StackPanel Spacing="2">
-            <TextBlock Text="{DynamicResource Storage_Title}" Classes="t-title" />
-            <TextBlock Text="{Binding LastUpdated}" Classes="t-body-s" />
+          <StackPanel Spacing="4" VerticalAlignment="Center">
+            <Border Classes="status" HorizontalAlignment="Left"><TextBlock Text="{Binding LastUpdated}" /></Border>
+            <TextBlock Text="{Binding StatusMessage}" Classes="t-label" TextWrapping="Wrap" />
           </StackPanel>
           <Button Grid.Column="1" Classes="btn-icon" AutomationProperties.Name="{DynamicResource Storage_Refresh}" ToolTip.Tip="{DynamicResource Storage_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" VerticalAlignment="Center" ><Path Classes="icon" Data="{StaticResource Icon.Refresh}" /></Button>
         </Grid>
@@ -23,15 +23,15 @@
         <!-- disco raíz: porcentaje grande y barra -->
         <Border Classes="surface">
           <StackPanel Spacing="12">
-            <TextBlock Text="{DynamicResource Storage_RootFilesystem}" Classes="t-label" />
+            <TextBlock Text="{DynamicResource Storage_RootFilesystem}" Classes="t-overline" />
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
               <TextBlock Text="{Binding RootUsagePercent, StringFormat={}{0:F0}%}"
                          Foreground="{DynamicResource Brush.Text.Primary}"
                          FontSize="{DynamicResource Font.Size.28}" FontWeight="SemiBold" VerticalAlignment="Center" />
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="{Binding RootAvailable, StringFormat={}Libre: {0}}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.12}" />
-                <TextBlock Text="{Binding RootUsed, StringFormat={}Usado: {0}}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" />
-                <TextBlock Text="{Binding RootTotal, StringFormat={}Total: {0}}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" />
+                <TextBlock Classes="t-body-s"><Run Text="{DynamicResource Storage_Free}" /><Run Text=": " /><Run Text="{Binding RootAvailable}" FontWeight="SemiBold" /></TextBlock>
+                <TextBlock Classes="t-label"><Run Text="{DynamicResource Storage_Used}" /><Run Text=": " /><Run Text="{Binding RootUsed}" /></TextBlock>
+                <TextBlock Classes="t-label"><Run Text="{DynamicResource Storage_Total}" /><Run Text=": " /><Run Text="{Binding RootTotal}" /></TextBlock>
               </StackPanel>
             </Grid>
             <Border Height="8" Background="{DynamicResource Brush.Border.Strong}" CornerRadius="{DynamicResource Radius.S}" ClipToBounds="True">
@@ -46,21 +46,21 @@
         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" ColumnSpacing="12" RowSpacing="12">
           <Border Classes="surface" Padding="14">
             <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Storage_DockerImages}" Classes="t-label" />
+              <TextBlock Text="{DynamicResource Storage_DockerImages}" Classes="t-overline" />
               <TextBlock Text="{Binding ImageCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding ImagesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-label" TextWrapping="Wrap"><Run Text="{DynamicResource Storage_ReclaimableLabel}" /><Run Text=": " /><Run Text="{Binding ImagesReclaimable}" /></TextBlock>
             </StackPanel>
           </Border>
           <Border Grid.Column="1" Classes="surface" Padding="14">
             <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Storage_DockerVolumes}" Classes="t-label" />
+              <TextBlock Text="{DynamicResource Storage_DockerVolumes}" Classes="t-overline" />
               <TextBlock Text="{Binding VolumeCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding VolumesReclaimable, StringFormat={}Recuperable: {0}}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-label" TextWrapping="Wrap"><Run Text="{DynamicResource Storage_ReclaimableLabel}" /><Run Text=": " /><Run Text="{Binding VolumesReclaimable}" /></TextBlock>
             </StackPanel>
           </Border>
           <Border Grid.Row="1" Grid.ColumnSpan="2" Classes="surface" Padding="14">
             <StackPanel Spacing="4">
-              <TextBlock Text="{DynamicResource Storage_BuildCache}" Classes="t-label" />
+              <TextBlock Text="{DynamicResource Storage_BuildCache}" Classes="t-overline" />
               <TextBlock Text="{Binding BuildCacheReclaimable}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" />
               <TextBlock Text="{DynamicResource Storage_Reclaimable}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" />
             </StackPanel>
@@ -78,10 +78,6 @@
             <Button Classes="btn-secondary" Content="{DynamicResource Storage_CleanUnusedImages}" Command="{Binding RequestUnusedImagesCleanupCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
             <Button Classes="btn-danger" Content="{DynamicResource Storage_CleanDockerSystem}" Command="{Binding RequestDockerSystemCleanupCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
           </StackPanel>
-        </Border>
-
-        <Border Classes="surface-inset" Padding="10,8">
-          <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
         </Border>
 
         <Border Classes="surface">

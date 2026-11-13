@@ -4,19 +4,20 @@
              xmlns:views="using:VpsDesk.Desktop.Views"
              Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileEnvironmentView"
              x:DataType="vm:FilesViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
-  <Grid RowDefinitions="Auto,*" Margin="18,16,18,16">
-    <StackPanel Spacing="3" Margin="0,0,0,12">
-      <TextBlock Text="{DynamicResource Files_EnvManagerTitle}" Classes="t-title" />
-      <TextBlock Text="{DynamicResource Header_Environment}" Classes="t-body-s" />
-    </StackPanel>
+  <!--
+    Variables .env para teléfono. El título está en la barra superior; aquí solo hay una línea de
+    contexto y, según el caso, un estado vacío que dice qué hacer o el editor del archivo.
+  -->
+  <Grid RowDefinitions="Auto,*" Margin="16,12,16,16">
+    <TextBlock Classes="t-body-s" Text="{DynamicResource Header_Environment}" TextWrapping="Wrap" Margin="0,0,0,12" />
 
     <Grid Grid.Row="1">
       <!-- sin .env abierto: explica cómo abrirlo -->
       <Border Classes="surface" IsVisible="{Binding !IsEnvironmentFile}" VerticalAlignment="Top">
-        <StackPanel Spacing="12">
-          <TextBlock Text="{DynamicResource Nav_Environment}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Secondary}" TextWrapping="Wrap" />
-          <TextBlock Text="{DynamicResource Header_Environment}" Classes="t-body-s" />
+        <StackPanel Spacing="10" Margin="0,8" HorizontalAlignment="Center">
+          <Path Classes="icon tertiary" Data="{StaticResource Icon.File}" Width="28" Height="28" HorizontalAlignment="Center" />
+          <TextBlock Classes="t-headline" Text="{DynamicResource Env_EmptyTitle}" HorizontalAlignment="Center" />
+          <TextBlock Classes="t-body-s" Text="{Binding StatusMessage}" TextAlignment="Center" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
 

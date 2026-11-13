@@ -28,7 +28,7 @@ public partial class SecurityViewModel : ObservableObject
     [ObservableProperty] private int _warningCount;
     [ObservableProperty] private int _criticalCount;
     [ObservableProperty] private string _lastChecked = LocalizationService.T("Common_Never");
-    [ObservableProperty] private string _statusMessage = "Run a read-only audit to inspect SSH posture and public listeners.";
+    [ObservableProperty] private string _statusMessage = LocalizationService.T("Security_StatusInitial");
 
     public SecurityViewModel(
         ISecurityAuditService security,
@@ -40,7 +40,10 @@ public partial class SecurityViewModel : ObservableObject
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
         _historyStore = historyStore;
+        Checks.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasChecks));
     }
+
+    public bool HasChecks => Checks.Count > 0;
 
     public async Task AuditIfNeededAsync()
     {
@@ -57,7 +60,7 @@ public partial class SecurityViewModel : ObservableObject
         WarningCount = 0;
         CriticalCount = 0;
         LastChecked = LocalizationService.T("Common_Never");
-        StatusMessage = "Run a read-only audit to inspect SSH posture and public listeners.";
+        StatusMessage = LocalizationService.T("Security_StatusInitial");
         _lastAuditUtc = null;
     }
 
@@ -69,13 +72,13 @@ public partial class SecurityViewModel : ObservableObject
         if (server == null)
         {
             Reset();
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServer");
             return;
         }
 
         var startedAt = DateTimeOffset.UtcNow;
         IsBusy = true;
-        StatusMessage = "Running read-only security checks...";
+        StatusMessage = LocalizationService.T("Security_StatusRunning");
 
         try
         {
@@ -105,7 +108,7 @@ public partial class SecurityViewModel : ObservableObject
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to complete security audit: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Security_StatusFailed", friendly);
             Toast.Error(friendly, "No se pudo completar la auditoría de seguridad");
             await RecordAuditAsync(server, startedAt, ex);
         }

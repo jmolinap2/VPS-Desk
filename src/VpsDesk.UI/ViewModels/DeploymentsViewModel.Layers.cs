@@ -19,6 +19,10 @@ public partial class DeploymentsViewModel : VpsDesk.Desktop.Services.IBackDismis
     [ObservableProperty] private bool _isProductionServer;
     [ObservableProperty] private bool _isStagingServer;
     [ObservableProperty] private bool _isHistorySheetOpen;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsBackupSheetVisible))] private bool _isBackupSheetOpen;
+
+    /// <summary>La hoja de acciones de una copia solo existe mientras haya una copia seleccionada.</summary>
+    public bool IsBackupSheetVisible => IsBackupSheetOpen && SelectedAppBackup is not null;
     [ObservableProperty] private string _pendingExecution = string.Empty;
 
     /// <summary>Avisos de la confirmación: qué se hará antes de tocar el servidor.</summary>
@@ -81,6 +85,18 @@ public partial class DeploymentsViewModel : VpsDesk.Desktop.Services.IBackDismis
     [RelayCommand]
     private void CloseHistorySheet() => IsHistorySheetOpen = false;
 
+    /// <summary>Toca una copia del inventario: la selecciona y abre sus acciones (restaurar, descargar…).</summary>
+    [RelayCommand]
+    private void OpenBackupSheet(VpsDesk.Application.AppBackups.AppBackupInfo? backup)
+    {
+        if (backup is null) return;
+        SelectedAppBackup = backup;
+        IsBackupSheetOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseBackupSheet() => IsBackupSheetOpen = false;
+
     /// <summary>
     /// Cierra la capa superior abierta (modal o hoja) y devuelve true si había alguna. Lo usa el
     /// botón «atrás» del teléfono y el toque en el fondo: ninguna capa puede quedar sin salida.
@@ -95,6 +111,7 @@ public partial class DeploymentsViewModel : VpsDesk.Desktop.Services.IBackDismis
         if (HasPendingDeploy) { CancelPendingDeploy(); return true; }
         if (IsPreflightModalOpen) { ClosePreflightModal(); return true; }
         if (IsPostflightModalOpen) { ClosePostflightModal(); return true; }
+        if (IsBackupSheetOpen) { CloseBackupSheet(); return true; }
         if (IsHistorySheetOpen) { CloseHistorySheet(); return true; }
         if (IsAdvancedOptionsOpen) { CloseAdvancedOptions(); return true; }
         return false;

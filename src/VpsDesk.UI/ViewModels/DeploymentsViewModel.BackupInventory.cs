@@ -32,7 +32,11 @@ public partial class DeploymentsViewModel
     public bool CanDownloadSelectedBackup => CanManageSelectedBackup && SelectedAppBackup?.StoredOnServer == true;
     public bool CanExportSelectedBackup => CanManageSelectedBackup && SelectedAppBackup?.StoredOnServer == false;
 
-    partial void OnSelectedAppBackupChanged(AppBackupInfo? value) => NotifyBackupSelectionAvailability();
+    partial void OnSelectedAppBackupChanged(AppBackupInfo? value)
+    {
+        NotifyBackupSelectionAvailability();
+        OnPropertyChanged(nameof(IsBackupSheetVisible));
+    }
 
     [RelayCommand]
     private void SaveBackupPreferences()

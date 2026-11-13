@@ -1,18 +1,343 @@
 <UserControl xmlns="https://github.com/avaloniaui"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:views="using:VpsDesk.Desktop.Views"
- x:Class="VpsDesk.Desktop.Views.MobileBackupsView" Classes="mature" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
- <!-- Comparte inventario, exportación y confirmaciones con escritorio. -->
- <UserControl.Styles>
-  <Style Selector="ComboBox">
-   <Setter Property="HorizontalAlignment" Value="Stretch" />
-  </Style>
-  <Style Selector="Button">
-   <Setter Property="MinHeight" Value="48" />
-  </Style>
-  <Style Selector="TabItem">
-   <Setter Property="MinHeight" Value="48" />
-  </Style>
- </UserControl.Styles>
- <views:BackupsView />
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             xmlns:backup="using:VpsDesk.Application.AppBackups"
+             xmlns:snapshot="using:VpsDesk.Application.Snapshots"
+             xmlns:views="using:VpsDesk.Desktop.Views"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
+             x:Class="VpsDesk.Desktop.Views.MobileBackupsView" Classes="mature"
+             x:DataType="vm:DeploymentsViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
+  <!--
+    Respaldos para teléfono (docs/DESIGN_SYSTEM.md). Una tarea por bloque: ver el estado, crear una
+    copia, y actuar sobre una copia existente. Tocar una copia abre una hoja con sus acciones
+    (restaurar, descargar, verificar, eliminar), cada una con una línea que explica qué hace; la
+    restauración sigue exigiendo la frase escrita. La configuración y la zona de peligro quedan
+    plegadas. Comparte ViewModel, inventario y confirmaciones con la vista de escritorio.
+  -->
+  <UserControl.Resources>
+    <conv:BackupSizeConverter x:Key="BackupSize" />
+    <conv:BackupDateConverter x:Key="BackupDate" />
+    <conv:BackupContentLabelConverter x:Key="BackupContentLabel" />
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*">
+    <Border Classes="seg-track" Margin="16,12,16,4">
+      <Grid ColumnDefinitions="*,*">
+        <Button x:Name="ServerTab" Classes="seg active" Click="OnTabClick" Tag="server" Content="{DynamicResource Backups_TabServer}" />
+        <Button x:Name="DeviceTab" Grid.Column="1" Classes="seg" Click="OnTabClick" Tag="device" Content="{DynamicResource Backups_TabDevice}" />
+      </Grid>
+    </Border>
+
+    <!-- ───────────── Servidor ───────────── -->
+    <ScrollViewer x:Name="ServerPanel" Grid.Row="1">
+      <StackPanel Margin="16,8,16,28" Spacing="12">
+
+        <!-- estado de un vistazo -->
+        <Border Classes="surface">
+          <StackPanel Spacing="14">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="t-overline" Text="{DynamicResource Backups_SummaryLastBackup}" />
+              <TextBlock Classes="t-title" Text="{Binding LastBackupText}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-body-s" Text="{Binding LastBackupWhere}" TextWrapping="Wrap" IsVisible="{Binding LastBackupWhere, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <Border Classes="divider" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Classes="t-body" Text="{DynamicResource Backups_SummarySnapshot}" VerticalAlignment="Center" />
+              <Border Grid.Column="1" Classes="status success" IsVisible="{Binding HasSnapshot}">
+                <TextBlock Text="{Binding LastSnapshotText}" />
+              </Border>
+              <Border Grid.Column="1" Classes="status warning" IsVisible="{Binding !HasSnapshot}">
+                <TextBlock Text="{DynamicResource Backups_SnapshotNone}" />
+              </Border>
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Classes="t-body" Text="{DynamicResource Backups_SummaryPostgres}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Classes="t-body-s" Text="{Binding PostgresStatus}" TextWrapping="Wrap" TextAlignment="Right" MaxWidth="190" VerticalAlignment="Center" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- crear copia -->
+        <Border Classes="surface">
+          <StackPanel Spacing="14" IsEnabled="{Binding CanUseAppBackups}">
+            <TextBlock Classes="t-headline" Text="{DynamicResource Backups_CreateTitle}" />
+            <StackPanel Spacing="8">
+              <TextBlock Classes="t-label" Text="{DynamicResource Backups_ContentLabel}" />
+              <ListBox Classes="chips" SelectedIndex="{Binding AppBackupContentIndex}">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBoxItem><TextBlock FontSize="{DynamicResource Font.Size.14}" FontWeight="SemiBold" Text="{DynamicResource Backups_KindFull}" /></ListBoxItem>
+                <ListBoxItem><TextBlock FontSize="{DynamicResource Font.Size.14}" FontWeight="SemiBold" Text="{DynamicResource Backups_KindDatabase}" /></ListBoxItem>
+                <ListBoxItem><TextBlock FontSize="{DynamicResource Font.Size.14}" FontWeight="SemiBold" Text="{DynamicResource Backups_KindFiles}" /></ListBoxItem>
+              </ListBox>
+            </StackPanel>
+
+            <StackPanel Spacing="14" IsVisible="{Binding CreateTargetsDatabase}">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Backups_ContainerLabel}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <ComboBox ItemsSource="{Binding PostgresContainers}" SelectedItem="{Binding SelectedPostgresContainer}"
+                            PlaceholderText="{DynamicResource Backups_PostgresAuto}" HorizontalAlignment="Stretch" MinHeight="48" />
+                  <Button Grid.Column="1" Classes="btn-icon" Command="{Binding RefreshPostgresCommand}"
+                          AutomationProperties.Name="{DynamicResource Backups_RefreshPostgres}" ToolTip.Tip="{DynamicResource Backups_RefreshPostgres}">
+                    <Path Classes="icon" Data="{StaticResource Icon.Refresh}" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Backups_DatabaseLabel}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <ComboBox ItemsSource="{Binding PostgresDatabases}" SelectedItem="{Binding SelectedBackupDatabase}"
+                            PlaceholderText="{DynamicResource Backups_AllDatabases}" HorizontalAlignment="Stretch" MinHeight="48" />
+                  <Button Grid.Column="1" Classes="btn-icon" Command="{Binding ClearBackupDatabaseCommand}"
+                          IsEnabled="{Binding SelectedBackupDatabase, Converter={x:Static ObjectConverters.IsNotNull}}"
+                          AutomationProperties.Name="{DynamicResource Backups_AllDatabases}" ToolTip.Tip="{DynamicResource Backups_AllDatabases}">
+                    <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+
+            <Button Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Backups_Create}"
+                    Command="{Binding CreateAppBackupCommand}" />
+          </StackPanel>
+        </Border>
+
+        <!-- copias disponibles -->
+        <Border Classes="surface">
+          <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="t-headline" Text="{DynamicResource Backups_Inventory}" />
+                <TextBlock Classes="t-label" Text="{Binding BackupInventoryStatus}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="btn-icon" VerticalAlignment="Top" Command="{Binding RefreshBackupInventoryCommand}"
+                      AutomationProperties.Name="{DynamicResource Common_Refresh}" ToolTip.Tip="{DynamicResource Common_Refresh}">
+                <Path Classes="icon" Data="{StaticResource Icon.Refresh}" />
+              </Button>
+            </Grid>
+
+            <!-- estado vacío: dice qué hacer -->
+            <StackPanel IsVisible="{Binding !HasAppBackupInventory}" Spacing="8" Margin="0,8" HorizontalAlignment="Center">
+              <Path Classes="icon tertiary" Data="{StaticResource Icon.Folder}" Width="28" Height="28" HorizontalAlignment="Center" />
+              <TextBlock Classes="t-headline" Text="{DynamicResource Backups_EmptyTitle}" HorizontalAlignment="Center" />
+              <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_Empty}" TextAlignment="Center" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock Classes="t-label" Text="{DynamicResource Backups_TapHint}" TextWrapping="Wrap" IsVisible="{Binding HasAppBackupInventory}" />
+            <ItemsControl ItemsSource="{Binding AppBackupInventory}" IsVisible="{Binding HasAppBackupInventory}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="backup:AppBackupInfo">
+                  <Border Classes="surface-inset" Padding="14,12" Margin="0,0,0,8" Background="{DynamicResource Brush.Surface.Inset}" Tapped="OnBackupTapped">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <StackPanel Spacing="6">
+                        <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding CreatedAt, Converter={StaticResource BackupDate}}" />
+                        <WrapPanel>
+                          <Border Classes="status accent" Margin="0,0,8,4">
+                            <TextBlock Text="{Binding Content, Converter={StaticResource BackupContentLabel}}" />
+                          </Border>
+                          <Border Classes="status info" Margin="0,0,8,4" IsVisible="{Binding StoredOnServer}">
+                            <TextBlock Text="{DynamicResource Backups_Remote}" />
+                          </Border>
+                          <Border Classes="status" Margin="0,0,8,4" IsVisible="{Binding !StoredOnServer}">
+                            <TextBlock Text="{DynamicResource Backups_Local}" />
+                          </Border>
+                        </WrapPanel>
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Classes="t-label" Text="{Binding SizeBytes, Converter={StaticResource BackupSize}}" VerticalAlignment="Center" />
+                        <Path Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- snapshot del VPS completo -->
+        <Border Classes="surface">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="t-headline" Text="{DynamicResource Backups_Snapshot}" />
+            <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_SnapshotHelp}" TextWrapping="Wrap" />
+            <TextBlock Classes="t-body" Text="{Binding SnapshotSummary}" TextWrapping="Wrap" />
+            <CheckBox IsChecked="{Binding SnapshotBeforeDeploy}" IsEnabled="{Binding CanUseSnapshots}" HorizontalAlignment="Stretch">
+              <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_SnapshotBeforeDeploy}" TextWrapping="Wrap" />
+            </CheckBox>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Backups_CreateSnapshot}"
+                      Command="{Binding RequestCreateSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}" />
+              <Button Grid.Column="1" Classes="btn-icon" Command="{Binding RefreshSnapshotCommand}" IsEnabled="{Binding CanUseSnapshots}"
+                      AutomationProperties.Name="{DynamicResource Common_Refresh}" ToolTip.Tip="{DynamicResource Common_Refresh}">
+                <Path Classes="icon" Data="{StaticResource Icon.Refresh}" />
+              </Button>
+            </Grid>
+
+            <StackPanel Spacing="6" IsVisible="{Binding HasProviderBackups}">
+              <Border Classes="divider" />
+              <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_Provider}" />
+              <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_ProviderHelp}" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding ProviderBackups}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="snapshot:VpsBackupInfo">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                      <TextBlock Classes="t-body-s" Text="{Binding CreatedAt, Converter={StaticResource BackupDate}}" />
+                      <TextBlock Grid.Column="1" Classes="t-label" Text="{Binding SizeKilobytes, Converter={StaticResource BackupSize}, ConverterParameter=kb}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- configuración de copias (plegada) -->
+        <Border Classes="surface" Padding="0">
+          <StackPanel>
+            <Button Classes="row" Tag="SettingsBody" Click="OnSectionClick" HorizontalAlignment="Stretch" Padding="20,0">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <Path Classes="icon tertiary" Data="{StaticResource Icon.Sliders}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_Settings}" VerticalAlignment="Center" />
+                <Path Grid.Column="2" x:Name="SettingsChevron" Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+            <StackPanel x:Name="SettingsBody" IsVisible="False" Spacing="14" Margin="20,4,20,20">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Deployments_RemoteRepository}" />
+                <TextBox Text="{Binding RemoteRepositoryPath}" PlaceholderText="/root/mi-app" MinHeight="48" />
+              </StackPanel>
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-label" Text="{DynamicResource Backups_Retention}" />
+                <NumericUpDown Value="{Binding AppBackupKeepCopies}" Minimum="1" Maximum="10" Increment="1" FormatString="0" HorizontalAlignment="Stretch" MinHeight="48" VerticalContentAlignment="Center" />
+              </StackPanel>
+              <CheckBox IsChecked="{Binding StoreAppBackupOnServer}" HorizontalAlignment="Stretch">
+                <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_StoreOnServer}" TextWrapping="Wrap" />
+              </CheckBox>
+              <CheckBox IsChecked="{Binding BackupBeforeDeploy}" HorizontalAlignment="Stretch">
+                <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_BeforeDeploy}" TextWrapping="Wrap" />
+              </CheckBox>
+              <StackPanel Spacing="6">
+                <ComboBox SelectedIndex="{Binding DataSaverModeIndex}" HorizontalAlignment="Stretch" MinHeight="48">
+                  <ComboBoxItem Content="{DynamicResource Backups_DataAuto}" />
+                  <ComboBoxItem Content="{DynamicResource Backups_DataAlways}" />
+                  <ComboBoxItem Content="{DynamicResource Backups_DataNever}" />
+                </ComboBox>
+                <TextBlock Classes="t-label" Text="{Binding DataSaverStatus}" TextWrapping="Wrap" />
+                <TextBlock Classes="t-label" Text="{DynamicResource Backups_DataSaverHelp}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Backups_SavePreferences}"
+                      Command="{Binding SaveBackupPreferencesCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- zona de peligro (plegada) -->
+        <Border Classes="surface" Padding="0" BorderBrush="{DynamicResource Brush.Danger}">
+          <StackPanel>
+            <Button Classes="row" Tag="DangerBody" Click="OnSectionClick" HorizontalAlignment="Stretch" Padding="20,0">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <Path Classes="icon" Data="{StaticResource Icon.Alert}" Stroke="{DynamicResource Brush.Danger}" Fill="{DynamicResource Brush.Danger}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="t-body" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Danger}" Text="{DynamicResource Backups_DangerZone}" VerticalAlignment="Center" />
+                <Path Grid.Column="2" x:Name="DangerChevron" Classes="icon tertiary" Data="{StaticResource Icon.ChevronDown}" VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+            <StackPanel x:Name="DangerBody" IsVisible="False" Spacing="12" Margin="20,4,20,20">
+              <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_DangerHelp}" TextWrapping="Wrap" />
+              <Button Classes="btn-danger" HorizontalAlignment="Stretch" Content="{DynamicResource Backups_RestoreSnapshot}"
+                      Command="{Binding RequestRestoreSnapshotCommand}" IsEnabled="{Binding CanRestoreSnapshot}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ───────────── Este dispositivo ───────────── -->
+    <ScrollViewer x:Name="DevicePanel" Grid.Row="1" IsVisible="False">
+      <StackPanel Margin="16,8,16,28">
+        <views:LocalBackupsView DataContext="{Binding LocalBackupSettings}" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ───────────── Acciones de una copia (hoja inferior) ───────────── -->
+    <Border Classes="m-scrim" Classes.open="{Binding IsBackupSheetVisible}" Grid.RowSpan="2" PointerPressed="OnBackupScrimPressed" />
+    <Border Classes="m-sheet" Classes.open="{Binding IsBackupSheetVisible}" Grid.RowSpan="2" VerticalAlignment="Bottom" MaxHeight="680">
+      <Grid RowDefinitions="Auto,Auto,*">
+        <Border Classes="sheet-handle" Margin="0,10,0,4" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="20,4,8,8">
+          <StackPanel Spacing="6" VerticalAlignment="Center">
+            <TextBlock Classes="t-title" Text="{Binding SelectedAppBackup.CreatedAt, Converter={StaticResource BackupDate}}" />
+            <WrapPanel>
+              <Border Classes="status accent" Margin="0,0,8,4">
+                <TextBlock Text="{Binding SelectedAppBackup.Content, Converter={StaticResource BackupContentLabel}}" />
+              </Border>
+              <Border Classes="status" Margin="0,0,8,4">
+                <TextBlock Text="{Binding SelectedAppBackup.SizeBytes, Converter={StaticResource BackupSize}}" />
+              </Border>
+              <Border Classes="status info" Margin="0,0,8,4" IsVisible="{Binding SelectedAppBackup.StoredOnServer}">
+                <TextBlock Text="{DynamicResource Backups_Remote}" />
+              </Border>
+              <Border Classes="status" Margin="0,0,8,4" IsVisible="{Binding !SelectedAppBackup.StoredOnServer}">
+                <TextBlock Text="{DynamicResource Backups_Local}" />
+              </Border>
+            </WrapPanel>
+          </StackPanel>
+          <Button Grid.Column="1" Classes="btn-icon" Command="{Binding CloseBackupSheetCommand}"
+                  AutomationProperties.Name="{DynamicResource Common_Close}" ToolTip.Tip="{DynamicResource Common_Close}">
+            <Path Classes="icon" Data="{StaticResource Icon.Close}" />
+          </Button>
+        </Grid>
+        <ScrollViewer Grid.Row="2">
+          <StackPanel Margin="16,0,16,24" Spacing="8">
+            <Button Classes="row" HorizontalAlignment="Stretch" Command="{Binding RequestRestoreDatabaseCommand}" IsEnabled="{Binding CanRestoreDatabase}" Padding="16,0">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,10">
+                  <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_RestoreDb}" />
+                  <TextBlock Classes="t-label" Text="{DynamicResource Backups_RestoreDbHint}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Path Grid.Column="1" Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
+              </Grid>
+            </Button>
+            <Button Classes="row" HorizontalAlignment="Stretch" Command="{Binding DownloadSelectedBackupCommand}" IsEnabled="{Binding CanDownloadSelectedBackup}"
+                    IsVisible="{Binding SelectedAppBackup.StoredOnServer}" Padding="16,0">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,10">
+                  <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_Download}" />
+                  <TextBlock Classes="t-label" Text="{DynamicResource Backups_DownloadHint}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Path Grid.Column="1" Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
+              </Grid>
+            </Button>
+            <Button Classes="row" HorizontalAlignment="Stretch" Click="OnExportClick" IsEnabled="{Binding CanExportSelectedBackup}"
+                    IsVisible="{Binding !SelectedAppBackup.StoredOnServer}" Padding="16,0">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,10">
+                  <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_Export}" />
+                  <TextBlock Classes="t-label" Text="{DynamicResource Backups_ExportHint}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Path Grid.Column="1" Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
+              </Grid>
+            </Button>
+            <Button Classes="row" HorizontalAlignment="Stretch" Command="{Binding VerifySelectedBackupCommand}" IsEnabled="{Binding CanManageSelectedBackup}" Padding="16,0">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,10">
+                  <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_Verify}" />
+                  <TextBlock Classes="t-label" Text="{DynamicResource Backups_VerifyHint}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Path Grid.Column="1" Classes="icon tertiary" Data="{StaticResource Icon.ChevronRight}" />
+              </Grid>
+            </Button>
+            <Button Classes="btn-danger" HorizontalAlignment="Stretch" Margin="0,8,0,0" Content="{DynamicResource Common_Delete}"
+                    Command="{Binding RequestDeleteBackupCommand}" IsEnabled="{Binding CanManageSelectedBackup}" />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+
+    <views:BackupModals Grid.RowSpan="2" />
+    <views:DeploymentModals Grid.RowSpan="2" />
+  </Grid>
 </UserControl>

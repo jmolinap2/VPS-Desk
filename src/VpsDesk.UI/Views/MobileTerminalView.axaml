@@ -9,29 +9,29 @@
     teclado no tape lo que se escribe.
   -->
   <DockPanel LastChildFill="True" Margin="14,12,14,10">
-    <!-- cabecera: servidor y estado -->
+    <!-- cabecera: servidor y estado; las acciones en una sola fila -->
     <Border DockPanel.Dock="Top" Classes="surface" Padding="14,12" Margin="0,0,0,10">
       <StackPanel Spacing="12">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
           <StackPanel Spacing="2">
-            <TextBlock Text="{Binding ActiveServerLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" />
+            <TextBlock Classes="t-body" Text="{Binding ActiveServerLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="t-label" TextWrapping="Wrap" />
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
-            <Border Background="{DynamicResource Brush.Success.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,4" IsVisible="{Binding IsConnected}">
-              <TextBlock Text="{DynamicResource Ui_Connected}" Foreground="{DynamicResource Brush.Success}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.11}" />
+            <Border Classes="status success" IsVisible="{Binding IsConnected}">
+              <TextBlock Text="{DynamicResource Ui_Connected}" />
             </Border>
-            <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,4" IsVisible="{Binding IsProduction}">
-              <TextBlock Text="PROD" Foreground="{DynamicResource Brush.Warning}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.11}" />
+            <Border Classes="status warning" IsVisible="{Binding IsProduction}">
+              <TextBlock Text="{DynamicResource Deployments_EnvProd}" />
             </Border>
           </StackPanel>
         </Grid>
 
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="6">
-          <Button Classes="btn-secondary" Content="{DynamicResource Ui_Connect}" Command="{Binding ConnectCommand}" IsEnabled="{Binding !IsConnected}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="1" Classes="btn-secondary" Content="{DynamicResource Ui_DisconnectLabel}" Command="{Binding DisconnectCommand}" IsEnabled="{Binding IsConnected}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
-          <Button Grid.Row="1" Classes="btn-secondary" Content="Ctrl+C" Command="{Binding SendInterruptCommand}" IsEnabled="{Binding IsConnected}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
-          <Button Grid.Row="1" Grid.Column="1" Classes="btn-secondary" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearTerminalCommand}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <Button Classes="btn-primary" Content="{DynamicResource Ui_Connect}" Command="{Binding ConnectCommand}" IsVisible="{Binding !IsConnected}" HorizontalAlignment="Stretch" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Terminal_Disconnect}" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Classes="btn-secondary" Content="Ctrl+C" Command="{Binding SendInterruptCommand}" IsEnabled="{Binding IsConnected}" />
+          <Button Grid.Column="2" Classes="btn-secondary" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearTerminalCommand}" />
         </Grid>
       </StackPanel>
     </Border>
@@ -69,6 +69,7 @@
 
     <!-- salida: ocupa el resto y sigue el final -->
     <Border Classes="surface" Padding="0" ClipToBounds="True">
+      <Panel>
       <TextBox Foreground="{DynamicResource Brush.Code.Text}" CaretBrush="{DynamicResource Brush.Accent.Text}" x:Name="OutputBox"
                Text="{Binding TerminalOutput}"
                IsReadOnly="True"
@@ -81,6 +82,12 @@
                Padding="12"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                ScrollViewer.VerticalScrollBarVisibility="Auto" />
+        <StackPanel IsVisible="{Binding TerminalOutput, Converter={x:Static StringConverters.IsNullOrEmpty}}"
+                    IsHitTestVisible="False" VerticalAlignment="Center" Spacing="10" Margin="24">
+          <Path Classes="icon tertiary" Data="{StaticResource Icon.Server}" Width="28" Height="28" HorizontalAlignment="Center" />
+          <TextBlock Classes="t-body-s" Text="{DynamicResource Terminal_EmptyHint}" TextAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
+      </Panel>
     </Border>
   </DockPanel>
 </UserControl>

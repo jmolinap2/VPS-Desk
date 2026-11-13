@@ -11,17 +11,14 @@ public partial class BackupsView : UserControl
 {
     public BackupsView() => InitializeComponent();
 
-    // Tocar el fondo (no la tarjeta) cierra la capa superior, igual que «atrás» en el teléfono.
-    private void OnModalScrimPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
-    {
-        if (!ReferenceEquals(e.Source, sender)) return;
-        (DataContext as DeploymentsViewModel)?.TryDismissTopLayer();
-    }
-
     private async void ExportBackup_Click(object? sender, RoutedEventArgs e)
+        => await ExportSelectedAsync(this, DataContext as DeploymentsViewModel);
+
+    /// <summary>Guarda la copia seleccionada fuera del almacenamiento privado (compartido con la vista móvil).</summary>
+    internal static async Task ExportSelectedAsync(Control owner, DeploymentsViewModel? viewModel)
     {
-        if (DataContext is not DeploymentsViewModel { CanExportSelectedBackup: true } model
-            || model.SelectedAppBackup is not { } backup || TopLevel.GetTopLevel(this) is not { } topLevel) return;
+        if (viewModel is not { CanExportSelectedBackup: true } model
+            || model.SelectedAppBackup is not { } backup || TopLevel.GetTopLevel(owner) is not { } topLevel) return;
         try
         {
             var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions

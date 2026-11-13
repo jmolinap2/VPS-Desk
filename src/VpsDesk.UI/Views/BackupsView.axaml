@@ -214,67 +214,7 @@
       </TabItem>
     </TabControl>
 
-    <!-- Eliminar una copia -->
-    <Border Classes="modal-scrim" Classes.open="{Binding HasPendingBackupDeletion}" PointerPressed="OnModalScrimPressed">
-      <Border Classes="modal-card">
-        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="t-title" Text="{DynamicResource Backups_DeleteTitle}" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="btn-icon" Command="{Binding CancelBackupDeletionCommand}"
-                    AutomationProperties.Name="{DynamicResource Common_Close}" ToolTip.Tip="{DynamicResource Common_Close}">
-              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
-            </Button>
-          </Grid>
-          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-            <TextBlock Classes="t-body" Text="{Binding BackupDeletionMessage}" TextWrapping="Wrap" />
-          </ScrollViewer>
-          <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
-            <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Cancel}"
-                    Command="{Binding CancelBackupDeletionCommand}" />
-            <Button Grid.Column="1" Classes="btn-danger" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Delete}"
-                    Command="{Binding ConfirmDeleteBackupCommand}" IsEnabled="{Binding CanUseAppBackups}" />
-          </Grid>
-        </Grid>
-      </Border>
-    </Border>
-
-    <!-- Restaurar una base de datos (acción de nivel 3: frase escrita + copia previa) -->
-    <Border Classes="modal-scrim" Classes.open="{Binding HasPendingDatabaseRestore}" PointerPressed="OnModalScrimPressed">
-      <Border Classes="modal-card">
-        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="t-title" Text="{DynamicResource Backups_RestoreDbTitle}" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="btn-icon" Command="{Binding CancelDatabaseRestoreCommand}"
-                    AutomationProperties.Name="{DynamicResource Common_Close}" ToolTip.Tip="{DynamicResource Common_Close}">
-              <Path Classes="icon" Data="{StaticResource Icon.Close}" />
-            </Button>
-          </Grid>
-          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Spacing="14">
-              <TextBlock Classes="t-body" Text="{Binding DatabaseRestoreMessage}" TextWrapping="Wrap" />
-              <StackPanel Spacing="6">
-                <TextBlock Classes="t-label" Text="{DynamicResource Backups_RestoreDbWhich}" />
-                <ComboBox ItemsSource="{Binding RestoreDatabases}" SelectedItem="{Binding SelectedRestoreDatabase}"
-                          PlaceholderText="{DynamicResource Backups_AllDatabases}" HorizontalAlignment="Stretch" MinHeight="48" />
-              </StackPanel>
-              <CheckBox IsChecked="{Binding BackupDatabaseBeforeRestore}" HorizontalAlignment="Stretch">
-                <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_RestoreDbSafety}" TextWrapping="Wrap" />
-              </CheckBox>
-              <StackPanel Spacing="6">
-                <TextBlock Classes="t-label danger" Text="{DynamicResource Backups_TypeToConfirm}" TextWrapping="Wrap" />
-                <TextBox Text="{Binding DatabaseRestoreConfirmation}" PlaceholderText="RESTAURAR" MinHeight="48" VerticalContentAlignment="Center" />
-              </StackPanel>
-            </StackPanel>
-          </ScrollViewer>
-          <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <Button Classes="btn-secondary" MinWidth="110" Content="{DynamicResource Common_Cancel}"
-                    Command="{Binding CancelDatabaseRestoreCommand}" />
-            <Button Grid.Column="1" Classes="btn-danger" HorizontalAlignment="Stretch" Content="{DynamicResource Backups_RestoreDb}"
-                    Command="{Binding ConfirmDatabaseRestoreCommand}" IsEnabled="{Binding CanConfirmDatabaseRestore}" />
-          </Grid>
-        </Grid>
-      </Border>
-    </Border>
+    <views:BackupModals />
     <views:DeploymentModals />
   </Grid>
 </UserControl>

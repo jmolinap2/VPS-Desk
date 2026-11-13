@@ -21,13 +21,14 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto">
 
     <!-- proyecto activo -->
-    <Border Grid.Row="0" Margin="16,14,16,0" Padding="16" Background="{DynamicResource Brush.Surface.Card}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="{DynamicResource Radius.L}">
+    <Border Grid.Row="0" Classes="surface" Margin="16,12,16,0">
       <StackPanel Spacing="4">
-        <TextBlock Text="{DynamicResource Ui_ActiveProject}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
-        <TextBlock Text="{Binding ActiveProjectName}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-        <TextBlock Text="{Binding ActiveProjectPath}" Foreground="{DynamicResource Brush.Text.Secondary}" FontFamily="{DynamicResource Font.Mono}"
-                   FontSize="{DynamicResource Font.Size.11}" TextTrimming="CharacterEllipsis" />
-        <TextBlock Text="{Binding ActiveProjectMode}" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.11}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="t-overline" Text="{DynamicResource Ui_ActiveProject}" />
+        <TextBlock Classes="t-title" Text="{Binding ActiveProjectName}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="t-mono" Text="{Binding ActiveProjectPath}" TextTrimming="CharacterEllipsis" />
+        <Border Classes="status accent" HorizontalAlignment="Left" Margin="0,6,0,0" IsVisible="{Binding ActiveProjectMode, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <TextBlock Text="{Binding ActiveProjectMode}" />
+        </Border>
       </StackPanel>
     </Border>
 
@@ -47,73 +48,73 @@
           </Button>
         </Grid>
       </Border>
-      <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" Margin="2,0" />
+      <TextBlock Classes="t-label" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="2,0" />
     </StackPanel>
 
     <!-- listas -->
     <Panel Grid.Row="2">
+     <Panel x:Name="AssociatedPane">
+      <StackPanel x:Name="AssociatedEmpty" IsVisible="{Binding !HasProjects}" VerticalAlignment="Top" Spacing="10" Margin="40,32" IsHitTestVisible="False">
+        <Path Classes="icon tertiary" Data="{StaticResource Icon.Box}" Width="28" Height="28" HorizontalAlignment="Center" />
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Projects_EmptyAssociated}" TextAlignment="Center" TextWrapping="Wrap" />
+      </StackPanel>
       <ListBox x:Name="AssociatedList" Classes="projects" Margin="16,0,16,8" Background="Transparent"
                ItemsSource="{Binding AssociatedProjects}" SelectedItem="{Binding SelectedProject}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="services:ProjectWorkspace">
-            <Border Background="{DynamicResource Brush.Surface.Card}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="{DynamicResource Radius.L}" Padding="14">
+            <Border Classes="surface" Padding="14">
               <StackPanel Spacing="4">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.14}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Column="1" Text="{Binding ModeLabel}" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.11}" VerticalAlignment="Center" />
+                  <TextBlock Classes="t-body" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="1" Classes="status accent" VerticalAlignment="Center"><TextBlock Text="{Binding ModeLabel}" /></Border>
                 </Grid>
-                <TextBlock Text="{Binding RemoteRepositoryPath}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}"
-                           FontFamily="{DynamicResource Font.Mono}" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding CapabilitySummary}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
+                <TextBlock Classes="t-mono" Text="{Binding RemoteRepositoryPath}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="t-label" Text="{Binding CapabilitySummary}" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+     </Panel>
+     <Panel x:Name="DiscoveredPane" IsVisible="False">
+      <StackPanel x:Name="DiscoveredEmpty" IsVisible="{Binding !HasDiscoveredProjects}" VerticalAlignment="Top" Spacing="10" Margin="40,32" IsHitTestVisible="False">
+        <Path Classes="icon tertiary" Data="{StaticResource Icon.Folder}" Width="28" Height="28" HorizontalAlignment="Center" />
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Projects_EmptyDiscovered}" TextAlignment="Center" TextWrapping="Wrap" />
+      </StackPanel>
 
-      <ListBox x:Name="DiscoveredList" Classes="projects" Margin="16,0,16,8" Background="Transparent" IsVisible="False"
+      <ListBox x:Name="DiscoveredList" Classes="projects" Margin="16,0,16,8" Background="Transparent"
                ItemsSource="{Binding DiscoveredProjects}" SelectedItem="{Binding SelectedDiscovery}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:ProjectDiscoveryItem">
-            <Border Background="{DynamicResource Brush.Surface.Card}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="{DynamicResource Radius.L}" Padding="14">
+            <Border Classes="surface" Padding="14">
               <StackPanel Spacing="4">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.14}" TextTrimming="CharacterEllipsis" />
-                  <Border Grid.Column="1" Background="{DynamicResource Brush.Accent.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,3" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding ModeLabel}" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.11}" />
-                  </Border>
+                  <TextBlock Classes="t-body" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="1" Classes="status accent" VerticalAlignment="Center"><TextBlock Text="{Binding ModeLabel}" /></Border>
                 </Grid>
-                <TextBlock Text="{Binding RemoteRepositoryPath}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}"
-                           FontFamily="{DynamicResource Font.Mono}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="t-mono" Text="{Binding RemoteRepositoryPath}" TextTrimming="CharacterEllipsis" />
                 <TextBlock FontSize="{DynamicResource Font.Size.11}" Foreground="{DynamicResource Brush.Text.Tertiary}" TextTrimming="CharacterEllipsis">
                   <Run Text="{DynamicResource Ui_BranchLabel}" /><Run Text="{Binding Branch}" Foreground="{DynamicResource Brush.Text.Tertiary}" /><Run Text="{DynamicResource Ui_ComposeLabel}" /><Run Text="{Binding ComposeFile}" Foreground="{DynamicResource Brush.Text.Tertiary}" />
                 </TextBlock>
-                <TextBlock Text="{DynamicResource Ui_Associated}" IsVisible="{Binding AlreadyAssociated}" Foreground="{DynamicResource Brush.Info}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
+                <Border Classes="status info" HorizontalAlignment="Left" IsVisible="{Binding AlreadyAssociated}"><TextBlock Text="{DynamicResource Ui_Associated}" /></Border>
               </StackPanel>
             </Border>
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+     </Panel>
     </Panel>
 
-    <!-- acciones de la lista visible -->
+    <!-- acciones de la lista visible: secundaria a la izquierda, principal a la derecha -->
     <Border Grid.Row="3" Background="{DynamicResource Brush.Surface.Bar}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="0,1,0,0" Padding="16,10,16,12">
       <Panel>
         <Grid x:Name="AssociatedActions" ColumnDefinitions="*,*" ColumnSpacing="12">
-          <Button Content="{DynamicResource Ui_RemoveAssociation}" Command="{Binding RemoveSelectedCommand}" IsEnabled="{Binding HasActiveProject}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,13" CornerRadius="{DynamicResource Radius.M}"
-                  Background="{DynamicResource Brush.Surface.Card}" BorderBrush="{DynamicResource Brush.Border.Strong}" BorderThickness="1" />
-          <Button Grid.Column="1" Content="{DynamicResource Ui_UseSelected}" Command="{Binding ActivateSelectedCommand}" IsEnabled="{Binding HasActiveProject}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,13" CornerRadius="{DynamicResource Radius.M}"
-                  Background="{DynamicResource Brush.Accent}" Foreground="White" FontWeight="Bold" BorderThickness="0" />
+          <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Ui_RemoveAssociation}" Command="{Binding RemoveSelectedCommand}" IsEnabled="{Binding HasActiveProject}" />
+          <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Ui_UseSelected}" Command="{Binding ActivateSelectedCommand}" IsEnabled="{Binding HasActiveProject}" />
         </Grid>
         <Grid x:Name="DiscoveredActions" ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="False">
-          <Button Content="{DynamicResource Ui_DiscoverProjects}" Command="{Binding DiscoverCommand}" IsEnabled="{Binding !IsBusy}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,13" CornerRadius="{DynamicResource Radius.M}"
-                  Background="{DynamicResource Brush.Surface.Card}" BorderBrush="{DynamicResource Brush.Border.Strong}" BorderThickness="1" />
-          <Button Grid.Column="1" Content="{DynamicResource Ui_AssociateProject}" Command="{Binding AssociateSelectedCommand}" IsEnabled="{Binding HasDiscoveredProjects}"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,13" CornerRadius="{DynamicResource Radius.M}"
-                  Background="{DynamicResource Brush.Accent}" Foreground="White" FontWeight="Bold" BorderThickness="0" />
+          <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Ui_DiscoverProjects}" Command="{Binding DiscoverCommand}" IsEnabled="{Binding !IsBusy}" />
+          <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Ui_AssociateProject}" Command="{Binding AssociateSelectedCommand}" IsEnabled="{Binding HasDiscoveredProjects}" />
         </Grid>
       </Panel>
     </Border>

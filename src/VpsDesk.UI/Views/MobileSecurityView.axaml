@@ -2,59 +2,78 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:security="using:VpsDesk.Domain.Security"
+             xmlns:conv="using:VpsDesk.Desktop.Converters"
              Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileSecurityView"
              x:DataType="vm:SecurityViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
-  <DockPanel LastChildFill="True" Margin="18,16,18,16">
+  <!--
+    Seguridad para teléfono (docs/DESIGN_SYSTEM.md). El título está en la barra superior. Orden:
+    qué hace la pantalla y cuándo se revisó, tres contadores, el botón de auditar y los resultados
+    como tarjetas con una etiqueta de severidad de color (siempre con texto, no solo color).
+    Antes de la primera auditoría muestra un estado vacío que explica qué se obtiene.
+  -->
+  <UserControl.Resources>
+    <conv:SecuritySeverityLabelConverter x:Key="SeverityLabel" />
+  </UserControl.Resources>
+
+  <DockPanel LastChildFill="True" Margin="16,12,16,16">
     <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,12">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <StackPanel Spacing="2">
-          <TextBlock Text="{DynamicResource Security_Title}" Classes="t-title" />
-          <TextBlock Text="{DynamicResource Security_Subtitle}" Classes="t-body-s" />
-        </StackPanel>
-        <TextBlock Grid.Column="1" Text="{Binding LastChecked}" Classes="t-body-s" VerticalAlignment="Top" />
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Security_Subtitle}" TextWrapping="Wrap" />
+        <Border Grid.Column="1" Classes="status" VerticalAlignment="Top">
+          <TextBlock Text="{Binding LastChecked}" />
+        </Border>
       </Grid>
 
       <!-- resumen: tres indicadores en una fila -->
       <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-        <Border Classes="surface" Padding="12">
+        <Border Classes="surface" Padding="12,14">
           <StackPanel Spacing="2" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding PassedCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Success}" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding PassedCount}" Classes="t-display" Foreground="{DynamicResource Brush.Success}" HorizontalAlignment="Center" />
             <TextBlock Text="{DynamicResource Security_Passed}" Classes="t-label" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="1" Classes="surface" Padding="12">
+        <Border Grid.Column="1" Classes="surface" Padding="12,14">
           <StackPanel Spacing="2" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding WarningCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Warning}" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding WarningCount}" Classes="t-display" Foreground="{DynamicResource Brush.Warning}" HorizontalAlignment="Center" />
             <TextBlock Text="{DynamicResource Security_Warnings}" Classes="t-label" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="2" Classes="surface" Padding="12">
+        <Border Grid.Column="2" Classes="surface" Padding="12,14">
           <StackPanel Spacing="2" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding CriticalCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Danger}" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding CriticalCount}" Classes="t-display" Foreground="{DynamicResource Brush.Danger}" HorizontalAlignment="Center" />
             <TextBlock Text="{DynamicResource Security_Critical}" Classes="t-label" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
       </Grid>
 
       <Button Classes="btn-primary" Content="{DynamicResource Security_RunAudit}" Command="{Binding RunAuditCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-
-      <Border Classes="surface-inset" Padding="10,8">
-        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
-      </Border>
+      <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Height="4" />
+      <TextBlock Classes="t-label" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="2,0" />
     </StackPanel>
 
     <Panel>
+      <!-- estado vacío: explica qué se obtiene -->
+      <StackPanel VerticalAlignment="Top" Spacing="10" Margin="24,32" HorizontalAlignment="Center"
+                  IsVisible="{Binding !HasChecks}">
+        <Path Classes="icon tertiary" Data="{StaticResource Icon.Shield}" Width="28" Height="28" HorizontalAlignment="Center" />
+        <TextBlock Classes="t-headline" Text="{DynamicResource Security_EmptyTitle}" HorizontalAlignment="Center" />
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Security_EmptyHint}" TextAlignment="Center" TextWrapping="Wrap" />
+      </StackPanel>
+
       <ListBox Classes="file-entries" ItemsSource="{Binding Checks}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="security:SecurityCheck">
             <Border Classes="surface" Padding="14,12" Margin="0,0,0,8">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <StackPanel Spacing="4">
-                  <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Label}" Classes="t-body" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Detail}" Classes="t-label" TextWrapping="Wrap" />
                 </StackPanel>
-                <Border Grid.Column="1" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.M}" Padding="8,4" VerticalAlignment="Top">
-                  <TextBlock Text="{Binding Severity}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
+                <Border Grid.Column="1" Classes="status" VerticalAlignment="Top"
+                        Classes.success="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static security:SecurityCheckSeverity.Passed}}"
+                        Classes.warning="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static security:SecurityCheckSeverity.Warning}}"
+                        Classes.danger="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static security:SecurityCheckSeverity.Critical}}">
+                  <TextBlock Text="{Binding Severity, Converter={StaticResource SeverityLabel}}" />
                 </Border>
               </Grid>
             </Border>

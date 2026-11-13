@@ -26,7 +26,7 @@ public partial class FilesViewModel : ObservableObject
     [ObservableProperty] private RemoteFileEntry? _selectedEntry;
     [ObservableProperty] private string _editorPath = string.Empty;
     [ObservableProperty] private string _editorContent = string.Empty;
-    [ObservableProperty] private string _statusMessage = "Open Files to browse the active VPS over SFTP.";
+    [ObservableProperty] private string _statusMessage = LocalizationService.T("Files_StatusInitial");
     [ObservableProperty] private string _lastUpdated = LocalizationService.T("Common_Never");
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _hasOpenTextFile;
@@ -59,7 +59,10 @@ public partial class FilesViewModel : ObservableObject
         _files = files;
         _serverAccessor = serverAccessor;
         _secretAccessor = secretAccessor;
+        Entries.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoEntries));
     }
+
+    public bool HasNoEntries => Entries.Count == 0;
 
     partial void OnCurrentPathChanged(string value) => OnPropertyChanged(nameof(CanGoParent));
 
@@ -99,7 +102,7 @@ public partial class FilesViewModel : ObservableObject
         ClearEditorState();
         CloseImagePreview();
         LastUpdated = LocalizationService.T("Common_Never");
-        StatusMessage = "Select an active server, then browse files.";
+        StatusMessage = LocalizationService.T("Files_StatusSelectServer");
         _lastRefreshUtc = null;
         CancelPendingSave();
         OnPropertyChanged(nameof(HasSelection));
@@ -113,12 +116,12 @@ public partial class FilesViewModel : ObservableObject
         if (server == null)
         {
             Reset();
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServer");
             return;
         }
 
         IsBusy = true;
-        StatusMessage = $"Reading {CurrentPath} over SFTP...";
+        StatusMessage = LocalizationService.Current.Format("Files_StatusReading", CurrentPath);
         var selectedPath = SelectedEntry?.FullPath;
 
         try
@@ -133,12 +136,12 @@ public partial class FilesViewModel : ObservableObject
 
             _lastRefreshUtc = DateTimeOffset.UtcNow;
             LastUpdated = DateTimeOffset.Now.ToString("HH:mm:ss");
-            StatusMessage = $"{Entries.Count} entries · SFTP · {CurrentPath}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusEntries", Entries.Count, CurrentPath);
         }
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to browse files: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusBrowseFailed", friendly);
             Toast.Error(friendly, "No se pudieron listar los archivos");
         }
         finally
@@ -264,18 +267,18 @@ public partial class FilesViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "No active server.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServerShort");
             return;
         }
 
         IsBusy = true;
-        StatusMessage = $"Reading {entry.FullPath}...";
+        StatusMessage = LocalizationService.Current.Format("Files_StatusReadingFile", entry.FullPath);
         try
         {
             var bytes = await _files.ReadBytesAsync(server, entry.FullPath, _secretAccessor());
             if (bytes == null)
             {
-                StatusMessage = "The file no longer exists.";
+                StatusMessage = LocalizationService.T("Files_StatusGone");
                 return;
             }
 
@@ -291,7 +294,7 @@ public partial class FilesViewModel : ObservableObject
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to preview image: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusPreviewFailed", friendly);
             Toast.Error(friendly, "No se pudo previsualizar la imagen");
         }
         finally
@@ -305,18 +308,18 @@ public partial class FilesViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "No active server.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServerShort");
             return;
         }
 
         IsBusy = true;
-        StatusMessage = $"Reading {entry.FullPath}...";
+        StatusMessage = LocalizationService.Current.Format("Files_StatusReadingFile", entry.FullPath);
         try
         {
             var content = await _files.ReadTextAsync(server, entry.FullPath, _secretAccessor());
             if (content == null)
             {
-                StatusMessage = "The file no longer exists.";
+                StatusMessage = LocalizationService.T("Files_StatusGone");
                 return;
             }
 
@@ -339,7 +342,7 @@ public partial class FilesViewModel : ObservableObject
         {
             HasOpenTextFile = false;
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to open file: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusOpenFailed", friendly);
             Toast.Error(friendly, "No se pudo abrir el archivo");
         }
         finally
@@ -363,7 +366,7 @@ public partial class FilesViewModel : ObservableObject
         if (!HasOpenTextFile || string.IsNullOrWhiteSpace(EditorPath) || IsBusy) return;
         if (IsEditorDirty)
         {
-            StatusMessage = "Reload blocked because there are unsaved local changes. Save or close the editor first.";
+            StatusMessage = LocalizationService.T("Files_StatusReloadBlocked");
             return;
         }
 
@@ -376,7 +379,7 @@ public partial class FilesViewModel : ObservableObject
             var content = await _files.ReadTextAsync(server, EditorPath, _secretAccessor());
             if (content == null)
             {
-                StatusMessage = "The remote file no longer exists.";
+                StatusMessage = LocalizationService.T("Files_StatusRemoteGone");
                 return;
             }
 
@@ -384,12 +387,12 @@ public partial class FilesViewModel : ObservableObject
             EditorContent = content;
             IsEditorDirty = false;
             ValidateEditorContentCore();
-            StatusMessage = $"Reloaded {EditorPath} from the VPS.";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusReloaded", EditorPath);
         }
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to reload file: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusReloadFailed", friendly);
             Toast.Error(friendly, "No se pudo recargar el archivo");
         }
         finally
@@ -403,20 +406,20 @@ public partial class FilesViewModel : ObservableObject
     {
         if (!HasOpenTextFile || string.IsNullOrWhiteSpace(EditorPath))
         {
-            StatusMessage = "Open a text file before saving.";
+            StatusMessage = LocalizationService.T("Files_StatusOpenFirst");
             return;
         }
 
         if (!IsEditorDirty)
         {
-            StatusMessage = "There are no local changes to save.";
+            StatusMessage = LocalizationService.T("Files_StatusNoChanges");
             return;
         }
 
         ValidateEditorContentCore();
         if (!IsEditorValid)
         {
-            StatusMessage = $"Save blocked: {EditorValidationMessage}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusSaveBlocked", EditorValidationMessage);
             return;
         }
 
@@ -437,7 +440,7 @@ public partial class FilesViewModel : ObservableObject
         var server = _serverAccessor();
         if (server == null)
         {
-            StatusMessage = "The active server changed. Save cancelled.";
+            StatusMessage = LocalizationService.T("Files_StatusServerChangedSave");
             CancelPendingSave();
             return;
         }
@@ -445,13 +448,13 @@ public partial class FilesViewModel : ObservableObject
         ValidateEditorContentCore();
         if (!IsEditorValid)
         {
-            StatusMessage = $"Save blocked: {EditorValidationMessage}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusSaveBlocked", EditorValidationMessage);
             CancelPendingSave();
             return;
         }
 
         IsBusy = true;
-        StatusMessage = $"Checking remote version of {EditorPath}...";
+        StatusMessage = LocalizationService.Current.Format("Files_StatusCheckingRemote", EditorPath);
         try
         {
             // Optimistic concurrency: do not silently overwrite a file modified on the VPS
@@ -459,14 +462,14 @@ public partial class FilesViewModel : ObservableObject
             var remoteCurrent = await _files.ReadTextAsync(server, EditorPath, _secretAccessor());
             if (remoteCurrent == null)
             {
-                StatusMessage = "Save cancelled because the remote file no longer exists.";
+                StatusMessage = LocalizationService.T("Files_StatusSaveGone");
                 CancelPendingSave();
                 return;
             }
 
             if (!string.Equals(remoteCurrent, _originalEditorContent, StringComparison.Ordinal))
             {
-                StatusMessage = "Save blocked: the file changed on the VPS after you opened it. Close/reopen or reload it before editing again.";
+                StatusMessage = LocalizationService.T("Files_StatusSaveConflict");
                 CancelPendingSave();
                 return;
             }
@@ -477,7 +480,7 @@ public partial class FilesViewModel : ObservableObject
                 LastBackupPath = await _files.CreateBackupAsync(server, EditorPath, _secretAccessor()) ?? string.Empty;
             }
 
-            StatusMessage = $"Saving {EditorPath} over SFTP...";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusSaving", EditorPath);
             await _files.WriteTextAsync(server, EditorPath, EditorContent, _secretAccessor());
             _originalEditorContent = EditorContent;
             IsEditorDirty = false;
@@ -495,7 +498,7 @@ public partial class FilesViewModel : ObservableObject
         catch (Exception ex)
         {
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = $"Unable to save file: {friendly}";
+            StatusMessage = LocalizationService.Current.Format("Files_StatusSaveFailed", friendly);
             Toast.Error(friendly, "No se pudo guardar el archivo");
         }
         finally
@@ -512,13 +515,13 @@ public partial class FilesViewModel : ObservableObject
     {
         if (IsEditorDirty)
         {
-            StatusMessage = "Editor has unsaved changes. Save them before closing, or undo the edits manually.";
+            StatusMessage = LocalizationService.T("Files_StatusUnsaved");
             return;
         }
 
         ClearEditorState();
         CancelPendingSave();
-        StatusMessage = "Editor closed. No remote changes were made.";
+        StatusMessage = LocalizationService.T("Files_StatusEditorClosed");
     }
 
     private async Task NavigateQuickAsync(string path)

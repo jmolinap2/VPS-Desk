@@ -98,7 +98,7 @@ public partial class ContainersViewModel : ObservableObject
         if (server == null)
         {
             Reset();
-            StatusMessage = "No active server. Choose one in Servers first.";
+            StatusMessage = LocalizationService.T("Common_NoActiveServer");
             return;
         }
 

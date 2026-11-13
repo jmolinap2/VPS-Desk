@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             xmlns:lvcsv="using:LiveChartsCore.SkiaSharpView"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:activity="using:VpsDesk.Domain.Activity"
              xmlns:conv="using:VpsDesk.Desktop.Converters"
@@ -22,14 +23,15 @@
   <ScrollViewer>
     <StackPanel Margin="16,12,16,28" Spacing="12">
 
-      <TextBlock Classes="t-overline" Text="{Binding SelectedServerName}" TextTrimming="CharacterEllipsis" />
+      <TextBlock Classes="t-headline" Text="{Binding SelectedServerName}" TextTrimming="CharacterEllipsis" />
 
       <!-- acceso directo: desplegar es la acción más frecuente desde el panel -->
       <Button Classes="btn-primary" Command="{Binding NavigateCommand}" CommandParameter="Deployments"
               HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="18,0">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{DynamicResource Nav_Deployments}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Path Grid.Column="1" Classes="icon on-accent" Data="{StaticResource Icon.ChevronRight}" />
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <Path Classes="icon on-accent" Data="{StaticResource Icon.Rocket}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{DynamicResource Nav_Deployments}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Path Grid.Column="2" Classes="icon on-accent" Data="{StaticResource Icon.ChevronRight}" />
         </Grid>
       </Button>
 
@@ -54,7 +56,7 @@
           </StackPanel>
         </Border>
 
-        <Border Grid.Column="1" Classes="surface" Padding="14">
+        <Border Grid.Column="1" Classes="surface" Padding="16">
           <StackPanel Spacing="2">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="t-label" Text="{DynamicResource Dashboard_Memory}" />
@@ -73,7 +75,7 @@
           </StackPanel>
         </Border>
 
-        <Border Grid.Row="1" Classes="surface" Padding="14">
+        <Border Grid.Row="1" Classes="surface" Padding="16">
           <StackPanel Spacing="2">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="t-label" Text="{DynamicResource Dashboard_Disk}" />
@@ -92,15 +94,15 @@
           </StackPanel>
         </Border>
 
-        <Border Grid.Row="1" Grid.Column="1" Classes="surface" Padding="14">
+        <Border Grid.Row="1" Grid.Column="1" Classes="surface" Padding="16">
           <StackPanel Spacing="2">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="t-label" Text="{DynamicResource Dashboard_Uptime}" />
               <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center"
                        Fill="{Binding ConnectionStatus, Converter={StaticResource ConnectionToBrush}}" />
             </Grid>
-            <TextBlock Classes="t-title" Text="{Binding Uptime}" Margin="0,6,0,6" TextTrimming="CharacterEllipsis" />
-            <TextBlock Classes="t-label" Text="{DynamicResource Dashboard_Network}" Margin="0,8,0,0" />
+            <TextBlock Classes="t-display" FontFeatures="tnum" Text="{Binding Uptime}" Margin="0,6,0,6" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="t-label" Margin="0,6,0,0" Text="{DynamicResource Dashboard_Network}" />
             <TextBlock Classes="t-label" Foreground="{DynamicResource Brush.Text.Secondary}" Text="{Binding NetworkSummary}" TextTrimming="CharacterEllipsis" />
           </StackPanel>
         </Border>
@@ -118,7 +120,13 @@
               <TextBlock Text="{Binding LastChecked}" />
             </Border>
           </Grid>
-          <lvc:CartesianChart Height="150" LegendPosition="Top">
+          <lvc:CartesianChart Height="160" LegendPosition="Top" LegendTextSize="12">
+            <lvc:CartesianChart.YAxes>
+              <lvcsv:Axis MinLimit="0" MaxLimit="100" MinStep="50" TextSize="11" />
+            </lvc:CartesianChart.YAxes>
+            <lvc:CartesianChart.XAxes>
+              <lvcsv:Axis IsVisible="False" />
+            </lvc:CartesianChart.XAxes>
             <lvc:CartesianChart.Series>
               <lvc:XamlLineSeries SeriesName="CPU" Values="{Binding CpuSeries}" Fill="{x:Null}" GeometrySize="0" />
               <lvc:XamlLineSeries SeriesName="RAM" Values="{Binding MemorySeries}" Fill="{x:Null}" GeometrySize="0" />

@@ -2,21 +2,21 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
-             x:Class="VpsDesk.Desktop.Views.MobileEnvironmentView"
-             x:DataType="vm:FilesViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileEnvironmentView"
+             x:DataType="vm:FilesViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <Grid RowDefinitions="Auto,*" Margin="18,16,18,16">
     <StackPanel Spacing="3" Margin="0,0,0,12">
-      <TextBlock Text="{DynamicResource Files_EnvManagerTitle}" Classes="m-title" />
-      <TextBlock Text="{DynamicResource Header_Environment}" Classes="m-subtitle" />
+      <TextBlock Text="{DynamicResource Files_EnvManagerTitle}" Classes="t-title" />
+      <TextBlock Text="{DynamicResource Header_Environment}" Classes="t-body-s" />
     </StackPanel>
 
     <Grid Grid.Row="1">
       <!-- sin .env abierto: explica cómo abrirlo -->
-      <Border Classes="m-card" IsVisible="{Binding !IsEnvironmentFile}" VerticalAlignment="Top">
-        <StackPanel Spacing="10">
-          <TextBlock Text="{DynamicResource Nav_Environment}" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding StatusMessage}" Foreground="#A9B8CA" TextWrapping="Wrap" />
-          <TextBlock Text="{DynamicResource Header_Environment}" Classes="m-subtitle" />
+      <Border Classes="surface" IsVisible="{Binding !IsEnvironmentFile}" VerticalAlignment="Top">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{DynamicResource Nav_Environment}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Secondary}" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource Header_Environment}" Classes="t-body-s" />
         </StackPanel>
       </Border>
 

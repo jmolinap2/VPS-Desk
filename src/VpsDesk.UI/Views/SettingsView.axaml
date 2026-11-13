@@ -3,34 +3,34 @@
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
              x:Class="VpsDesk.Desktop.Views.SettingsView"
-             x:DataType="vm:SettingsViewModel">
+             x:DataType="vm:SettingsViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <ScrollViewer>
     <StackPanel Margin="24" Spacing="16" MaxWidth="980" HorizontalAlignment="Left">
       <StackPanel Spacing="3">
-        <TextBlock Text="Configuración" FontSize="20" FontWeight="SemiBold" />
-        <TextBlock Text="Preferencias locales de VPS Desk. No se almacenan contraseñas, claves privadas ni secretos del VPS."
-                   Foreground="#8290A3" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource Nav_Settings}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource Ui_LocalVPSDeskPreferencesPasswordsPrivate}"
+                   Foreground="{DynamicResource Brush.Text.Tertiary}" TextWrapping="Wrap" />
       </StackPanel>
 
-      <Border Classes="card">
+      <Border Classes="surface">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
           <StackPanel Spacing="4">
-            <TextBlock Text="General" FontSize="17" FontWeight="SemiBold" />
-            <TextBlock Text="Idioma y frecuencia de actualización de la aplicación."
-                       Foreground="#8290A3" />
+            <TextBlock Text="{DynamicResource Ui_General}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Ui_LanguageAndRefreshFrequency}"
+                       Foreground="{DynamicResource Brush.Text.Tertiary}" />
           </StackPanel>
           <Grid Grid.Row="1" ColumnDefinitions="220,240" RowDefinitions="Auto,Auto" RowSpacing="12" ColumnSpacing="16">
-            <TextBlock Text="Idioma" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource Ui_Language}" VerticalAlignment="Center" />
             <ComboBox Grid.Column="1"
                       ItemsSource="{Binding LanguageOptions}"
                       SelectedItem="{Binding SelectedLanguage}" />
 
-            <TextBlock Grid.Row="1" Text="Actualización automática" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Text="{DynamicResource Ui_AutomaticRefresh}" VerticalAlignment="Center" />
             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
               <ComboBox Width="110"
                         ItemsSource="{Binding RefreshIntervalOptions}"
                         SelectedItem="{Binding RefreshIntervalSeconds}" />
-              <TextBlock Text="segundos" VerticalAlignment="Center" Foreground="#8290A3" />
+              <TextBlock Text="{DynamicResource Ui_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Tertiary}" />
             </StackPanel>
           </Grid>
         </Grid>
@@ -38,61 +38,61 @@
 
       <views:LocalBackupsView />
 
-      <Border Classes="card">
+      <Border Classes="surface">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
           <StackPanel Spacing="4">
-            <TextBlock Text="Edición remota" FontSize="17" FontWeight="SemiBold" />
-            <TextBlock Text="Protecciones usadas al modificar appsettings, .env y otros archivos mediante SFTP."
-                       Foreground="#8290A3" TextWrapping="Wrap" />
+            <TextBlock Text="{DynamicResource Ui_RemoteEditing}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Ui_ProtectionsWhenEditingAppsettingsEnvAnd}"
+                       Foreground="{DynamicResource Brush.Text.Tertiary}" TextWrapping="Wrap" />
           </StackPanel>
           <CheckBox Grid.Row="1"
                     IsChecked="{Binding BackupBeforeRemoteSave}"
-                    Content="Crear copia .bak antes de sobrescribir un archivo remoto" />
+                    Content="{DynamicResource Ui_CreateABakCopyBeforeOverwriting}" />
         </Grid>
       </Border>
 
-      <Border Classes="card">
+      <Border Classes="surface">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
           <StackPanel Spacing="4">
-            <TextBlock Text="Terminal" FontSize="17" FontWeight="SemiBold" />
-            <TextBlock Text="Preferencias de la sesión SSH interactiva. La terminal nunca guarda comandos ni salida en el historial de VPS Desk."
-                       Foreground="#8290A3" TextWrapping="Wrap" />
+            <TextBlock Text="{DynamicResource Nav_Terminal}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Ui_InteractiveSSHPreferencesCommandsAndOutput}"
+                       Foreground="{DynamicResource Brush.Text.Tertiary}" TextWrapping="Wrap" />
           </StackPanel>
           <Grid Grid.Row="1" ColumnDefinitions="220,260" RowDefinitions="Auto,Auto,Auto" RowSpacing="12" ColumnSpacing="16">
-            <TextBlock Text="Tamaño de fuente" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource Ui_FontSize}" VerticalAlignment="Center" />
             <NumericUpDown Grid.Column="1"
                            Minimum="11" Maximum="22" Increment="1"
                            Value="{Binding TerminalFontSize}" />
 
-            <TextBlock Grid.Row="1" Text="Líneas de scrollback" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Text="{DynamicResource Ui_ScrollbackLines}" VerticalAlignment="Center" />
             <ComboBox Grid.Row="1" Grid.Column="1"
                       ItemsSource="{Binding TerminalScrollbackOptions}"
                       SelectedItem="{Binding TerminalScrollbackLines}" />
 
-            <TextBlock Grid.Row="2" Text="Pegado multilínea" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="2" Text="{DynamicResource Ui_MultilinePaste}" VerticalAlignment="Center" />
             <CheckBox Grid.Row="2" Grid.Column="1"
                       IsChecked="{Binding ConfirmMultilineTerminalPaste}"
-                      Content="Pedir confirmación antes de enviar" />
+                      Content="{DynamicResource Ui_AskForConfirmationBeforeSending}" />
           </Grid>
         </Grid>
       </Border>
 
-      <Border Classes="card">
+      <Border Classes="surface">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="14">
           <StackPanel Spacing="4">
-            <TextBlock Text="Datos locales y diagnóstico" FontSize="17" FontWeight="SemiBold" />
-            <TextBlock Text="VPS Desk guarda perfiles, historial y preferencias en tu equipo, no en el servidor."
-                       Foreground="#8290A3" />
+            <TextBlock Text="{DynamicResource Ui_LocalDataAndDiagnostics}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource Ui_VPSDeskStoresProfilesHistoryAnd}"
+                       Foreground="{DynamicResource Brush.Text.Tertiary}" />
           </StackPanel>
           <Grid Grid.Row="1" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10" ColumnSpacing="12">
             <StackPanel>
-              <TextBlock Text="Archivo de preferencias" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding SettingsPath}" Foreground="#8290A3" TextWrapping="Wrap" />
+              <TextBlock Text="{DynamicResource Ui_PreferencesFile}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding SettingsPath}" Foreground="{DynamicResource Brush.Text.Tertiary}" TextWrapping="Wrap" />
             </StackPanel>
-            <Button Grid.Column="1" Content="Abrir carpeta" Command="{Binding OpenDataFolderCommand}" />
+            <Button Grid.Column="1" Content="{DynamicResource Ui_OpenFolder}" Command="{Binding OpenDataFolderCommand}" />
 
-            <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="#8290A3" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button Grid.Row="1" Grid.Column="1" Content="Restablecer preferencias" Command="{Binding ResetDefaultsCommand}" />
+            <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Row="1" Grid.Column="1" Content="{DynamicResource Ui_ResetPreferences}" Command="{Binding ResetDefaultsCommand}" />
           </Grid>
         </Grid>
       </Border>

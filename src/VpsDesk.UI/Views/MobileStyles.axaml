@@ -3,70 +3,70 @@
   <!--
     Sistema visual compartido de las pantallas móviles (solo se carga desde
     MobileShell, así que el escritorio no cambia). Colores de referencia:
-    fondo #0B0E13 · superficie #121826 · superficie 2 #0E131B · borde #1E2735
-    · texto secundario #9AA4B2 · etiqueta #6B7686 · acento #0F766E (verde azulado, igual que el PC) ·
-    correcto #34D399 · aviso #FBBF24 · peligro #F87171.
+    fondo {DynamicResource Brush.Canvas} · superficie {DynamicResource Brush.Surface.Card} · superficie 2 {DynamicResource Brush.Surface.Inset} · borde {DynamicResource Brush.Border.Subtle}
+    · texto secundario {DynamicResource Brush.Text.Secondary} · etiqueta {DynamicResource Brush.Text.Tertiary} · acento {DynamicResource Brush.Accent} (verde azulado, igual que el PC) ·
+    correcto {DynamicResource Brush.Success} · aviso {DynamicResource Brush.Warning} · peligro {DynamicResource Brush.Danger}.
   -->
 
   <!-- Superficies -->
   <Style Selector="Border.m-card">
-    <Setter Property="Background" Value="#121826" />
-    <Setter Property="BorderBrush" Value="#1E2735" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.L}" />
     <Setter Property="Padding" Value="16" />
   </Style>
   <Style Selector="Border.m-inset">
-    <Setter Property="Background" Value="#0E131B" />
-    <Setter Property="BorderBrush" Value="#1A2130" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Inset}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
     <Setter Property="Padding" Value="12" />
   </Style>
   <Style Selector="Border.m-pill">
-    <Setter Property="Background" Value="#121826" />
-    <Setter Property="BorderBrush" Value="#1E2735" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
     <Setter Property="Padding" Value="11,6" />
   </Style>
 
   <!-- Tipografía -->
   <Style Selector="TextBlock.m-title">
-    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.20}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="TextBlock.m-subtitle">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="Foreground" Value="#6B7686" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.11}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <Style Selector="TextBlock.m-label">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="Foreground" Value="#8290A3" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.11}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
   </Style>
   <Style Selector="TextBlock.m-section">
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.11}" />
     <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="Foreground" Value="#56657A" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
   </Style>
   <Style Selector="TextBlock.m-mono">
-    <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,monospace" />
-    <Setter Property="FontSize" Value="11.5" />
-    <Setter Property="Foreground" Value="#A9B8CA" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.11}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
   </Style>
 
   <!-- Botones: todos redondeados, con un leve encogimiento al pulsar -->
   <Style Selector="Button.m-action">
-    <Setter Property="Background" Value="#161F2E" />
-    <Setter Property="BorderBrush" Value="#243042" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Strong}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
     <Setter Property="Padding" Value="14,11" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="Transitions">
       <Transitions>
-        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource Motion.Instant}" Easing="CubicEaseOut" />
       </Transitions>
     </Setter>
   </Style>
@@ -74,16 +74,16 @@
     <Setter Property="RenderTransform" Value="scale(0.97)" />
   </Style>
   <Style Selector="Button.m-primary">
-    <Setter Property="Background" Value="#0F766E" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
     <Setter Property="Foreground" Value="White" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
     <Setter Property="Padding" Value="14,12" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="Transitions">
       <Transitions>
-        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource Motion.Instant}" Easing="CubicEaseOut" />
       </Transitions>
     </Setter>
   </Style>
@@ -91,65 +91,65 @@
     <Setter Property="RenderTransform" Value="scale(0.97)" />
   </Style>
   <Style Selector="Button.m-teal">
-    <Setter Property="Background" Value="#0F766E" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
     <Setter Property="Foreground" Value="White" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
     <Setter Property="Padding" Value="14,12" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.m-danger">
-    <Setter Property="Background" Value="#2A1416" />
-    <Setter Property="BorderBrush" Value="#4A1F22" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Danger.Subtle}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Foreground" Value="#F87171" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
     <Setter Property="Padding" Value="14,12" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.m-ghost">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Foreground" Value="#9AA4B2" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
     <Setter Property="Padding" Value="10,8" />
   </Style>
   <Style Selector="Button.m-chip">
-    <Setter Property="Background" Value="#121826" />
-    <Setter Property="BorderBrush" Value="#1E2735" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
     <Setter Property="Padding" Value="13,7" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.12}" />
   </Style>
 
   <!-- Fondo y hoja inferior: se animan con la clase "open" -->
   <Style Selector="Border.m-scrim">
-    <Setter Property="Background" Value="#000000" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Scrim}" />
     <Setter Property="Opacity" Value="0" />
     <Setter Property="IsHitTestVisible" Value="False" />
     <Setter Property="Transitions">
       <Transitions>
-        <DoubleTransition Property="Opacity" Duration="0:0:0.30" Easing="CubicEaseOut" />
+        <DoubleTransition Property="Opacity" Duration="{DynamicResource Motion.Standard}" Easing="CubicEaseOut" />
       </Transitions>
     </Setter>
   </Style>
   <Style Selector="Border.m-scrim.open">
-    <Setter Property="Opacity" Value="0.6" />
+    <Setter Property="Opacity" Value="1" />
     <Setter Property="IsHitTestVisible" Value="True" />
   </Style>
   <Style Selector="Border.m-sheet">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Raised}" />
-    <Setter Property="BorderBrush" Value="#1E2735" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
     <Setter Property="BorderThickness" Value="1,1,1,0" />
-    <Setter Property="CornerRadius" Value="24,24,0,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.XL.Top}" />
     <Setter Property="RenderTransform" Value="translateY(900px)" />
     <Setter Property="Opacity" Value="0" />
     <Setter Property="IsHitTestVisible" Value="False" />
     <Setter Property="Transitions">
       <Transitions>
-        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.38" Easing="CubicEaseOut" />
-        <DoubleTransition Property="Opacity" Duration="0:0:0.22" Easing="CubicEaseOut" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource Motion.Emphasized}" Easing="CubicEaseOut" />
+        <DoubleTransition Property="Opacity" Duration="{DynamicResource Motion.Standard}" Easing="CubicEaseOut" />
       </Transitions>
     </Setter>
   </Style>

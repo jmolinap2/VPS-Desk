@@ -28,4 +28,9 @@ public partial class MobileFilesView : UserControl
             vm.EditEntryCommand.Execute(entry);
         }
     }
+    private void OnScrimPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (ReferenceEquals(e.Source, sender))
+            (DataContext as VpsDesk.Desktop.ViewModels.FilesViewModel)?.CloseImagePreviewCommand.Execute(null);
+    }
 }

@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
-             x:Class="VpsDesk.Desktop.Views.MobileFileEditor"
-             x:DataType="vm:FilesViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileFileEditor"
+             x:DataType="vm:FilesViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <!--
     Editor de archivos remotos para teléfono. Lo usan la página Entorno (.env)
     y el editor a pantalla completa de Archivos. Incluye la confirmación de
@@ -11,59 +11,59 @@
   -->
   <Grid RowDefinitions="Auto,Auto,*,Auto">
     <!-- cabecera: badges, ruta y acciones -->
-    <Border Grid.Row="0" Classes="m-card" Padding="14" Margin="0,0,0,10">
-      <StackPanel Spacing="10">
+    <Border Grid.Row="0" Classes="surface" Padding="14" Margin="0,0,0,10">
+      <StackPanel Spacing="12">
         <WrapPanel>
-          <Border Background="#172033" CornerRadius="10" Padding="8,3" Margin="0,0,6,4">
-            <TextBlock Text="{Binding EditorFileType}" Foreground="#A8B4C5" FontSize="10" FontWeight="SemiBold" />
+          <Border Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.M}" Padding="8,3" Margin="0,0,6,4">
+            <TextBlock Text="{Binding EditorFileType}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
           </Border>
-          <Border Background="#10251F" CornerRadius="10" Padding="8,3" Margin="0,0,6,4" IsVisible="{Binding IsEnvironmentFile}">
-            <TextBlock Text=".ENV" Foreground="#5EEAD4" FontSize="10" FontWeight="Bold" />
+          <Border Background="{DynamicResource Brush.Accent.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,3" Margin="0,0,6,4" IsVisible="{Binding IsEnvironmentFile}">
+            <TextBlock Text=".ENV" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.11}" FontWeight="Bold" />
           </Border>
-          <Border Background="#1B2431" CornerRadius="10" Padding="8,3" Margin="0,0,6,4" IsVisible="{Binding IsEditorReadOnly}">
-            <TextBlock Text="{DynamicResource Files_ReadOnlyBadge}" Foreground="#8FA5BA" FontSize="10" FontWeight="SemiBold" />
+          <Border Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.M}" Padding="8,3" Margin="0,0,6,4" IsVisible="{Binding IsEditorReadOnly}">
+            <TextBlock Text="{DynamicResource Files_ReadOnlyBadge}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
           </Border>
-          <Border Background="#2A2410" CornerRadius="10" Padding="8,3" Margin="0,0,6,4" IsVisible="{Binding IsEditorDirty}">
-            <TextBlock Text="{DynamicResource Files_Unsaved}" Foreground="#FBBF24" FontSize="10" FontWeight="SemiBold" />
+          <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,3" Margin="0,0,6,4" IsVisible="{Binding IsEditorDirty}">
+            <TextBlock Text="{DynamicResource Files_Unsaved}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
           </Border>
         </WrapPanel>
 
-        <TextBlock Text="{Binding EditorPath}" Classes="m-mono" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding EditorPath}" Classes="t-mono" TextTrimming="CharacterEllipsis" />
 
-        <WrapPanel>
-          <Button Classes="m-action" Content="{DynamicResource Files_Reload}" Command="{Binding ReloadEditorCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
-          <Button Classes="m-action" Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEditorCommand}" IsVisible="{Binding !IsEnvironmentManagerOpen}" Margin="0,0,8,8" />
-          <Button Classes="m-action" Content="{DynamicResource Files_EnvVariables}" Command="{Binding OpenEnvironmentManagerCommand}" IsVisible="{Binding IsEnvironmentFile}" Margin="0,0,8,8" />
-          <Button Classes="m-action" Content="{DynamicResource Files_EnvRawFile}" Command="{Binding CloseEnvironmentManagerCommand}" IsVisible="{Binding IsEnvironmentFile}" Margin="0,0,8,8" />
-          <Button Classes="m-teal" Content="{DynamicResource Files_Save}" Command="{Binding RequestSaveCommand}" IsEnabled="{Binding CanSaveEditor}" Margin="0,0,0,8" />
-        </WrapPanel>
+        <Expander Header="{DynamicResource Files_EditorTools}" HorizontalAlignment="Stretch"><WrapPanel>
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_Reload}" Command="{Binding ReloadEditorCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEditorCommand}" IsVisible="{Binding !IsEnvironmentManagerOpen}" Margin="0,0,8,8" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvVariables}" Command="{Binding OpenEnvironmentManagerCommand}" IsVisible="{Binding IsEnvironmentFile}" Margin="0,0,8,8" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvRawFile}" Command="{Binding CloseEnvironmentManagerCommand}" IsVisible="{Binding IsEnvironmentFile}" Margin="0,0,8,8" />
+          
+        </WrapPanel></Expander>
       </StackPanel>
     </Border>
 
     <!-- avisos: archivo sensible y solo lectura -->
     <StackPanel Grid.Row="1" Spacing="8" Margin="0,0,0,10">
-      <Border Background="#2A2410" BorderBrush="#6B5314" BorderThickness="1" CornerRadius="12" Padding="12" IsVisible="{Binding IsSensitiveFile}">
-        <TextBlock Text="{DynamicResource Files_SensitiveWarning}" Foreground="#F4D37A" FontSize="11" TextWrapping="Wrap" />
+      <Border Background="{DynamicResource Brush.Warning.Subtle}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="{DynamicResource Radius.M}" Padding="12" IsVisible="{Binding IsSensitiveFile}">
+        <TextBlock Text="{DynamicResource Files_SensitiveWarning}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
       </Border>
-      <Border Classes="m-inset" IsVisible="{Binding IsEditorReadOnly}">
-        <StackPanel Spacing="10">
-          <TextBlock Text="{DynamicResource Files_ReadOnlyBanner}" Foreground="#8FA5BA" FontSize="11" TextWrapping="Wrap" />
-          <Button Classes="m-action" Content="{DynamicResource Files_SwitchToEdit}" Command="{Binding SwitchToEditModeCommand}" HorizontalAlignment="Stretch" />
+      <Border Classes="surface-inset" IsVisible="{Binding IsEditorReadOnly}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{DynamicResource Files_ReadOnlyBanner}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_SwitchToEdit}" Command="{Binding SwitchToEditModeCommand}" HorizontalAlignment="Stretch" />
         </StackPanel>
       </Border>
     </StackPanel>
 
     <!-- contenido: texto crudo o gestor de variables -->
     <Grid Grid.Row="2">
-      <TextBox Text="{Binding EditorContent}"
+      <TextBox Foreground="{DynamicResource Brush.Code.Text}" CaretBrush="{DynamicResource Brush.Accent.Text}" Text="{Binding EditorContent}"
                IsReadOnly="{Binding IsEditorReadOnly}"
                IsVisible="{Binding IsRawEditorVisible}"
-               AcceptsReturn="True"
+               AcceptsReturn="True" VerticalContentAlignment="Top" AutomationProperties.Name="{DynamicResource Files_TextEditor}"
                TextWrapping="NoWrap"
-               FontFamily="Cascadia Mono,Consolas,monospace"
-               FontSize="13"
-               Background="#080B10"
-               BorderBrush="#202A38"
+               FontFamily="{DynamicResource Font.Mono}"
+               FontSize="{DynamicResource Font.Size.13}"
+               Background="{DynamicResource Brush.Surface.Code}"
+               BorderBrush="{DynamicResource Brush.Border.Subtle}"
                BorderThickness="1"
                Padding="14"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
@@ -75,30 +75,31 @@
     </Grid>
 
     <!-- validación y opciones -->
-    <Border Grid.Row="3" Classes="m-inset" Margin="0,10,0,0">
+    <Border Grid.Row="3" Classes="surface-inset" Margin="0,10,0,0">
       <StackPanel Spacing="8">
-        <TextBlock Text="{Binding EditorValidationMessage}" Foreground="#5EEAD4" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding IsEditorValid}" />
-        <TextBlock Text="{Binding EditorValidationMessage}" Foreground="#F87171" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding !IsEditorValid}" />
-        <TextBlock Foreground="#66758A" FontSize="10">
-          <Run Text="{Binding EditorLineCount}" /><Run Text=" líneas · " /><Run Text="{Binding EditorCharacterCount}" /><Run Text=" caracteres" />
+        <TextBlock Text="{Binding EditorValidationMessage}" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" IsVisible="{Binding IsEditorValid}" />
+        <TextBlock Text="{Binding EditorValidationMessage}" Foreground="{DynamicResource Brush.Danger}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" IsVisible="{Binding !IsEditorValid}" />
+        <TextBlock Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}">
+          <Run Text="{Binding EditorLineCount}" /><Run Text="{DynamicResource Ui_Lines}" /><Run Text="{Binding EditorCharacterCount}" /><Run Text="{DynamicResource Ui_Characters}" />
         </TextBlock>
-        <CheckBox Content="{DynamicResource Files_BackupBeforeSave}" IsChecked="{Binding CreateBackupBeforeSave}" />
+        <Button Classes="btn-primary" Content="{DynamicResource Files_Save}" Command="{Binding RequestSaveCommand}" IsEnabled="{Binding CanSaveEditor}" HorizontalAlignment="Stretch" />
       </StackPanel>
     </Border>
 
     <!-- confirmación de guardado: hoja inferior sobre el editor -->
-    <Border Grid.RowSpan="4" Classes="m-scrim" Classes.open="{Binding HasPendingSave}" />
+    <Border Grid.RowSpan="4" Classes="m-scrim" PointerPressed="OnScrimPressed" Classes.open="{Binding HasPendingSave}" />
     <Border Grid.RowSpan="4" Classes="m-sheet" Classes.open="{Binding HasPendingSave}" VerticalAlignment="Bottom" Padding="20,18,20,22">
-      <StackPanel Spacing="14">
-        <Border Width="40" Height="4" CornerRadius="2" Background="#2A3444" HorizontalAlignment="Center" />
-        <TextBlock Text="{DynamicResource Files_ConfirmSave}" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="{Binding PendingSaveMessage}" Foreground="#C7D0DD" TextWrapping="Wrap" />
-        <Border Classes="m-inset">
-          <TextBlock Text="{DynamicResource Files_ConflictProtection}" Foreground="#8FA5BA" FontSize="11" TextWrapping="Wrap" />
+      <StackPanel Spacing="12">
+        <Border Classes="sheet-handle" />
+        <CheckBox Content="{DynamicResource Files_BackupBeforeSave}" IsChecked="{Binding CreateBackupBeforeSave}" />
+        <TextBlock Text="{DynamicResource Files_ConfirmSave}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding PendingSaveMessage}" Foreground="{DynamicResource Brush.Text.Primary}" TextWrapping="Wrap" />
+        <Border Classes="surface-inset">
+          <TextBlock Text="{DynamicResource Files_ConflictProtection}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
         </Border>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-          <Button Classes="m-action" Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSaveCommand}" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="1" Classes="m-teal" Content="{DynamicResource Files_Save}" Command="{Binding ConfirmSaveCommand}" HorizontalAlignment="Stretch" />
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+          <Button Classes="btn-secondary" Content="{DynamicResource Common_Cancel}" Command="{Binding CancelSaveCommand}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Classes="btn-primary" Content="{DynamicResource Files_Save}" Command="{Binding ConfirmSaveCommand}" HorizontalAlignment="Stretch" />
         </Grid>
       </StackPanel>
     </Border>

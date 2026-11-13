@@ -1,5 +1,5 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=System.Runtime">
   <!--
     Tokens del sistema de diseño (docs/DESIGN_SYSTEM.md §3). Los colores se nombran por rol y se
     consumen con {DynamicResource Brush.*} para que el tema claro funcione en caliente.
@@ -75,4 +75,16 @@
 
   <!-- Tipografía monoespaciada: Cascadia/Consolas en Windows, la mono del sistema en Android -->
   <FontFamily x:Key="Font.Mono">Cascadia Mono,Consolas,Roboto Mono,Droid Sans Mono,monospace</FontFamily>
+  <x:Double x:Key="Font.Size.11">11</x:Double>
+  <x:Double x:Key="Font.Size.12">12</x:Double>
+  <x:Double x:Key="Font.Size.12.5">12.5</x:Double>
+  <x:Double x:Key="Font.Size.13">13</x:Double>
+  <x:Double x:Key="Font.Size.14">14</x:Double>
+  <x:Double x:Key="Font.Size.16">16</x:Double>
+  <x:Double x:Key="Font.Size.20">20</x:Double>
+  <x:Double x:Key="Font.Size.28">28</x:Double>
+  <sys:TimeSpan x:Key="Motion.Instant">0:0:0.10</sys:TimeSpan>
+  <sys:TimeSpan x:Key="Motion.Quick">0:0:0.16</sys:TimeSpan>
+  <sys:TimeSpan x:Key="Motion.Standard">0:0:0.24</sys:TimeSpan>
+  <sys:TimeSpan x:Key="Motion.Emphasized">0:0:0.32</sys:TimeSpan>
 </ResourceDictionary>

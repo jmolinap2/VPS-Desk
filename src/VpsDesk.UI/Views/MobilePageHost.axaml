@@ -49,7 +49,7 @@
     </Grid>
 
     <Grid x:Name="BackupsPage" Classes="page" IsVisible="{Binding IsBackupsPage}">
-      <views:BackupsView DataContext="{Binding DeploymentsModule}" />
+      <views:MobileBackupsView DataContext="{Binding DeploymentsModule}" />
     </Grid>
 
     <Grid x:Name="EnvironmentPage" Classes="page" IsVisible="{Binding IsEnvironmentPage}">

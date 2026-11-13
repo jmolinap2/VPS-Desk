@@ -219,3 +219,30 @@ Primera pasada de la **fase 0 y 1** sobre Despliegues y Respaldos, verificada co
 
 Pendiente de esta pasada: arrastrar para refrescar, vibración, esqueletos, barra inferior de
 navegación, variante móvil de Respaldos y migrar el resto de vistas a tokens. Ver §5.
+
+## 8. Tandas 2 y 3 — migración visual (12/11/2026)
+
+- Proyectos, Almacenamiento, Archivos, Terminal, Seguridad, Ajustes y Entorno consumen
+  pinceles, tamaños, radios y movimiento de Themes en escritorio y móvil. El editor y
+  las variables de entorno comparten la fuente monoespaciada y los estados semánticos.
+- En móvil, las herramientas del editor quedan en un expansor; Guardar queda al pie.
+  La copia previa se puede revisar en la confirmación de guardado. Terminal distribuye
+  sus acciones en dos filas. Archivos y Seguridad usan ListBox para conservar virtualización.
+- Respaldos conserva su flujo, exportación y confirmaciones. MobileBackupsView reutiliza
+  BackupsView con objetivos táctiles de 48 px; las tarjetas, acciones e iconos usan
+  componentes compartidos. Crear copia conserva el único énfasis principal del inventario.
+- Panel conserva la jerarquía de la primera tanda, con relleno de tarjetas de 16 px,
+  cifras tabulares y valores visuales conectados a tokens.
+- Se añadieron traducciones es/en para textos de estas vistas y nombres accesibles
+  para los iconos sustituidos. Las hojas de Archivos, guardado y limpieza cierran al tocar el velo.
+- Validación reproducible: python Scripts/Validate-UiTokens.py comprueba las 22 vistas
+  de esta tanda (XML, valores visuales, referencias, botones de icono y paridad es/en).
+
+Validación de esta pasada: compilación de escritorio en Release sin errores ni advertencias,
+validador de 22 vistas correcto y renders con ViewModels de prueba sin SSH en 412 px y
+1180 px, con tema claro y oscuro.
+
+Esta pasada no cierra las fases globales de §5: siguen pendientes los esqueletos, el
+refresco por gesto, la vibración, la navegación inferior y la localización completa de
+los mensajes de los ViewModels. La interacción real de teclado, TalkBack y botón atrás
+se debe verificar en Android; los renders de escritorio no sustituyen esa prueba.

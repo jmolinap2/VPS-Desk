@@ -3,8 +3,8 @@
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:files="using:VpsDesk.Domain.Files"
              xmlns:views="using:VpsDesk.Desktop.Views"
-             x:Class="VpsDesk.Desktop.Views.MobileFilesView"
-             x:DataType="vm:FilesViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileFilesView"
+             x:DataType="vm:FilesViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <!--
     Explorador SFTP para teléfono. Cada elemento es una tarjeta: tocarla abre la
     carpeta o la vista previa, y el botón "Editar" abre el editor. El editor de
@@ -12,14 +12,14 @@
   -->
   <UserControl.Styles>
     <Style Selector="Grid.full-overlay">
-      <Setter Property="Background" Value="#0B0E13" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Canvas}" />
       <Setter Property="Opacity" Value="0" />
       <Setter Property="RenderTransform" Value="translateX(28px)" />
       <Setter Property="IsHitTestVisible" Value="False" />
       <Setter Property="Transitions">
         <Transitions>
-          <DoubleTransition Property="Opacity" Duration="0:0:0.24" Easing="CubicEaseOut" />
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.30" Easing="CubicEaseOut" />
+          <DoubleTransition Property="Opacity" Duration="{DynamicResource Motion.Standard}" Easing="CubicEaseOut" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="{DynamicResource Motion.Standard}" Easing="CubicEaseOut" />
         </Transitions>
       </Setter>
     </Style>
@@ -34,21 +34,21 @@
     <DockPanel LastChildFill="True">
       <StackPanel DockPanel.Dock="Top" Margin="18,16,18,10" Spacing="12">
         <StackPanel Spacing="2">
-          <TextBlock Text="{DynamicResource Files_Title}" Classes="m-title" />
-          <TextBlock Text="{Binding LastUpdated}" Classes="m-subtitle" />
+          <TextBlock Text="{DynamicResource Files_Title}" Classes="t-title" />
+          <TextBlock Text="{Binding LastUpdated}" Classes="t-body-s" />
         </StackPanel>
 
         <!-- ruta actual -->
-        <Border Classes="m-card" Padding="10">
+        <Border Classes="surface" Padding="10">
           <StackPanel Spacing="8">
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-              <Button Classes="m-action" Content="↑" Width="44" Padding="0,10" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" />
-              <TextBox Grid.Column="1" Text="{Binding CurrentPath}" PlaceholderText="/var/www" FontFamily="Cascadia Mono,Consolas,monospace" />
-              <Button Grid.Column="2" Classes="m-primary" Content="{DynamicResource Common_Go}" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" Padding="14,10" />
+              <Button Classes="btn-icon" Command="{Binding GoParentCommand}" IsEnabled="{Binding CanGoParent}" AutomationProperties.Name="{DynamicResource Common_Up}" ToolTip.Tip="{DynamicResource Common_Up}"><Path Classes="icon" Data="{StaticResource Icon.ArrowUp}" /></Button>
+              <TextBox Grid.Column="1" Text="{Binding CurrentPath}" PlaceholderText="/var/www" FontFamily="{DynamicResource Font.Mono}" />
+              <Button Grid.Column="2" Classes="btn-primary" Content="{DynamicResource Common_Go}" Command="{Binding NavigatePathCommand}" IsEnabled="{Binding !IsBusy}" Padding="14,10" />
             </Grid>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-              <Button Classes="m-action" Content="{DynamicResource Common_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-              <Button Grid.Column="1" Classes="m-action" Content="/" Command="{Binding GoRootCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+              <Button Classes="btn-secondary" Content="{DynamicResource Common_Refresh}" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+              <Button Grid.Column="1" Classes="btn-secondary" Content="/" Command="{Binding GoRootCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
             </Grid>
           </StackPanel>
         </Border>
@@ -56,69 +56,69 @@
         <!-- accesos rápidos -->
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="m-chip" Content="Home" Command="{Binding GoHomeCommand}" />
-            <Button Classes="m-chip" Content="/opt" Command="{Binding GoOptCommand}" />
-            <Button Classes="m-chip" Content="/etc" Command="{Binding GoEtcCommand}" />
-            <Button Classes="m-chip" Content="/var/log" Command="{Binding GoVarLogCommand}" />
-            <Button Classes="m-chip" Content="/srv" Command="{Binding GoSrvCommand}" />
+            <Button Classes="btn-secondary" Content="{DynamicResource Ui_Home}" Command="{Binding GoHomeCommand}" />
+            <Button Classes="btn-secondary" Content="/opt" Command="{Binding GoOptCommand}" />
+            <Button Classes="btn-secondary" Content="/etc" Command="{Binding GoEtcCommand}" />
+            <Button Classes="btn-secondary" Content="/var/log" Command="{Binding GoVarLogCommand}" />
+            <Button Classes="btn-secondary" Content="/srv" Command="{Binding GoSrvCommand}" />
           </StackPanel>
         </ScrollViewer>
 
-        <Border Classes="m-inset" Padding="10,8">
-          <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+        <Border Classes="surface-inset" Padding="10,8">
+          <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
         </Border>
       </StackPanel>
 
-      <TextBlock DockPanel.Dock="Bottom" Margin="18,6,18,14" Foreground="#66758A" FontSize="10"
+      <TextBlock DockPanel.Dock="Bottom" Margin="18,6,18,14" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}"
                  Text="{Binding Entries.Count, StringFormat={}{0} elementos}" />
 
       <!-- lista de entradas: tarjetas de ancho completo -->
-      <ScrollViewer Margin="18,0,18,0">
-        <ItemsControl x:Name="EntriesHost" ItemsSource="{Binding Entries}" Margin="0,0,0,8">
-          <ItemsControl.ItemTemplate>
+      <Panel Margin="16,0,16,0">
+        <ListBox Classes="file-entries" x:Name="EntriesHost" ItemsSource="{Binding Entries}" Margin="0,0,0,8">
+          <ListBox.ItemTemplate>
             <DataTemplate x:DataType="files:RemoteFileEntry">
-              <Border Classes="m-card" Padding="12,12" Margin="0,0,0,8" Tapped="OnEntryTapped">
+              <Border Classes="surface" Padding="12,12" Margin="0,0,0,8" Tapped="OnEntryTapped">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                  <Border Width="40" Height="40" CornerRadius="12" Background="#172033" VerticalAlignment="Center">
+                  <Border Width="48" Height="48" CornerRadius="{DynamicResource Radius.M}" Background="{DynamicResource Brush.Surface.Inset}" VerticalAlignment="Center">
                     <Grid>
-                      <TextBlock Text="▸" FontSize="16" Foreground="#7DD3FC" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsDirectory}" />
-                      <TextBlock Text="▤" FontSize="15" Foreground="#A8B4C5" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !IsDirectory}" />
+                      <Path Classes="icon" Data="{StaticResource Icon.Folder}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsDirectory}"  />
+                      <Path Classes="icon" Data="{StaticResource Icon.File}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !IsDirectory}"  />
                     </Grid>
                   </Border>
 
                   <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                      <TextBlock Text="{Binding CategoryLabel}" Foreground="#8290A3" FontSize="10.5" />
-                      <TextBlock Text="{Binding SizeLabel}" Foreground="#66758A" FontSize="10.5" IsVisible="{Binding !IsDirectory}" />
-                      <Border Background="#2A2410" CornerRadius="8" Padding="6,1" IsVisible="{Binding IsSensitive}">
-                        <TextBlock Text="{DynamicResource Files_Sensitive}" Foreground="#FBBF24" FontSize="9" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding CategoryLabel}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" />
+                      <TextBlock Text="{Binding SizeLabel}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" IsVisible="{Binding !IsDirectory}" />
+                      <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.S}" Padding="6,1" IsVisible="{Binding IsSensitive}">
+                        <TextBlock Text="{DynamicResource Files_Sensitive}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
                       </Border>
                     </StackPanel>
                   </StackPanel>
 
                   <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <Button Classes="m-chip" Content="{DynamicResource Files_Edit}" IsVisible="{Binding CanEdit}"
+                    <Button Classes="btn-secondary" Content="{DynamicResource Files_Edit}" IsVisible="{Binding CanEdit}"
                             Command="{Binding #EntriesHost.((vm:FilesViewModel)DataContext).EditEntryCommand}"
                             CommandParameter="{Binding}" />
-                    <TextBlock Text="›" FontSize="18" Foreground="#4A5568" HorizontalAlignment="Right" IsVisible="{Binding !CanEdit}" />
+                    <Path Classes="icon" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" IsVisible="{Binding !CanEdit}"  />
                   </StackPanel>
                 </Grid>
               </Border>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Panel>
     </DockPanel>
 
     <!-- editor de texto a pantalla completa -->
     <Grid Classes="full-overlay" Classes.open="{Binding HasOpenTextFile}" RowDefinitions="Auto,*">
-      <Border Background="#0E131B" BorderBrush="#1E2735" BorderThickness="0,0,0,1" Padding="10,8">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-          <Button Classes="m-action" Content="←" Width="46" Padding="0,10" Command="{Binding CloseEditorCommand}" />
+      <Border Background="{DynamicResource Brush.Surface.Inset}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="0,0,0,1" Padding="10,8">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <Button Classes="btn-icon" Command="{Binding CloseEditorCommand}" AutomationProperties.Name="{DynamicResource Files_CloseEditor}" ToolTip.Tip="{DynamicResource Files_CloseEditor}"><Path Classes="icon" Data="{StaticResource Icon.ArrowLeft}" /></Button>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-            <TextBlock Text="{DynamicResource Files_TextEditor}" FontSize="15" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding EditorPath}" Classes="m-mono" FontSize="10" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{DynamicResource Files_TextEditor}" FontSize="{DynamicResource Font.Size.14}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding EditorPath}" Classes="t-mono" FontSize="{DynamicResource Font.Size.11}" TextTrimming="CharacterEllipsis" />
           </StackPanel>
         </Grid>
       </Border>
@@ -126,18 +126,18 @@
     </Grid>
 
     <!-- vista previa de imagen -->
-    <Border Classes="m-scrim" Classes.open="{Binding HasImagePreview}" />
+    <Border Classes="m-scrim" PointerPressed="OnScrimPressed" Classes.open="{Binding HasImagePreview}" />
     <Border Classes="m-sheet" Classes.open="{Binding HasImagePreview}" VerticalAlignment="Bottom" Padding="20,16,20,22">
       <StackPanel Spacing="12">
-        <Border Width="40" Height="4" CornerRadius="2" Background="#2A3444" HorizontalAlignment="Center" />
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-          <TextBlock Text="{Binding ImagePreviewName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="m-ghost" Content="✕" Command="{Binding CloseImagePreviewCommand}" />
+        <Border Classes="sheet-handle" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <TextBlock Text="{Binding ImagePreviewName}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          <Button Classes="btn-icon" Grid.Column="1" Command="{Binding CloseImagePreviewCommand}" AutomationProperties.Name="{DynamicResource Common_Close}" ToolTip.Tip="{DynamicResource Common_Close}"><Path Classes="icon" Data="{StaticResource Icon.Close}" /></Button>
         </Grid>
-        <Border Classes="m-inset" Padding="6">
+        <Border Classes="surface-inset" Padding="6">
           <Image Source="{Binding ImagePreview}" Stretch="Uniform" MaxHeight="360" />
         </Border>
-        <TextBlock Text="{Binding ImagePreviewMeta}" Classes="m-mono" HorizontalAlignment="Center" />
+        <TextBlock Text="{Binding ImagePreviewMeta}" Classes="t-mono" HorizontalAlignment="Center" />
       </StackPanel>
     </Border>
   </Grid>

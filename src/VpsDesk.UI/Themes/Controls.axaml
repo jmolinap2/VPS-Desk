@@ -380,4 +380,31 @@
   <Style Selector="Border.modal-scrim.open > Border.modal-card">
     <Setter Property="RenderTransform" Value="translateY(0px)" />
   </Style>
+  <!-- Presentación de las vistas migradas en teléfono. -->
+  <Style Selector=".mature TextBox, .mature ComboBox, .mature NumericUpDown, .mature CheckBox, .mature Expander">
+    <Setter Property="MinHeight" Value="48" />
+  </Style>
+  <Style Selector=".mature TextBlock">
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector=".mature Button.seg">
+    <Setter Property="MinHeight" Value="48" />
+  </Style>
+  <Style Selector=".mature TextBox">
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.14}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector=".mature CheckBox ContentPresenter">
+    <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="ListBox.file-entries">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.file-entries ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="72" />
+  </Style>
 </Styles>

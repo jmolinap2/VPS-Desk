@@ -1,29 +1,29 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
-             x:Class="VpsDesk.Desktop.Views.MobileEnvVariables"
-             x:DataType="vm:FilesViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileEnvVariables"
+             x:DataType="vm:FilesViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <!-- Gestor de variables de un .env en formato de tarjetas (una por variable). -->
-  <StackPanel Spacing="10">
+  <StackPanel Spacing="12">
     <CheckBox Content="{DynamicResource Files_EnvRevealSecrets}" IsChecked="{Binding RevealEnvironmentSecrets}" />
 
     <ItemsControl x:Name="EnvVariablesList" ItemsSource="{Binding EnvironmentVariables}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:EnvironmentVariableRow">
-          <Border Classes="m-inset" Margin="0,0,0,8">
+          <Border Classes="surface-inset" Margin="0,0,0,8">
             <StackPanel Spacing="8">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBox Text="{Binding Key}" IsReadOnly="{Binding IsReadOnly}" FontFamily="Cascadia Mono,Consolas,monospace" />
-                <Border Grid.Column="1" Background="#2A2410" CornerRadius="8" Padding="7,3" VerticalAlignment="Center" IsVisible="{Binding IsSecret}">
-                  <TextBlock Text="{DynamicResource Files_EnvSecret}" Foreground="#FBBF24" FontSize="9" FontWeight="SemiBold" />
+                <TextBox Text="{Binding Key}" IsReadOnly="{Binding IsReadOnly}" FontFamily="{DynamicResource Font.Mono}" />
+                <Border Grid.Column="1" Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.S}" Padding="7,3" VerticalAlignment="Center" IsVisible="{Binding IsSecret}">
+                  <TextBlock Text="{DynamicResource Files_EnvSecret}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
                 </Border>
               </Grid>
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Grid>
-                  <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" PasswordChar="●" IsVisible="{Binding IsValueMasked}" FontFamily="Cascadia Mono,Consolas,monospace" />
-                  <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" IsVisible="{Binding !IsValueMasked}" FontFamily="Cascadia Mono,Consolas,monospace" />
+                  <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" PasswordChar="●" IsVisible="{Binding IsValueMasked}" FontFamily="{DynamicResource Font.Mono}" />
+                  <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" IsVisible="{Binding !IsValueMasked}" FontFamily="{DynamicResource Font.Mono}" />
                 </Grid>
-                <Button Grid.Column="1" Classes="m-danger" Content="{DynamicResource Common_Delete}" Padding="12,10"
+                <Button Grid.Column="1" Classes="btn-danger" Content="{DynamicResource Common_Delete}" Padding="12,10"
                         Command="{Binding #EnvVariablesList.((vm:FilesViewModel)DataContext).RemoveEnvironmentVariableCommand}"
                         CommandParameter="{Binding}"
                         IsEnabled="{Binding !IsReadOnly}" />
@@ -34,17 +34,17 @@
       </ItemsControl.ItemTemplate>
     </ItemsControl>
 
-    <Border Classes="m-inset" IsVisible="{Binding !IsEditorReadOnly}">
+    <Border Classes="surface-inset" IsVisible="{Binding !IsEditorReadOnly}">
       <StackPanel Spacing="8">
-        <TextBlock Text="{DynamicResource Files_EnvAdd}" Classes="m-section" />
-        <TextBox Text="{Binding NewEnvironmentKey}" PlaceholderText="NUEVA_VARIABLE" FontFamily="Cascadia Mono,Consolas,monospace" />
-        <TextBox Text="{Binding NewEnvironmentValue}" PlaceholderText="valor" FontFamily="Cascadia Mono,Consolas,monospace" />
-        <Button Classes="m-action" Content="{DynamicResource Files_EnvAdd}" Command="{Binding AddEnvironmentVariableCommand}" HorizontalAlignment="Stretch" />
+        <TextBlock Text="{DynamicResource Files_EnvAdd}" Classes="t-overline" />
+        <TextBox Text="{Binding NewEnvironmentKey}" PlaceholderText="{DynamicResource Ui_NEWVARIABLE}" FontFamily="{DynamicResource Font.Mono}" />
+        <TextBox Text="{Binding NewEnvironmentValue}" PlaceholderText="{DynamicResource Ui_Value}" FontFamily="{DynamicResource Font.Mono}" />
+        <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvAdd}" Command="{Binding AddEnvironmentVariableCommand}" HorizontalAlignment="Stretch" />
       </StackPanel>
     </Border>
 
-    <TextBlock Text="{Binding EnvironmentManagerMessage}" Foreground="#5EEAD4" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding EnvironmentManagerValid}" />
-    <TextBlock Text="{Binding EnvironmentManagerMessage}" Foreground="#F87171" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding !EnvironmentManagerValid}" />
-    <Button Classes="m-action" Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEnvironmentVariablesCommand}" HorizontalAlignment="Stretch" />
+    <TextBlock Text="{Binding EnvironmentManagerMessage}" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" IsVisible="{Binding EnvironmentManagerValid}" />
+    <TextBlock Text="{Binding EnvironmentManagerMessage}" Foreground="{DynamicResource Brush.Danger}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" IsVisible="{Binding !EnvironmentManagerValid}" />
+    <Button Classes="btn-secondary" Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEnvironmentVariablesCommand}" HorizontalAlignment="Stretch" />
   </StackPanel>
 </UserControl>

@@ -2,12 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              x:Class="VpsDesk.Desktop.Views.LocalBackupsView"
-             x:DataType="vm:SettingsViewModel">
+             x:DataType="vm:SettingsViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <Grid>
-    <Border Classes="card">
+    <Border Classes="surface">
       <StackPanel Spacing="12">
-        <TextBlock Text="{DynamicResource Backups_LocalDataTitle}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="{DynamicResource Backups_LocalDataHelp}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource Backups_LocalDataTitle}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource Backups_LocalDataHelp}" Foreground="{DynamicResource Brush.Text.Secondary}" TextWrapping="Wrap" />
         <StackPanel Spacing="8" IsEnabled="{Binding !IsBackupOperationRunning}">
           <CheckBox IsChecked="{Binding EncryptLocalBackup}" HorizontalAlignment="Stretch">
             <TextBlock Text="{DynamicResource Backups_EncryptLocal}" TextWrapping="Wrap" />
@@ -15,25 +15,25 @@
           <CheckBox IsChecked="{Binding IncludeBackupCredentials}" HorizontalAlignment="Stretch">
             <TextBlock Text="{DynamicResource Backups_IncludeCredentials}" TextWrapping="Wrap" />
           </CheckBox>
-          <TextBlock Text="{DynamicResource Backups_PlaintextHelp}" IsVisible="{Binding !EncryptLocalBackup}" Foreground="#FBBF24" TextWrapping="Wrap" FontSize="12" />
+          <TextBlock Text="{DynamicResource Backups_PlaintextHelp}" IsVisible="{Binding !EncryptLocalBackup}" Foreground="{DynamicResource Brush.Warning}" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.12}" />
           <WrapPanel>
-            <Button Content="{DynamicResource Backups_ExportLocal}" Click="ExportLocal_Click" Margin="0,0,8,6" Background="#0F766E" Foreground="White" />
+            <Button Content="{DynamicResource Backups_ExportLocal}" Click="ExportLocal_Click" Margin="0,0,8,6" Background="{DynamicResource Brush.Accent}" Foreground="White" />
             <Button Content="{DynamicResource Backups_ImportLocal}" Click="ImportLocal_Click" Margin="0,0,8,6" />
           </WrapPanel>
         </StackPanel>
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBackupOperationRunning}" Height="4" />
-        <TextBlock Text="{Binding BackupStatus}" Foreground="#A8B4C5" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding BackupStatus}" Foreground="{DynamicResource Brush.Text.Secondary}" TextWrapping="Wrap" />
         <Expander Header="{DynamicResource Backups_LocalLog}">
           <TextBox Text="{Binding BackupLog}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" MaxHeight="250" ScrollViewer.VerticalScrollBarVisibility="Auto" />
         </Expander>
       </StackPanel>
     </Border>
 
-    <Border Background="#E00B0E13" IsVisible="{Binding IsVisible, ElementName=PromptPanel}" />
-    <Border x:Name="PromptPanel" Classes="card" IsVisible="False" Margin="8" MaxWidth="540" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Border Background="{DynamicResource Brush.Scrim}" IsVisible="{Binding IsVisible, ElementName=PromptPanel}" />
+    <Border x:Name="PromptPanel" Classes="surface" IsVisible="False" Margin="8" MaxWidth="540" HorizontalAlignment="Center" VerticalAlignment="Center">
       <ScrollViewer MaxHeight="570">
         <StackPanel Spacing="12">
-          <TextBlock x:Name="PromptTitle" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock x:Name="PromptTitle" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" TextWrapping="Wrap" />
           <TextBlock x:Name="PromptMessage" TextWrapping="Wrap" />
           <StackPanel x:Name="PasswordPanel" Spacing="6">
             <TextBlock Text="{DynamicResource Backups_Password}" />
@@ -43,10 +43,10 @@
             <TextBlock Text="{DynamicResource Backups_ConfirmPassword}" />
             <TextBox x:Name="PasswordConfirmation" PasswordChar="●" />
           </StackPanel>
-          <TextBlock x:Name="PromptError" Foreground="#FCA5A5" TextWrapping="Wrap" />
+          <TextBlock x:Name="PromptError" Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap" />
           <WrapPanel HorizontalAlignment="Right">
             <Button Content="{DynamicResource Common_Cancel}" Click="CancelPrompt_Click" Margin="0,0,8,6" />
-            <Button Content="{DynamicResource Common_Accept}" Click="AcceptPrompt_Click" Margin="0,0,0,6" Background="#0F766E" Foreground="White" />
+            <Button Content="{DynamicResource Common_Accept}" Click="AcceptPrompt_Click" Margin="0,0,0,6" Background="{DynamicResource Brush.Accent}" Foreground="White" />
           </WrapPanel>
         </StackPanel>
       </ScrollViewer>

@@ -4,8 +4,8 @@
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:activity="using:VpsDesk.Domain.Activity"
              xmlns:conv="using:VpsDesk.Desktop.Converters"
-             x:Class="VpsDesk.Desktop.Views.MobileDashboardView"
-             x:DataType="vm:MainWindowViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileDashboardView"
+             x:DataType="vm:MainWindowViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <!--
     Panel para teléfono (docs/DESIGN_SYSTEM.md). Se responde en menos de 10 segundos a «¿está
     sano el VPS?»: servidor, acceso directo a desplegar, cuatro métricas, rendimiento, servicios y
@@ -28,24 +28,24 @@
       <Button Classes="btn-primary" Command="{Binding NavigateCommand}" CommandParameter="Deployments"
               HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="18,0">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{DynamicResource Nav_Deployments}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource Nav_Deployments}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" VerticalAlignment="Center" />
           <Path Grid.Column="1" Classes="icon on-accent" Data="{StaticResource Icon.ChevronRight}" />
         </Grid>
       </Button>
 
       <!-- métricas 2×2: nada truncado, cada tarjeta respira -->
       <Grid ColumnDefinitions="*,*" RowDefinitions="*,*" ColumnSpacing="12" RowSpacing="12">
-        <Border Classes="surface" Padding="14">
+        <Border Classes="surface" Padding="16">
           <StackPanel Spacing="2">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="t-label" Text="CPU" />
               <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center"
                        Fill="{Binding CpuUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=cpu}" />
             </Grid>
-            <TextBlock Classes="t-display" Text="{Binding CpuUsage, StringFormat={}{0:F0}%}"
-                       Foreground="{Binding CpuUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=cpu}"
+            <TextBlock Classes="t-display" FontFeatures="tnum" Text="{Binding CpuUsage, StringFormat={}{0:F0}%}"
+                       Foreground="{DynamicResource Brush.Text.Primary}"
                        Margin="0,6,0,6" />
-            <Border Height="6" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="3" ClipToBounds="True">
+            <Border Height="6" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.S}" ClipToBounds="True">
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding CpuUsage}"
                            Foreground="{Binding CpuUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=cpu}"
                            Background="Transparent" BorderThickness="0" Height="6" />
@@ -61,10 +61,10 @@
               <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center"
                        Fill="{Binding MemoryUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=memory}" />
             </Grid>
-            <TextBlock Classes="t-display" Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}"
-                       Foreground="{Binding MemoryUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=memory}"
+            <TextBlock Classes="t-display" FontFeatures="tnum" Text="{Binding MemoryUsage, StringFormat={}{0:F0}%}"
+                       Foreground="{DynamicResource Brush.Text.Primary}"
                        Margin="0,6,0,6" />
-            <Border Height="6" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="3" ClipToBounds="True">
+            <Border Height="6" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.S}" ClipToBounds="True">
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding MemoryUsage}"
                            Foreground="{Binding MemoryUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=memory}"
                            Background="Transparent" BorderThickness="0" Height="6" />
@@ -80,10 +80,10 @@
               <Ellipse Grid.Column="1" Width="8" Height="8" VerticalAlignment="Center"
                        Fill="{Binding DiskUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}" />
             </Grid>
-            <TextBlock Classes="t-display" Text="{Binding DiskUsage, StringFormat={}{0:F0}%}"
-                       Foreground="{Binding DiskUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
+            <TextBlock Classes="t-display" FontFeatures="tnum" Text="{Binding DiskUsage, StringFormat={}{0:F0}%}"
+                       Foreground="{DynamicResource Brush.Text.Primary}"
                        Margin="0,6,0,6" />
-            <Border Height="6" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="3" ClipToBounds="True">
+            <Border Height="6" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.S}" ClipToBounds="True">
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding DiskUsage}"
                            Foreground="{Binding DiskUsage, Converter={StaticResource UsageToBrush}, ConverterParameter=disk}"
                            Background="Transparent" BorderThickness="0" Height="6" />
@@ -129,7 +129,7 @@
 
       <!-- servicios -->
       <Border Classes="surface">
-        <StackPanel Spacing="10">
+        <StackPanel Spacing="12">
           <TextBlock Classes="t-headline" Text="{DynamicResource Dashboard_Services}" />
           <Border Classes="surface-inset" Padding="14,12">
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">

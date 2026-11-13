@@ -8,4 +8,9 @@ public partial class MobileFileEditor : UserControl
     {
         InitializeComponent();
     }
+    private void OnScrimPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (ReferenceEquals(e.Source, sender))
+            (DataContext as VpsDesk.Desktop.ViewModels.FilesViewModel)?.CancelSaveCommand.Execute(null);
+    }
 }

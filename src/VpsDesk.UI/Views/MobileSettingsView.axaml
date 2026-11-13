@@ -2,81 +2,81 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
-             x:Class="VpsDesk.Desktop.Views.MobileSettingsView"
-             x:DataType="vm:SettingsViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileSettingsView"
+             x:DataType="vm:SettingsViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <Grid>
-    <ScrollViewer Padding="18,16,18,24">
-      <StackPanel Spacing="14">
+    <ScrollViewer Padding="16,16,16,24">
+      <StackPanel Spacing="12">
         <StackPanel Spacing="3">
-          <TextBlock Text="Configuración" Classes="m-title" />
-          <TextBlock Text="Preferencias locales de VPS Desk. No se almacenan contraseñas, claves privadas ni secretos del VPS." Classes="m-subtitle" />
+          <TextBlock Text="{DynamicResource Nav_Settings}" Classes="t-title" />
+          <TextBlock Text="{DynamicResource Ui_LocalVPSDeskPreferencesPasswordsPrivate}" Classes="t-body-s" />
         </StackPanel>
 
-        <Border Classes="m-card" DataContext="{Binding Updates}" IsVisible="{Binding IsAvailableOnPlatform}" x:DataType="vm:UpdatesViewModel">
+        <Border Classes="surface" DataContext="{Binding Updates}" IsVisible="{Binding IsAvailableOnPlatform}" x:DataType="vm:UpdatesViewModel">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="Actualizaciones" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="VPS Desk busca versiones nuevas al abrirse. Tú decides cuándo instalarlas." Classes="m-subtitle" />
+              <TextBlock Text="{DynamicResource Ui_Updates}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Ui_VPSDeskChecksForUpdatesAt}" Classes="t-body-s" />
             </StackPanel>
-            <TextBlock Text="{Binding StatusMessage}" Classes="m-subtitle" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding ReleaseNotes}" Classes="m-subtitle" TextWrapping="Wrap" IsVisible="{Binding IsUpdateAvailable}" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ReleaseNotes}" Classes="t-body-s" TextWrapping="Wrap" IsVisible="{Binding IsUpdateAvailable}" />
             <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadPercent}" IsVisible="{Binding IsDownloading}" Height="6" />
-            <Button Classes="m-primary" Content="{Binding InstallLabel}" Command="{Binding InstallCommand}" IsVisible="{Binding IsUpdateAvailable}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-            <Button Classes="m-action" Content="Buscar actualizaciones" Command="{Binding CheckCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            <Button Classes="btn-primary" Content="{Binding InstallLabel}" Command="{Binding InstallCommand}" IsVisible="{Binding IsUpdateAvailable}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+            <Button Classes="btn-secondary" Content="{DynamicResource Ui_CheckForUpdates}" Command="{Binding CheckCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
           </StackPanel>
         </Border>
 
-        <Border Classes="m-card">
+        <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="General" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="Idioma y frecuencia de actualización." Classes="m-subtitle" />
+              <TextBlock Text="{DynamicResource Ui_General}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Ui_LanguageAndRefreshFrequencyLabel}" Classes="t-body-s" />
             </StackPanel>
-            <TextBlock Text="Idioma" Classes="m-label" />
+            <TextBlock Text="{DynamicResource Ui_Language}" Classes="t-label" />
             <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="Actualización automática (segundos)" Classes="m-label" />
+            <TextBlock Text="{DynamicResource Ui_AutomaticRefreshSeconds}" Classes="t-label" />
             <ComboBox ItemsSource="{Binding RefreshIntervalOptions}" SelectedItem="{Binding RefreshIntervalSeconds}" HorizontalAlignment="Stretch" />
           </StackPanel>
         </Border>
 
         <views:LocalBackupsView />
 
-        <Border Classes="m-card">
+        <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="Edición remota" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="Protecciones usadas al modificar archivos mediante SFTP." Classes="m-subtitle" />
+              <TextBlock Text="{DynamicResource Ui_RemoteEditing}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Ui_ProtectionsWhenEditingFilesOverSFTP}" Classes="t-body-s" />
             </StackPanel>
-            <CheckBox IsChecked="{Binding BackupBeforeRemoteSave}" Content="Crear copia .bak antes de sobrescribir un archivo remoto" />
+            <CheckBox IsChecked="{Binding BackupBeforeRemoteSave}" Content="{DynamicResource Ui_CreateABakCopyBeforeOverwriting}" />
           </StackPanel>
         </Border>
 
-        <Border Classes="m-card">
+        <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="Terminal" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="La terminal nunca guarda comandos ni salida en el historial de VPS Desk." Classes="m-subtitle" />
+              <TextBlock Text="{DynamicResource Nav_Terminal}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Ui_CommandsAndOutputAreNeverSaved}" Classes="t-body-s" />
             </StackPanel>
-            <TextBlock Text="Tamaño de fuente" Classes="m-label" />
+            <TextBlock Text="{DynamicResource Ui_FontSize}" Classes="t-label" />
             <NumericUpDown Minimum="11" Maximum="22" Increment="1" Value="{Binding TerminalFontSize}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="Líneas de scrollback" Classes="m-label" />
+            <TextBlock Text="{DynamicResource Ui_ScrollbackLines}" Classes="t-label" />
             <ComboBox ItemsSource="{Binding TerminalScrollbackOptions}" SelectedItem="{Binding TerminalScrollbackLines}" HorizontalAlignment="Stretch" />
-            <CheckBox IsChecked="{Binding ConfirmMultilineTerminalPaste}" Content="Pedir confirmación antes de pegar varias líneas" />
+            <CheckBox IsChecked="{Binding ConfirmMultilineTerminalPaste}" Content="{DynamicResource Ui_ConfirmBeforePastingMultipleLines}" />
           </StackPanel>
         </Border>
 
-        <Border Classes="m-card">
+        <Border Classes="surface">
           <StackPanel Spacing="12">
             <StackPanel Spacing="2">
-              <TextBlock Text="Datos locales" FontSize="16" FontWeight="SemiBold" />
-              <TextBlock Text="Perfiles, historial y preferencias se guardan en este dispositivo, no en el servidor." Classes="m-subtitle" />
+              <TextBlock Text="{DynamicResource Ui_LocalData}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Ui_ProfilesHistoryAndPreferencesAreStored}" Classes="t-body-s" />
             </StackPanel>
-            <Border Classes="m-inset">
-              <TextBlock Text="{Binding SettingsPath}" Classes="m-mono" TextWrapping="Wrap" />
+            <Border Classes="surface-inset">
+              <TextBlock Text="{Binding SettingsPath}" Classes="t-mono" TextWrapping="Wrap" />
             </Border>
-            <Button Classes="m-action" Content="Abrir carpeta" Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Stretch" />
-            <Button Classes="m-danger" Content="Restablecer preferencias" Command="{Binding ResetDefaultsCommand}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="{Binding StatusMessage}" Classes="m-subtitle" />
+            <Button Classes="btn-secondary" Content="{DynamicResource Ui_OpenFolder}" Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Stretch" />
+            <Button Classes="btn-danger" Content="{DynamicResource Ui_ResetPreferences}" Command="{Binding ResetDefaultsCommand}" HorizontalAlignment="Stretch" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" />
           </StackPanel>
         </Border>
       </StackPanel>

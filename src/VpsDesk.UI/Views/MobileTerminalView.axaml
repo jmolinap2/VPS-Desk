@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
-             x:Class="VpsDesk.Desktop.Views.MobileTerminalView"
-             x:DataType="vm:TerminalViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileTerminalView"
+             x:DataType="vm:TerminalViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <!--
     Terminal SSH para teléfono: estado y acciones arriba, salida en el centro y
     la línea de comandos fija abajo, como en una app de mensajería, para que el
@@ -10,73 +10,73 @@
   -->
   <DockPanel LastChildFill="True" Margin="14,12,14,10">
     <!-- cabecera: servidor y estado -->
-    <Border DockPanel.Dock="Top" Classes="m-card" Padding="14,12" Margin="0,0,0,10">
-      <StackPanel Spacing="10">
+    <Border DockPanel.Dock="Top" Classes="surface" Padding="14,12" Margin="0,0,0,10">
+      <StackPanel Spacing="12">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
           <StackPanel Spacing="2">
             <TextBlock Text="{Binding ActiveServerLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding StatusMessage}" Classes="m-subtitle" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" />
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
-            <Border Background="#18382E" CornerRadius="12" Padding="8,4" IsVisible="{Binding IsConnected}">
-              <TextBlock Text="CONECTADO" Foreground="#5EE6A8" FontWeight="SemiBold" FontSize="9.5" />
+            <Border Background="{DynamicResource Brush.Success.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,4" IsVisible="{Binding IsConnected}">
+              <TextBlock Text="{DynamicResource Ui_Connected}" Foreground="{DynamicResource Brush.Success}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.11}" />
             </Border>
-            <Border Background="#4A2519" CornerRadius="12" Padding="8,4" IsVisible="{Binding IsProduction}">
-              <TextBlock Text="PROD" Foreground="#F5B37A" FontWeight="SemiBold" FontSize="9.5" />
+            <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.M}" Padding="8,4" IsVisible="{Binding IsProduction}">
+              <TextBlock Text="PROD" Foreground="{DynamicResource Brush.Warning}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.11}" />
             </Border>
           </StackPanel>
         </Grid>
 
-        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
-          <Button Classes="m-primary" Content="Conectar" Command="{Binding ConnectCommand}" IsEnabled="{Binding !IsConnected}" Padding="4,10" FontSize="12" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="1" Classes="m-action" Content="Salir" Command="{Binding DisconnectCommand}" IsEnabled="{Binding IsConnected}" Padding="4,10" FontSize="12" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="2" Classes="m-action" Content="Ctrl+C" Command="{Binding SendInterruptCommand}" IsEnabled="{Binding IsConnected}" Padding="4,10" FontSize="12" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="3" Classes="m-action" Content="Limpiar" Command="{Binding ClearTerminalCommand}" Padding="4,10" FontSize="12" HorizontalAlignment="Stretch" />
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="6">
+          <Button Classes="btn-secondary" Content="{DynamicResource Ui_Connect}" Command="{Binding ConnectCommand}" IsEnabled="{Binding !IsConnected}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Classes="btn-secondary" Content="{DynamicResource Ui_DisconnectLabel}" Command="{Binding DisconnectCommand}" IsEnabled="{Binding IsConnected}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
+          <Button Grid.Row="1" Classes="btn-secondary" Content="Ctrl+C" Command="{Binding SendInterruptCommand}" IsEnabled="{Binding IsConnected}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
+          <Button Grid.Row="1" Grid.Column="1" Classes="btn-secondary" Content="{DynamicResource Logs_Clear}" Command="{Binding ClearTerminalCommand}" Padding="4,10" FontSize="{DynamicResource Font.Size.12}" HorizontalAlignment="Stretch" />
         </Grid>
       </StackPanel>
     </Border>
 
     <!-- confirmación de pegado multilínea -->
-    <Border DockPanel.Dock="Bottom" Background="#3A2814" BorderBrush="#8A6122" BorderThickness="1" CornerRadius="14" Padding="12" Margin="0,10,0,0"
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.Warning.Subtle}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="{DynamicResource Radius.M}" Padding="12" Margin="0,10,0,0"
             IsVisible="{Binding HasPendingMultilinePaste}">
-      <StackPanel Spacing="10">
-        <TextBlock Text="Pegado multilínea" FontWeight="SemiBold" />
-        <TextBlock Text="{Binding PendingMultilineMessage}" Foreground="#D8C49B" TextWrapping="Wrap" FontSize="12" />
+      <StackPanel Spacing="12">
+        <TextBlock Text="{DynamicResource Ui_MultilinePaste}" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding PendingMultilineMessage}" Foreground="{DynamicResource Brush.Text.Primary}" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.12}" />
         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-          <Button Classes="m-action" Content="Cancelar" Command="{Binding CancelMultilinePasteCommand}" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="1" Classes="m-primary" Content="Enviar" Command="{Binding ConfirmMultilinePasteCommand}" HorizontalAlignment="Stretch" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Common_Cancel}" Command="{Binding CancelMultilinePasteCommand}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Classes="btn-primary" Content="{DynamicResource Ui_Send}" Command="{Binding ConfirmMultilinePasteCommand}" HorizontalAlignment="Stretch" />
         </Grid>
       </StackPanel>
     </Border>
 
     <!-- línea de comandos fija abajo -->
-    <Border DockPanel.Dock="Bottom" Background="#0E131B" BorderBrush="#1E2735" BorderThickness="1" CornerRadius="16" Padding="8,6" Margin="0,10,0,0">
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.Surface.Inset}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="{DynamicResource Radius.L}" Padding="8,6" Margin="0,10,0,0">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-        <TextBlock Text="$" FontFamily="Consolas" FontSize="17" Foreground="#5EE6A8" VerticalAlignment="Center" Margin="6,0,0,0" />
+        <TextBlock Text="$" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.16}" Foreground="{DynamicResource Brush.Success}" VerticalAlignment="Center" Margin="6,0,0,0" />
         <TextBox x:Name="CommandInput"
                  Grid.Column="1"
                  Text="{Binding CommandText}"
-                 PlaceholderText="Comando…"
-                 FontFamily="Consolas"
+                 PlaceholderText="{DynamicResource Ui_Command}"
+                 FontFamily="{DynamicResource Font.Mono}"
                  FontSize="{Binding FontSize}"
                  Background="Transparent"
                  BorderThickness="0"
                  KeyDown="CommandInput_OnKeyDown"
                  IsEnabled="{Binding IsConnected}" />
-        <Button Grid.Column="2" Classes="m-primary" Content="Enviar" Command="{Binding SendCommand}" Padding="14,9" />
+        <Button Grid.Column="2" Classes="btn-primary" Content="{DynamicResource Ui_Send}" Command="{Binding SendCommand}" Padding="14,9" />
       </Grid>
     </Border>
 
     <!-- salida: ocupa el resto y sigue el final -->
-    <Border Classes="m-card" Padding="0" ClipToBounds="True">
-      <TextBox x:Name="OutputBox"
+    <Border Classes="surface" Padding="0" ClipToBounds="True">
+      <TextBox Foreground="{DynamicResource Brush.Code.Text}" CaretBrush="{DynamicResource Brush.Accent.Text}" x:Name="OutputBox"
                Text="{Binding TerminalOutput}"
                IsReadOnly="True"
-               AcceptsReturn="True"
+               AcceptsReturn="True" VerticalContentAlignment="Top"
                TextWrapping="NoWrap"
-               FontFamily="Consolas"
+               FontFamily="{DynamicResource Font.Mono}"
                FontSize="{Binding FontSize}"
-               Background="#070A0F"
+               Background="{DynamicResource Brush.Surface.Code}"
                BorderThickness="0"
                Padding="12"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"

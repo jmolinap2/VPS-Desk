@@ -2,65 +2,65 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:security="using:VpsDesk.Domain.Security"
-             x:Class="VpsDesk.Desktop.Views.MobileSecurityView"
-             x:DataType="vm:SecurityViewModel">
+             Classes="mature" x:Class="VpsDesk.Desktop.Views.MobileSecurityView"
+             x:DataType="vm:SecurityViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <DockPanel LastChildFill="True" Margin="18,16,18,16">
     <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,12">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <StackPanel Spacing="2">
-          <TextBlock Text="{DynamicResource Security_Title}" Classes="m-title" />
-          <TextBlock Text="{DynamicResource Security_Subtitle}" Classes="m-subtitle" />
+          <TextBlock Text="{DynamicResource Security_Title}" Classes="t-title" />
+          <TextBlock Text="{DynamicResource Security_Subtitle}" Classes="t-body-s" />
         </StackPanel>
-        <TextBlock Grid.Column="1" Text="{Binding LastChecked}" Classes="m-subtitle" VerticalAlignment="Top" />
+        <TextBlock Grid.Column="1" Text="{Binding LastChecked}" Classes="t-body-s" VerticalAlignment="Top" />
       </Grid>
 
       <!-- resumen: tres indicadores en una fila -->
       <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-        <Border Classes="m-card" Padding="12">
+        <Border Classes="surface" Padding="12">
           <StackPanel Spacing="2" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding PassedCount}" FontSize="24" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center" />
-            <TextBlock Text="{DynamicResource Security_Passed}" Classes="m-label" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding PassedCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Success}" HorizontalAlignment="Center" />
+            <TextBlock Text="{DynamicResource Security_Passed}" Classes="t-label" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="1" Classes="m-card" Padding="12">
+        <Border Grid.Column="1" Classes="surface" Padding="12">
           <StackPanel Spacing="2" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding WarningCount}" FontSize="24" FontWeight="SemiBold" Foreground="#FBBF24" HorizontalAlignment="Center" />
-            <TextBlock Text="{DynamicResource Security_Warnings}" Classes="m-label" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding WarningCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Warning}" HorizontalAlignment="Center" />
+            <TextBlock Text="{DynamicResource Security_Warnings}" Classes="t-label" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
-        <Border Grid.Column="2" Classes="m-card" Padding="12">
+        <Border Grid.Column="2" Classes="surface" Padding="12">
           <StackPanel Spacing="2" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding CriticalCount}" FontSize="24" FontWeight="SemiBold" Foreground="#F87171" HorizontalAlignment="Center" />
-            <TextBlock Text="{DynamicResource Security_Critical}" Classes="m-label" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding CriticalCount}" FontSize="{DynamicResource Font.Size.20}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Danger}" HorizontalAlignment="Center" />
+            <TextBlock Text="{DynamicResource Security_Critical}" Classes="t-label" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
       </Grid>
 
-      <Button Classes="m-primary" Content="{DynamicResource Security_RunAudit}" Command="{Binding RunAuditCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+      <Button Classes="btn-primary" Content="{DynamicResource Security_RunAudit}" Command="{Binding RunAuditCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
 
-      <Border Classes="m-inset" Padding="10,8">
-        <TextBlock Text="{Binding StatusMessage}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+      <Border Classes="surface-inset" Padding="10,8">
+        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
 
-    <ScrollViewer>
-      <ItemsControl ItemsSource="{Binding Checks}">
-        <ItemsControl.ItemTemplate>
+    <Panel>
+      <ListBox Classes="file-entries" ItemsSource="{Binding Checks}">
+        <ListBox.ItemTemplate>
           <DataTemplate x:DataType="security:SecurityCheck">
-            <Border Classes="m-card" Padding="14,12" Margin="0,0,0,8">
+            <Border Classes="surface" Padding="14,12" Margin="0,0,0,8">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <StackPanel Spacing="4">
                   <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding Detail}" Foreground="#8290A3" FontSize="11" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
                 </StackPanel>
-                <Border Grid.Column="1" Background="#0E131B" CornerRadius="10" Padding="8,4" VerticalAlignment="Top">
-                  <TextBlock Text="{Binding Severity}" Foreground="#A8B4C5" FontSize="10" FontWeight="SemiBold" />
+                <Border Grid.Column="1" Background="{DynamicResource Brush.Surface.Inset}" CornerRadius="{DynamicResource Radius.M}" Padding="8,4" VerticalAlignment="Top">
+                  <TextBlock Text="{Binding Severity}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
                 </Border>
               </Grid>
             </Border>
           </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </ScrollViewer>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
   </DockPanel>
 </UserControl>

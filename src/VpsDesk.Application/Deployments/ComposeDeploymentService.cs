@@ -267,6 +267,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 result.Duration,
                 step.IsBlocking);
             steps.Add(stepResult);
+            LogStepForDiagnostics(stepResult);
 
             ProgressChanged?.Invoke(new DeploymentProgressUpdate(
                 step.Code,
@@ -293,6 +294,32 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             DateTimeOffset.UtcNow,
             previousCommit,
             deployedCommit);
+    }
+
+    /// <summary>
+    /// Una línea por paso en la salida de error del proceso (en Android va a logcat). La salida de
+    /// cada paso solo vive en la pantalla y en el historial privado de la app; sin esto, un fallo
+    /// en el teléfono no deja rastro que se pueda leer por ADB. La salida ya está sanitizada y, en
+    /// los pasos correctos, no se incluye: solo resultado, código de salida y duración.
+    /// </summary>
+    private static void LogStepForDiagnostics(DeploymentStepResult step)
+    {
+        try
+        {
+            var line = $"[VPSDESK] deploy step={step.Code} ok={step.Succeeded} exit={step.ExitCode} t={step.Duration.TotalSeconds:F1}s";
+            if (!step.Succeeded)
+            {
+                var output = step.Output ?? string.Empty;
+                var tail = output.Length > 2000 ? output[^2000..] : output;
+                line += " output-tail=" + tail.Replace("\r", " ").Replace("\n", " ⏎ ");
+            }
+
+            Console.Error.WriteLine(line);
+        }
+        catch
+        {
+            // El diagnóstico nunca debe romper un pase.
+        }
     }
 
     private static readonly HashSet<string> IdempotentStepCodes = new(StringComparer.Ordinal)

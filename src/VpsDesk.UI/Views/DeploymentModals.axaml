@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:deploy="using:VpsDesk.Application.Deployments"
+             xmlns:views="using:VpsDesk.Desktop.Views"
              x:Class="VpsDesk.Desktop.Views.DeploymentModals"
              x:DataType="vm:DeploymentsViewModel">
   <!--
@@ -151,7 +152,8 @@
           </Grid>
 
           <Panel Grid.Row="1">
-            <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding IsPreflightRunning}" />
+            <views:PreflightAnimation IsActive="{Binding IsPreflightRunning}"
+                                      IsVisible="{Binding IsPreflightRunning}" />
             <WrapPanel IsVisible="{Binding IsPreflightFinished}">
               <Border Classes="status success" Margin="0,0,8,0" IsVisible="{Binding HasPreflightPassed}">
                 <StackPanel Orientation="Horizontal" Spacing="4">

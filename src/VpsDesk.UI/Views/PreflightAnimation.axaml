@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VpsDesk.Desktop.Views.PreflightAnimation"
+             IsHitTestVisible="False" Focusable="False" Height="148">
+  <Border Background="#0B202B" BorderBrush="#245360" BorderThickness="1" CornerRadius="16" ClipToBounds="True">
+    <Viewbox Stretch="Uniform">
+      <Canvas Width="360" Height="146" ClipToBounds="True">
+        <!-- Radar y pista: una escena de actividad, no un porcentaje de progreso. -->
+        <Ellipse Width="114" Height="114" Canvas.Left="224" Canvas.Top="12" Stroke="#245360" />
+        <Ellipse Width="76" Height="76" Canvas.Left="243" Canvas.Top="31" Stroke="#245360" />
+        <Ellipse Width="38" Height="38" Canvas.Left="262" Canvas.Top="50" Stroke="#245360" />
+        <Path Data="M 281,12 L 281,126 M 224,69 L 338,69" Stroke="#245360" />
+        <Canvas x:Name="RadarSweep" Width="114" Height="114" Canvas.Left="224" Canvas.Top="12" RenderTransformOrigin="50%,50%">
+          <Path Data="M 57,57 L 57,0 A 57,57 0 0 1 97,17 Z" Fill="#183DDCC5" />
+          <Path Data="M 57,57 L 57,0" Stroke="#5EEAD4" StrokeThickness="2" />
+        </Canvas>
+        <Ellipse x:Name="RadarBlip" Width="7" Height="7" Canvas.Left="306" Canvas.Top="45" Fill="#5EEAD4" />
+        <Path Data="M 16,122 L 344,122 M 24,130 L 60,130 M 80,130 L 116,130 M 136,130 L 172,130 M 192,130 L 228,130 M 248,130 L 284,130 M 304,130 L 336,130" Stroke="#326474" StrokeThickness="2" />
+        <Path Data="M 18,34 L 46,34 M 18,40 L 34,40 M 122,18 L 153,18 M 130,24 L 144,24" Stroke="#245360" StrokeThickness="2" />
+        <Canvas x:Name="JetCarrier" Width="136" Height="70" Canvas.Left="0" Canvas.Top="35" RenderTransformOrigin="60%,50%">
+          <Path x:Name="Exhaust" Data="M 47,30 L 3,38 L 47,45 L 31,38 Z" Fill="#FBBF24" />
+          <Path Data="M 46,33 L 23,38 L 46,42 Z" Fill="#FFF1B8" />
+          <Path Data="M 36,35 L 60,29 L 48,8 L 61,8 L 83,27 L 111,27 Q 127,27 134,37 Q 127,47 111,47 L 84,47 L 62,65 L 49,65 L 60,45 L 36,41 L 27,51 L 21,51 L 27,38 L 21,24 L 28,24 Z" Fill="#5EEAD4" />
+          <Path Data="M 96,29 L 111,29 Q 120,29 125,36 L 95,36 Z" Fill="#123C50" />
+          <Path Data="M 65,38 L 99,38 M 65,42 L 80,42" Stroke="#D5FFF6" StrokeThickness="2" />
+        </Canvas>
+      </Canvas>
+    </Viewbox>
+  </Border>
+</UserControl>

@@ -144,6 +144,7 @@ public partial class DeploymentsViewModel : ObservableObject
 
     public void Reset()
     {
+        ClearDeploymentRecovery();
         Checks.Clear();
         Steps.Clear();
         PostChecks.Clear();
@@ -164,6 +165,7 @@ public partial class DeploymentsViewModel : ObservableObject
 
     public void LoadForServer(ServerProfile? server)
     {
+        ClearDeploymentRecovery();
         ResetBackupContext();
         _activeProjectId = null;
         _isLoadingProfile = true;

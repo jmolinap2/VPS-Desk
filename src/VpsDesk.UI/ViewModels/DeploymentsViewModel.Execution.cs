@@ -413,6 +413,7 @@ public partial class DeploymentsViewModel
 
         if (!ValidateConfiguration()) return;
 
+        ClearDeploymentRecovery();
         // Punto de restauración del VPS completo: sin él no se toca el servidor.
         if (!await TakeSnapshotBeforeDeployAsync(server)) return;
 
@@ -432,6 +433,8 @@ public partial class DeploymentsViewModel
 
         var deploymentServices = GetDeploymentServices();
         var operation = BuildProjectOperation();
+        var verificationRequest = new PostDeployVerificationRequest(
+            server, RemoteRepositoryPath.Trim(), ComposeFile.Trim(), ParseHealthUrls(), deploymentServices);
         // La red se evalúa ahora: puede haber cambiado desde que se abrió la pantalla.
         var dataSaver = IsDataSaverActive;
         RefreshDataSaverStatus();
@@ -478,6 +481,7 @@ public partial class DeploymentsViewModel
                 DeploymentOutcomeTitle = "Pase detenido";
                 DeploymentNextAction = "Revisa el paso fallido y los servicios. Puede haber cambios aplicados. Ejecuta un nuevo prevuelo antes de repetir.";
                 Toast.Error(StatusMessage, "El despliegue se detuvo");
+                await CheckFailedDeploymentAsync(server, verificationRequest);
                 return;
             }
 
@@ -494,14 +498,10 @@ public partial class DeploymentsViewModel
 
             StatusMessage = LocalizationService.T("Deployments_StatusVerifying");
             var verification = await _postDeployVerification.VerifyAsync(
-                new PostDeployVerificationRequest(
-                    server,
-                    RemoteRepositoryPath.Trim(),
-                    ComposeFile.Trim(),
-                    ParseHealthUrls(),
-                    deploymentServices),
+                verificationRequest,
                 _secretAccessor());
 
+            if (_serverAccessor()?.Id != server.Id) return;
             foreach (var check in verification.Checks) PostChecks.Add(check);
 
             var hasWarnings = result.HasWarnings || verification.HasWarnings;
@@ -517,7 +517,10 @@ public partial class DeploymentsViewModel
                 elapsed.ToString("F1"));
 
             if (!verification.Passed)
+            {
                 Toast.Error($"Los comandos terminaron en {elapsed:F1}s, pero la verificación posterior encontró problemas. Revisa las comprobaciones antes de dar la versión por buena.", "Despliegue con problemas");
+                ApplyDeploymentRecovery(verification);
+            }
             else if (hasWarnings)
                 Toast.Warning($"Desplegado en {elapsed:F1}s y saludable, con avisos de mantenimiento o posteriores que conviene revisar.", "Despliegue completado con avisos");
             else
@@ -534,6 +537,7 @@ public partial class DeploymentsViewModel
             DeploymentNextAction = "Recupera la conexión y revisa contenedores, logs y migraciones antes de repetir. El servidor puede haber aplicado cambios.";
             DeploymentOutput += $"\n[Interrupción] {friendly}";
             Toast.Error(friendly, "El despliegue falló");
+            await CheckFailedDeploymentAsync(server, verificationRequest);
         }
         finally
         {

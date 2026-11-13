@@ -24,6 +24,7 @@ public partial class DeploymentsViewModel
     private VpsSnapshotInfo? _currentSnapshot;
     private Guid? _pendingSnapshotServerId;
     private long? _pendingSnapshotId;
+    private VpsSnapshotInfo? _pendingRestoreSnapshot;
     public ObservableCollection<VpsBackupInfo> ProviderBackups { get; } = new();
 
     [ObservableProperty] private bool _snapshotBeforeDeploy;
@@ -60,6 +61,7 @@ public partial class DeploymentsViewModel
     {
         OnPropertyChanged(nameof(CanUseSnapshots));
         OnPropertyChanged(nameof(CanRestoreSnapshot));
+        OnPropertyChanged(nameof(CanRestoreDeploymentSnapshot));
         OnPropertyChanged(nameof(CanUseAppBackups));
         NotifyBackupSelectionAvailability();
     }
@@ -187,6 +189,7 @@ public partial class DeploymentsViewModel
         SnapshotConfirmPhrase = string.Empty;
         _pendingSnapshotServerId = _serverAccessor()?.Id;
         _pendingSnapshotId = snapshot.Id;
+        _pendingRestoreSnapshot = snapshot;
         PendingSnapshotTitle = "Restaurar el servidor completo";
         PendingSnapshotConfirmLabel = "Restaurar servidor";
         PendingSnapshotMessage =
@@ -213,6 +216,7 @@ public partial class DeploymentsViewModel
         var action = _pendingSnapshotAction;
         var serverId = _pendingSnapshotServerId;
         var snapshotId = _pendingSnapshotId;
+        var expectedSnapshot = _pendingRestoreSnapshot;
         CancelSnapshotAction();
 
         if (_snapshots is not { IsConfigured: true } || _serverAccessor() is not { } server || server.Id != serverId) return;
@@ -229,6 +233,25 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        // El proveedor conserva un solo snapshot: puede haber cambiado desde que
+        // se abrió la confirmación, incluso desde otra aplicación o desde hPanel.
+        IsSnapshotBusy = true;
+        try
+        {
+            var latest = await _snapshots.GetAsync(server.Host);
+            if (_serverAccessor()?.Id != server.Id || expectedSnapshot is null
+                || !SnapshotRecoveryPolicy.IsSameAvailableSnapshot(expectedSnapshot, latest, DateTimeOffset.UtcNow))
+            {
+                Toast.Warning("El snapshot cambió, venció o ya no está disponible. Actualiza y revisa el punto de restauración.", "Restauración cancelada");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.Error(ex, "No se pudo validar el snapshot. Restauración cancelada");
+            return;
+        }
+        finally { IsSnapshotBusy = false; }
         await RestoreSnapshotWithFeedbackAsync(server);
     }
 
@@ -276,7 +299,13 @@ public partial class DeploymentsViewModel
             Toast.Error(StatusMessage, "Despliegue cancelado");
         }
 
-        return created;
+        if (created && _serverAccessor()?.Id == server.Id && _currentSnapshot is { } snapshot)
+        {
+            _deploymentSnapshot = snapshot;
+            _deploymentSnapshotServerId = server.Id;
+        }
+
+        return created && _deploymentSnapshotServerId == server.Id;
     }
 
     private async Task<bool> CreateSnapshotWithFeedbackAsync(
@@ -294,6 +323,7 @@ public partial class DeploymentsViewModel
         {
             await _snapshots!.CreateAsync(server.Host, progress);
             var snapshot = await _snapshots.GetAsync(server.Host);
+            if (snapshot is null) throw new InvalidOperationException("El proveedor no confirmó el snapshot creado.");
             if (_serverAccessor()?.Id == server.Id) ApplySnapshot(snapshot);
             CompleteOperationFeedback(true, successMessage);
             if (closeOnSuccess) IsOperationFeedbackModalOpen = false;

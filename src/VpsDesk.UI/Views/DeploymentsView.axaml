@@ -438,6 +438,10 @@
                     <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="18" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding DeploymentOutcomeTitle}" FontWeight="Bold" TextWrapping="Wrap" IsVisible="{Binding HasExecutionActivity}" />
                     <TextBlock Text="{Binding DeploymentNextAction}" Foreground="#A8B4C5" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
+                    <Button Content="{DynamicResource Recovery_RestoreSnapshot}"
+                            Command="{Binding RequestRestoreDeploymentSnapshotCommand}"
+                            IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"
+                            HorizontalAlignment="Left" Classes="btn-danger" />
                   </StackPanel>
                   <StackPanel Grid.Column="1"
                               Orientation="Horizontal"

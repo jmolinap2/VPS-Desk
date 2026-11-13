@@ -1,6 +1,7 @@
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Application.Deployments;
 using VpsDesk.Domain.Servers;
+using VpsDesk.Application.Snapshots;
 
 var server = new ServerProfile(Guid.NewGuid(), "Test", "localhost", 22, "test",
     SshAuthenticationType.Password, null, null, null, ServerEnvironment.Development, []);
@@ -48,6 +49,29 @@ try
     throw new Exception("Cancellation was ignored");
 }
 catch (OperationCanceledException) { Check(ssh.Count("inspect") == 1, "Cancellation stops retries"); }
+
+var now = DateTimeOffset.UtcNow;
+var snapshot = new VpsSnapshotInfo(10, now.AddMinutes(-10), now.AddDays(1), null);
+Check(SnapshotRecoveryPolicy.IsSameAvailableSnapshot(snapshot, snapshot, now), "Accept exact snapshot for deployment");
+Check(!SnapshotRecoveryPolicy.IsSameAvailableSnapshot(snapshot, snapshot with { Id = 11 }, now), "Reject replacement snapshot");
+Check(!SnapshotRecoveryPolicy.IsSameAvailableSnapshot(snapshot, snapshot with { CreatedAt = now }, now), "Reject reused snapshot id with different creation time");
+Check(!SnapshotRecoveryPolicy.IsSameAvailableSnapshot(snapshot, snapshot with { ExpiresAt = now }, now), "Reject expired snapshot");
+Check(!SnapshotRecoveryPolicy.IsSameAvailableSnapshot(snapshot, null, now), "Reject missing snapshot");
+
+ssh = new FakeSsh((_, _) => new(0, "/api|exited|none", "", TimeSpan.Zero, false, false));
+var verification = await new PostDeployVerificationService(ssh).VerifyAsync(new(server, "/app", "compose.yml", []), null);
+Check(verification.HasConfirmedFailure, "Stopped container is confirmed failure");
+ssh = new FakeSsh((_, _) => new(-1, "", "SSH unavailable", TimeSpan.Zero, false, false));
+verification = await new PostDeployVerificationService(ssh).VerifyAsync(new(server, "/app", "compose.yml", []), null);
+Check(!verification.IsStateConfirmed && !verification.HasConfirmedFailure, "SSH failure must not recommend rollback");
+ssh = new FakeSsh((command, _) => command.Contains("curl")
+    ? new(-1, "", "SSH unavailable", TimeSpan.Zero, false, false)
+    : new(0, "/api|running|healthy", "", TimeSpan.Zero, false, false));
+verification = await new PostDeployVerificationService(ssh).VerifyAsync(new(server, "/app", "compose.yml", ["https://example.com"]), null);
+Check(!verification.IsStateConfirmed, "SSH failure in HTTP check remains unconfirmed");
+ssh = new FakeSsh((_, _) => new(0, "/api|running|healthy", "", TimeSpan.Zero, false, false));
+verification = await new PostDeployVerificationService(ssh).VerifyAsync(new(server, "/app", "compose.yml", []), null);
+Check(verification.IsStateConfirmed && !verification.HasConfirmedFailure, "Healthy services do not recommend rollback");
 
 sealed class FakeSsh(Func<string, int, SshCommandResult> respond) : ISshCommandExecutor
 {

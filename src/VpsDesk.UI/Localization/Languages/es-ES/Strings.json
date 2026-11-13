@@ -1,4 +1,5 @@
 {
+  "Recovery_RestoreSnapshot": "Restaurar snapshot previo a este pase",
   "Notifications_Sound": "Sonidos de notificaciones",
   "Backups_LocalDataTitle": "Perfiles y ajustes de VPS Desk",
   "Backups_LocalDataHelp": "Copia los servidores, proyectos, preferencias e historial de esta instalación para llevarlos a otro equipo o teléfono. No incluye datos del servidor.",

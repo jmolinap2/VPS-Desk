@@ -267,6 +267,10 @@
 
             <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding DeploymentOutcomeTitle}" TextWrapping="Wrap" />
             <TextBlock Classes="t-body-s" Text="{Binding DeploymentNextAction}" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
+            <Button Content="{DynamicResource Recovery_RestoreSnapshot}"
+                    Command="{Binding RequestRestoreDeploymentSnapshotCommand}"
+                    IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"
+                    HorizontalAlignment="Stretch" Classes="btn-danger" />
             <StackPanel Spacing="8" IsVisible="{Binding IsDeploymentRunning}">
               <views:DeploymentJet HorizontalAlignment="Left" />
               <TextBlock Classes="t-headline" Text="{Binding DeploymentProgressText}" TextWrapping="Wrap"

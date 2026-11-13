@@ -15,7 +15,8 @@ public sealed record PostDeployCheckResult(
     string Code,
     string Label,
     PostDeployCheckStatus Status,
-    string? Detail = null);
+    string? Detail = null,
+    bool StateUnconfirmed = false);
 
 public sealed record PostDeployVerificationRequest(
     ServerProfile Server,
@@ -30,6 +31,8 @@ public sealed record PostDeployVerificationResult(
 {
     public bool Passed => Checks.All(x => x.Status != PostDeployCheckStatus.Failed);
     public bool HasWarnings => Checks.Any(x => x.Status == PostDeployCheckStatus.Warning);
+    public bool IsStateConfirmed => Checks.Count > 0 && Checks.All(x => !x.StateUnconfirmed);
+    public bool HasConfirmedFailure => IsStateConfirmed && !Passed;
 }
 
 public interface IPostDeployVerificationService
@@ -91,7 +94,8 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 PostDeployCheckStatus.Failed,
                 string.IsNullOrWhiteSpace(result.StandardError)
                     ? "Could not inspect the deployed containers."
-                    : result.StandardError.Trim()));
+                    : result.StandardError.Trim(),
+                StateUnconfirmed: result.ExitCode == -1 || result.TimedOut || result.Cancelled));
             return;
         }
 
@@ -143,6 +147,9 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 status,
                 detail));
         }
+        if (checks.Count == 0)
+            checks.Add(new PostDeployCheckResult("compose-state", "Docker Compose container state",
+                PostDeployCheckStatus.Failed, "Could not interpret the container state.", StateUnconfirmed: true));
     }
 
     private static string BuildServiceArguments(IReadOnlyList<string>? services)
@@ -182,7 +189,7 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 $"http:{rawUrl}",
                 $"HTTP {rawUrl}",
                 PostDeployCheckStatus.Failed,
-                "Only absolute http:// or https:// health URLs are supported."));
+                "Only absolute http:// or https:// health URLs are supported.", StateUnconfirmed: true));
             return;
         }
 
@@ -191,7 +198,7 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
             $"URL={url}; " +
             "curl -sS -L -o /dev/null --connect-timeout 5 --max-time 15 -w '%{http_code}' \"$URL\"";
 
-        var result = await ssh.ExecuteAsync(
+        var result = await SshReadRetry.ExecuteAsync(ssh,
             new SshCommandRequest(server, command, TimeSpan.FromSeconds(20)),
             secret,
             cancellationToken);
@@ -214,6 +221,7 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
             $"http:{uri.AbsoluteUri}",
             $"HTTP {uri.AbsoluteUri}",
             status,
-            detail));
+            detail,
+            StateUnconfirmed: result.ExitCode == -1 || result.TimedOut || result.Cancelled));
     }
 }

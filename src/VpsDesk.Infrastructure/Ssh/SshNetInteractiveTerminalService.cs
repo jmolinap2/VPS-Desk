@@ -14,6 +14,8 @@ public sealed class SshNetInteractiveTerminalService : IInteractiveTerminalServi
         CancellationToken cancellationToken = default)
     {
         var client = new SshClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(15)));
+        // Sesión larga: paquetes de keep-alive para que un NAT de red móvil no la cierre por inactividad.
+        client.KeepAliveInterval = TimeSpan.FromSeconds(30);
         SshConnectionFactory.ApplyHostKeyPolicy(client, server);
 
         try

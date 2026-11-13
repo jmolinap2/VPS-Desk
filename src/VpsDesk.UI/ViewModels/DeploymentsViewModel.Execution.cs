@@ -425,6 +425,7 @@ public partial class DeploymentsViewModel
         PostChecks.Clear();
         DeploymentOutput = string.Empty;
         DeploymentOutcomeTitle = "Pase en curso";
+        Toast.Info($"Desplegando la rama '{Branch.Trim()}'. Te avisaremos al terminar.", "Despliegue iniciado");
         DeploymentNextAction = "Mantén la aplicación abierta. Los pasos reservan el último tramo para verificar el resultado.";
         StatusMessage = LocalizationService.T("Deployments_StatusRunning");
         CancelPendingDeploy();

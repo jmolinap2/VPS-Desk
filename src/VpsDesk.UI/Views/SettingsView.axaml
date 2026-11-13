@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VpsDesk.Desktop.ViewModels"
              xmlns:views="using:VpsDesk.Desktop.Views"
+             xmlns:services="using:VpsDesk.Desktop.Services"
              x:Class="VpsDesk.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel" Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Text.Primary}">
   <ScrollViewer>
@@ -37,6 +38,9 @@
       </Border>
 
       <views:LocalBackupsView />
+      <CheckBox x:CompileBindings="False"
+                IsChecked="{Binding SoundEnabled, Source={x:Static services:NotificationCenter.Shared}, Mode=TwoWay}"
+                Content="{DynamicResource Notifications_Sound}" />
 
       <Border Classes="surface">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16">

@@ -320,6 +320,8 @@ public partial class MainWindowViewModel : ObservableObject
         _server = SelectedServerInList;
         _activeSecret = string.IsNullOrWhiteSpace(EditorSecret) ? null : EditorSecret;
         AutoRefreshEnabled = false;
+        _cachedCompatibility = null;
+        _consecutiveProbeFailures = 0;
         _store.Save(Servers, _server.Id);
         ApplyActiveServerHeader();
         SelectedPage = "Dashboard";
@@ -332,19 +334,66 @@ public partial class MainWindowViewModel : ObservableObject
 
     private bool CanRefresh() => !IsRefreshing && _server != null;
 
+    // La compatibilidad (distro, docker, git, nginx...) casi nunca cambia: se comprueba al abrir,
+    // al pulsar Actualizar o cuando caduca esta caché, no en cada tick del temporizador. Así un
+    // refresco periódico abre UNA conexión SSH en lugar de dos y no ejecuta ~10 comandos remotos.
+    private static readonly TimeSpan CompatibilityCacheLifetime = TimeSpan.FromMinutes(10);
+
+    // Un fallo aislado del sondeo periódico (cambio de red, pantalla apagada, pérdida de señal)
+    // no debe marcar el servidor como caído ni parar el auto-refresco: se reintenta.
+    private const int ProbeFailuresBeforeOffline = 3;
+
+    private CompatibilitySnapshot? _cachedCompatibility;
+    private Guid _cachedCompatibilityServerId;
+    private DateTimeOffset _cachedCompatibilityAt;
+    private int _consecutiveProbeFailures;
+
+    /// <summary>Actualizar pulsado por el usuario: comprobación completa y errores visibles.</summary>
     [RelayCommand(CanExecute = nameof(CanRefresh))]
-    public async Task RefreshAsync()
+    public Task RefreshAsync() => RefreshCoreAsync(periodic: false);
+
+    /// <summary>Sondeo del temporizador: una conexión, compatibilidad en caché, tolerante a fallos puntuales.</summary>
+    public async Task RefreshPeriodicAsync()
+    {
+        if (!CanRefresh()) return;
+        await RefreshCoreAsync(periodic: true);
+    }
+
+    private async Task RefreshCoreAsync(bool periodic)
     {
         if (_server == null) return;
 
         IsRefreshing = true;
-        StatusMessage = "Checking SSH and server capabilities...";
+        if (!periodic) StatusMessage = "Checking SSH and server capabilities...";
 
         try
         {
-            var compatibility = await _probe.CheckCompatibilityAsync(_server, _activeSecret);
+            var cacheValid = periodic
+                && _cachedCompatibility is not null
+                && _cachedCompatibilityServerId == _server.Id
+                && DateTimeOffset.UtcNow - _cachedCompatibilityAt < CompatibilityCacheLifetime;
+
+            var compatibility = cacheValid
+                ? _cachedCompatibility!
+                : await _probe.CheckCompatibilityAsync(_server, _activeSecret);
             var ssh = compatibility.Capabilities.FirstOrDefault(x => x.Capability == ServerCapability.Ssh);
-            ConnectionStatus = ssh?.Available == true ? "SSH Online" : "SSH Offline";
+
+            if (ssh?.Available != true)
+            {
+                _cachedCompatibility = null;
+                ConnectionStatus = "SSH Offline";
+                HandleProbeFailure(periodic, ssh?.Detail ?? "SSH connection failed.", ssh?.Detail ?? "No hubo respuesta SSH del servidor.", "Servidor sin conexión");
+                return;
+            }
+
+            if (!cacheValid)
+            {
+                _cachedCompatibility = compatibility;
+                _cachedCompatibilityServerId = _server.Id;
+                _cachedCompatibilityAt = DateTimeOffset.UtcNow;
+            }
+
+            ConnectionStatus = "SSH Online";
             CompatibilityLabel = compatibility.Level switch
             {
                 CompatibilityLevel.Certified => $"{_server.ProviderLabel?.ToUpperInvariant()} · CERTIFIED",
@@ -357,16 +406,7 @@ public partial class MainWindowViewModel : ObservableObject
             DockerStatus = CapabilityText(compatibility, ServerCapability.Docker);
             NginxStatus = CapabilityText(compatibility, ServerCapability.Nginx);
 
-            if (ssh?.Available != true)
-            {
-                AutoRefreshEnabled = false;
-                StatusMessage = ssh?.Detail ?? "SSH connection failed.";
-                LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
-                Toast.Error(ssh?.Detail ?? "No hubo respuesta SSH del servidor.", "Servidor sin conexión");
-                return;
-            }
-
-            StatusMessage = "Reading live telemetry...";
+            if (!periodic) StatusMessage = "Reading live telemetry...";
             var metrics = await _probe.ReadMetricsAsync(_server, _activeSecret);
 
             CpuUsage = Math.Clamp(metrics.CpuUsagePercent, 0, 100);
@@ -380,6 +420,7 @@ public partial class MainWindowViewModel : ObservableObject
             Push(CpuSeries, CpuUsage, 60);
             Push(MemorySeries, MemoryUsage, 60);
 
+            _consecutiveProbeFailures = 0;
             AutoRefreshEnabled = true;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
             StatusMessage = compatibility.Distribution is { Length: > 0 }
@@ -388,17 +429,36 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            AutoRefreshEnabled = false;
-            ConnectionStatus = "SSH Offline";
             var friendly = UserFacingErrors.Describe(ex);
-            StatusMessage = friendly;
-            LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
-            Toast.Error(friendly, "No se pudo actualizar el servidor");
+            HandleProbeFailure(periodic, friendly, friendly, "No se pudo actualizar el servidor");
         }
         finally
         {
             IsRefreshing = false;
         }
+    }
+
+    /// <summary>
+    /// Fallo del sondeo. Manual: se muestra al instante. Periódico: se reintenta en silencio y solo
+    /// tras <see cref="ProbeFailuresBeforeOffline"/> fallos seguidos se declara sin conexión.
+    /// </summary>
+    private void HandleProbeFailure(bool periodic, string statusDetail, string toastDetail, string toastTitle)
+    {
+        _consecutiveProbeFailures++;
+        LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
+
+        if (periodic && _consecutiveProbeFailures < ProbeFailuresBeforeOffline)
+        {
+            ConnectionStatus = "Reconectando...";
+            StatusMessage = $"Sin respuesta del servidor (intento {_consecutiveProbeFailures} de {ProbeFailuresBeforeOffline}). Se reintentará solo.";
+            return;
+        }
+
+        _cachedCompatibility = null;
+        AutoRefreshEnabled = false;
+        ConnectionStatus = "SSH Offline";
+        StatusMessage = statusDetail;
+        Toast.Error(toastDetail, toastTitle);
     }
 
     private bool TryBuildEditorProfile(Guid id, out ServerProfile? profile, out string error)

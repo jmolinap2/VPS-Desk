@@ -1,4 +1,5 @@
 {
+  "Notifications_Sound": "Notification sounds",
   "Backups_LocalDataTitle": "VPS Desk profiles and settings",
   "Backups_LocalDataHelp": "Copies the servers, projects, preferences and history of this installation so you can move them to another computer or phone. It does not include server data.",
   "Backups_EncryptLocal": "Encrypt the backup with a password",

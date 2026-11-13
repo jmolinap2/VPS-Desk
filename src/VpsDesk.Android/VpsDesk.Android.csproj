@@ -20,6 +20,11 @@
          incrustamos directo en el APK. -->
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(AbiOnly)' == 'arm64'">
+    <!-- Opcional: -p:AbiOnly=arm64 genera un APK solo para teléfonos ARM64 (sin la ABI x86_64 de
+         los emuladores), bastante más pequeño. Sin la opción, el build no cambia. -->
+    <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
   <ItemGroup>
     <!-- URL de version.json del canal de actualización. Se pasa al compilar
          (-p:VpsDeskUpdateUrl=https://...) para no versionar la dirección privada. -->

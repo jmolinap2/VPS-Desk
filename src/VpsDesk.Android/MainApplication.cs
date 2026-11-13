@@ -44,10 +44,21 @@ public class MainApplication : AvaloniaAndroidApplication<App>
         // Actualización in-app: lee versión instalada y la URL de version.json compilada en el APK.
         AppUpdatePlatform.Current = new AndroidAppUpdatePlatform(this);
 
+        VpsDesk.Desktop.Services.NotificationAudio.PlaySound = _ =>
+        {
+            var audio = GetSystemService(AudioService) as global::Android.Media.AudioManager;
+            if (audio?.RingerMode != global::Android.Media.RingerMode.Normal) return;
+            _notificationRingtone ??= global::Android.Media.RingtoneManager.GetRingtone(this,
+                global::Android.Media.RingtoneManager.GetDefaultUri(global::Android.Media.RingtoneType.Notification));
+            _notificationRingtone?.Play();
+        };
+
         base.OnCreate();
     }
 
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
         => base.CustomizeAppBuilder(builder)
             .WithInterFont();
+
+    private global::Android.Media.Ringtone? _notificationRingtone;
 }

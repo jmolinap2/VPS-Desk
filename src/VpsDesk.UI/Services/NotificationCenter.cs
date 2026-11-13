@@ -78,6 +78,31 @@ public sealed partial class NotificationCenter : ObservableObject
 
     public bool HasItems => Items.Count > 0;
 
+    private static string SoundPreferencePath => System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VpsDesk", "notification-sound.txt");
+
+    private bool _soundEnabled = LoadSoundPreference();
+    public bool SoundEnabled
+    {
+        get => _soundEnabled;
+        set
+        {
+            if (!SetProperty(ref _soundEnabled, value)) return;
+            try
+            {
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SoundPreferencePath)!);
+                System.IO.File.WriteAllText(SoundPreferencePath, value.ToString());
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex.Message); }
+        }
+    }
+
+    private static bool LoadSoundPreference()
+    {
+        try { return !bool.TryParse(System.IO.File.ReadAllText(SoundPreferencePath), out var enabled) || enabled; }
+        catch { return true; }
+    }
+
     private NotificationCenter()
     {
         Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasItems));
@@ -109,6 +134,7 @@ public sealed partial class NotificationCenter : ObservableObject
 
         var notification = new AppNotification(level, heading, text);
         Items.Insert(0, notification);
+        NotificationAudio.Play(level);
         notification.ArmTimer(DurationFor(level), () => Dismiss(notification));
 
         while (Items.Count > MaxVisible)

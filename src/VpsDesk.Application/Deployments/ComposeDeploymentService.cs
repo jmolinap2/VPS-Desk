@@ -116,7 +116,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             ("checkout", "Checkout branch",
                 $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
                 TimeSpan.FromSeconds(45), true),
-            ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90), true)
+            ("pull", "Fast-forward source", BuildFastForwardCommand(repo, branch, remoteBranch), TimeSpan.FromSeconds(90), true)
         };
 
         if (request.DeployApplication && request.PullImages)
@@ -348,6 +348,17 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
            $"if [ \"$VPSDESK_SIZE\" -gt {maxBytes} ]; then echo \"[Modo ahorro de datos: se omitieron $((VPSDESK_SIZE - {maxBytes})) bytes iniciales de la salida]\"; fi\n" +
            $"tail -c {maxBytes} \"$VPSDESK_LOG\"\n" +
            "exit $VPSDESK_RC";
+
+    /// <summary>
+    /// Pull de solo avance rápido. Si falla (p. ej. ramas divergidas) añade a la salida un diagnóstico de
+    /// solo lectura: commits que solo existen en el servidor, cuántos le faltan y cambios sin confirmar.
+    /// Conserva el código de salida del pull. Los argumentos llegan ya entrecomillados para el shell.
+    /// </summary>
+    internal static string BuildFastForwardCommand(string repo, string branch, string remoteBranch)
+        => $"git -C {repo} pull --ff-only origin {branch} || {{ rc=$?; echo; echo '--- Diagnostico (solo lectura) ---'; "
+           + $"echo 'Commits solo en el servidor (no estan en origin):'; git -C {repo} log --oneline --no-decorate -n 20 {remoteBranch}..{branch} 2>&1; "
+           + $"echo 'Commits de origin que faltan en el servidor:'; git -C {repo} rev-list --count {branch}..{remoteBranch} 2>&1; "
+           + $"echo 'Cambios locales sin confirmar:'; git -C {repo} status --short 2>&1 | head -n 20; exit $rc; }}";
 
     private static string BuildServiceArguments(IReadOnlyList<string>? services)
     {

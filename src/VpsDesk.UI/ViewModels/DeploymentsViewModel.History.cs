@@ -78,13 +78,22 @@ public partial class DeploymentsViewModel
         => OnPropertyChanged(nameof(IsNewDeploymentView));
 
     partial void OnSelectedHistoryEntryChanged(OperationHistoryEntry? value)
-        => OnPropertyChanged(nameof(HasSelectedHistoryEntry));
+    {
+        OnPropertyChanged(nameof(HasSelectedHistoryEntry));
+        OnPropertyChanged(nameof(CanShareHistoryReport));
+    }
 
     partial void OnIsDeploymentRunningChanged(bool value)
-        => OnPropertyChanged(nameof(HasExecutionActivity));
+    {
+        OnPropertyChanged(nameof(HasExecutionActivity));
+        NotifyReportAvailability();
+    }
 
     partial void OnDeploymentOutputChanged(string value)
-        => OnPropertyChanged(nameof(HasExecutionActivity));
+    {
+        OnPropertyChanged(nameof(HasExecutionActivity));
+        OnPropertyChanged(nameof(CanShareRunReport));
+    }
 
     partial void OnIsDeploymentConfigurationExpandedChanged(bool value)
         => OnPropertyChanged(nameof(IsDeploymentConfigurationCollapsed));

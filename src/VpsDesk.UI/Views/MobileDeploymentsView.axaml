@@ -279,6 +279,12 @@
               <TextBlock Classes="t-label" Text="{Binding DeploymentLastActivity}" TextWrapping="Wrap" />
             </StackPanel>
 
+            <!-- informe del pase: copiar para pegar en un chat o guardar como .txt -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding CanShareRunReport}">
+              <Button Classes="btn-secondary" Tag="run" Content="{DynamicResource Report_Copy}" Click="OnReportCopyClick" HorizontalAlignment="Stretch" />
+              <Button Grid.Column="1" Classes="btn-secondary" Tag="run" Content="{DynamicResource Report_Save}" Click="OnReportSaveClick" HorizontalAlignment="Stretch" />
+            </Grid>
+
             <Button Classes="btn-secondary" Content="{Binding OutputFollowLabel}" Command="{Binding ToggleOutputFollowCommand}"
                     HorizontalAlignment="Stretch" />
             <TextBlock Classes="t-label" Text="{Binding OutputFollowHint}" TextWrapping="Wrap" />
@@ -423,6 +429,11 @@
                      Foreground="{DynamicResource Brush.Code.Text}"
                      FontFamily="{DynamicResource Font.Mono}" FontSize="12"
                      ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding CanShareHistoryReport}">
+              <Button Classes="btn-primary" Tag="history" Content="{DynamicResource Report_Copy}" Click="OnReportCopyClick" HorizontalAlignment="Stretch" />
+              <Button Grid.Column="1" Classes="btn-secondary" Tag="history" Content="{DynamicResource Report_Save}" Click="OnReportSaveClick" HorizontalAlignment="Stretch" />
+            </Grid>
 
             <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
                     Command="{Binding CloseHistorySheetCommand}" />

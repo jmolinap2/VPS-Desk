@@ -511,5 +511,22 @@
   "Terminal_EmptyHint": "Conéctate para ejecutar comandos en el servidor. La sesión no se guarda en el historial.",
   "Env_EmptyTitle": "Aún no hay un .env abierto",
   "Projects_EmptyAssociated": "Aún no hay proyectos asociados a este servidor. Ve a «Descubiertos» para detectarlos.",
-  "Projects_EmptyDiscovered": "Toca «Detectar proyectos» para buscar proyectos Docker Compose en el servidor."
+  "Projects_EmptyDiscovered": "Toca «Detectar proyectos» para buscar proyectos Docker Compose en el servidor.",
+  "Report_Title": "Informe de pase",
+  "Report_Result": "Resultado",
+  "Report_Started": "Inicio",
+  "Report_Finished": "Fin",
+  "Report_Diagnosis": "Diagnóstico probable",
+  "Report_Output": "Salida completa",
+  "Report_NoOutput": "(sin salida)",
+  "Report_Copy": "Copiar informe",
+  "Report_Save": "Guardar informe",
+  "Report_Copied": "Informe copiado. Pégalo donde lo necesites.",
+  "Report_Saved": "Informe guardado.",
+  "Report_Hint_Diverged": "La rama del servidor y origin/{1} divergieron: el repositorio del VPS tiene commits propios que no están en origin y el pull solo admite avance rápido (--ff-only). Revisa cuáles son con «git -C {0} log origin/{1}..{1}». Si no los necesitas, alinea con «git -C {0} reset --hard origin/{1}»; si los necesitas, intégralos con rebase o merge antes de repetir el pase.",
+  "Report_Hint_LocalChanges": "Hay cambios locales sin confirmar en el repositorio del VPS que el pull sobrescribiría. Revísalos con «git -C {0} status» y confírmalos, guárdalos (stash) o descártalos.",
+  "Report_Hint_Remote": "El VPS no pudo alcanzar el repositorio remoto (DNS, red o credenciales). Comprueba la conectividad y el acceso de la clave de despliegue.",
+  "Report_Hint_Permission": "Permiso denegado. Comprueba el usuario SSH, la propiedad de los archivos del repositorio y la clave de despliegue.",
+  "Report_Hint_Port": "Un puerto ya está en uso en el VPS. Detén el proceso o contenedor que lo ocupa o cambia el puerto publicado.",
+  "Report_Hint_Disk": "El disco del VPS está lleno. Libera espacio (Almacenamiento → limpieza de Docker) y repite el pase."
 }

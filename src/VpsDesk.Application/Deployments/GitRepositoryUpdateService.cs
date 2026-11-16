@@ -75,7 +75,7 @@ public sealed class GitRepositoryUpdateService(ISshCommandExecutor ssh) : IGitRe
             ("checkout", "Checkout branch",
                 $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
                 TimeSpan.FromSeconds(45)),
-            ("pull", "Fast-forward source", $"git -C {repo} pull --ff-only origin {branch}", TimeSpan.FromSeconds(90))
+            ("pull", "Fast-forward source", ComposeDeploymentService.BuildFastForwardCommand(repo, branch, remoteBranch), TimeSpan.FromSeconds(90))
         };
 
         foreach (var step in commands)

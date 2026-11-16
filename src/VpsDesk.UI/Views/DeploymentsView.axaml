@@ -466,6 +466,8 @@
                                Background="#17252B" />
                   <TextBlock Text="{Binding DeploymentLastActivity}" Foreground="#94A3B8" FontSize="11" IsVisible="{Binding HasExecutionActivity}" />
                   <WrapPanel IsVisible="{Binding HasExecutionActivity}">
+                    <Button Content="{DynamicResource Report_Copy}" Tag="run" Click="OnReportCopyClick" IsVisible="{Binding CanShareRunReport}" Margin="0,0,8,4" />
+                    <Button Content="{DynamicResource Report_Save}" Tag="run" Click="OnReportSaveClick" IsVisible="{Binding CanShareRunReport}" Margin="0,0,12,4" />
                     <Button Content="{Binding OutputFollowLabel}" Command="{Binding ToggleOutputFollowCommand}" Margin="0,0,12,4" />
                     <TextBlock Text="{Binding OutputFollowHint}" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap" />
                   </WrapPanel>
@@ -523,7 +525,11 @@
       <Border Grid.Column="1" Classes="card">
         <ScrollViewer>
           <StackPanel Spacing="12">
-            <TextBlock Text="{DynamicResource Deployments_HistoryDetail}" FontSize="17" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBlock Text="{DynamicResource Deployments_HistoryDetail}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Content="{DynamicResource Report_Copy}" Tag="history" Click="OnReportCopyClick" IsEnabled="{Binding CanShareHistoryReport}" />
+              <Button Grid.Column="2" Content="{DynamicResource Report_Save}" Tag="history" Click="OnReportSaveClick" IsEnabled="{Binding CanShareHistoryReport}" />
+            </Grid>
             <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
               <TextBlock Text="Servidor" Foreground="#66758A" />
               <TextBlock Grid.Column="1" Text="{Binding SelectedHistoryEntry.ServerName}" />

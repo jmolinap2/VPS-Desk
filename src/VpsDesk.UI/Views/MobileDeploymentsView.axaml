@@ -276,7 +276,14 @@
               <TextBlock Classes="t-headline" Text="{Binding DeploymentProgressText}" TextWrapping="Wrap"
                          views:DeploymentAttention.IsRunning="{Binding IsDeploymentRunning}" />
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding DeploymentProgressPercent}" Height="6" />
-              <TextBlock Classes="t-label" Text="{Binding DeploymentLastActivity}" TextWrapping="Wrap" />
+              <!-- actividad: se mueve siempre que el pase corre, aunque el paso actual tarde minutos -->
+              <ProgressBar IsIndeterminate="True" Height="3" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <TextBlock Classes="t-label" Text="{Binding DeploymentLastActivity}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="t-mono" FontFeatures="tnum" VerticalAlignment="Center"
+                           Text="{Binding DeploymentElapsedText}"
+                           AutomationProperties.Name="{DynamicResource Deployments_Elapsed}" ToolTip.Tip="{DynamicResource Deployments_Elapsed}" />
+              </Grid>
             </StackPanel>
 
             <!-- informe del pase: copiar para pegar en un chat o guardar como .txt -->
@@ -358,6 +365,10 @@
                     </Border>
                   </Grid>
                   <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding Summary}" TextWrapping="Wrap" />
+                  <TextBlock Classes="t-label danger" TextWrapping="Wrap"
+                             IsVisible="{Binding FailedStep, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <Run Text="{DynamicResource Deployments_FailedStep}" /><Run Text=": " /><Run Text="{Binding FailedStep}" />
+                  </TextBlock>
                   <TextBlock Classes="t-label" Text="{Binding ServerName}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Border>
@@ -386,7 +397,7 @@
     <Border x:Name="HistoryScrim" Classes="m-scrim" Classes.open="{Binding IsHistorySheetOpen}" Grid.RowSpan="3"
             PointerPressed="OnHistoryScrimPressed" />
     <Border Classes="m-sheet" Classes.open="{Binding IsHistorySheetOpen}" Grid.RowSpan="3" VerticalAlignment="Bottom" MaxHeight="640">
-      <Grid RowDefinitions="Auto,Auto,*">
+      <Grid RowDefinitions="Auto,Auto,Auto,*">
         <Border Classes="sheet-handle" Margin="0,10,0,4" />
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="20,4,8,4">
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -403,9 +414,27 @@
             <Path Classes="icon" Data="{StaticResource Icon.Close}" />
           </Button>
         </Grid>
-        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+        <!-- exportar siempre a la vista, sin tener que bajar hasta el final de la hoja -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="20,4,20,8" IsVisible="{Binding CanShareHistoryReport}">
+          <Button Classes="btn-primary" MinHeight="44" Tag="history" Content="{DynamicResource Report_Copy}" Click="OnReportCopyClick" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Classes="btn-secondary" MinHeight="44" Tag="history" Content="{DynamicResource Report_Save}" Click="OnReportSaveClick" HorizontalAlignment="Stretch" />
+        </Grid>
+        <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="20,8,20,24" Spacing="14">
             <TextBlock Classes="t-body" Text="{Binding SelectedHistoryEntry.Summary}" TextWrapping="Wrap" />
+
+            <!-- qué falló: paso, causa probable y líneas de error, antes que los campos y la salida -->
+            <Border Classes="surface-inset" IsVisible="{Binding HasHistoryFailureInfo}">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="t-overline" Text="{DynamicResource Report_WhatFailed}" />
+                <TextBlock Classes="t-body danger" FontWeight="SemiBold" Text="{Binding SelectedHistoryEntry.FailedStep}" TextWrapping="Wrap"
+                           IsVisible="{Binding SelectedHistoryEntry.FailedStep, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Classes="t-body-s" Text="{Binding HistoryDiagnosis}" TextWrapping="Wrap" IsVisible="{Binding HasHistoryDiagnosis}" />
+                <TextBlock Classes="t-overline" Text="{DynamicResource Report_ErrorLines}" />
+                <TextBox Text="{Binding HistoryErrorExcerpt, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                         MaxHeight="150" FontFamily="{DynamicResource Font.Mono}" FontSize="12" />
+              </StackPanel>
+            </Border>
 
             <Border Classes="surface-inset">
               <StackPanel Spacing="10">
@@ -429,11 +458,6 @@
                      Foreground="{DynamicResource Brush.Code.Text}"
                      FontFamily="{DynamicResource Font.Mono}" FontSize="12"
                      ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
-
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding CanShareHistoryReport}">
-              <Button Classes="btn-primary" Tag="history" Content="{DynamicResource Report_Copy}" Click="OnReportCopyClick" HorizontalAlignment="Stretch" />
-              <Button Grid.Column="1" Classes="btn-secondary" Tag="history" Content="{DynamicResource Report_Save}" Click="OnReportSaveClick" HorizontalAlignment="Stretch" />
-            </Grid>
 
             <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
                     Command="{Binding CloseHistorySheetCommand}" />

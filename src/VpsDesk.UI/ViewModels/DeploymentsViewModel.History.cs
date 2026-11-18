@@ -81,12 +81,14 @@ public partial class DeploymentsViewModel
     {
         OnPropertyChanged(nameof(HasSelectedHistoryEntry));
         OnPropertyChanged(nameof(CanShareHistoryReport));
+        NotifyHistoryFailureInfo();
     }
 
     partial void OnIsDeploymentRunningChanged(bool value)
     {
         OnPropertyChanged(nameof(HasExecutionActivity));
         NotifyReportAvailability();
+        UpdateElapsedTimer(value);
     }
 
     partial void OnDeploymentOutputChanged(string value)
@@ -164,7 +166,13 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private void ShowNewDeployment()
     {
-        if (IsBusy) return;
+        // Con un pase en curso (o la salida del último) solo se vuelve a la pestaña: reiniciar aquí
+        // borraría el progreso y, antes, el comando ni siquiera dejaba regresar desde el historial.
+        if (IsBusy || IsDeploymentRunning)
+        {
+            IsHistoryView = false;
+            return;
+        }
 
         IsHistoryView = false;
         Checks.Clear();

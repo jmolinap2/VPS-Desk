@@ -74,6 +74,14 @@ public static class DeploymentReport
             text.AppendLine(data.Details.Trim());
         }
 
+        var errors = ErrorExcerpt(data.Output);
+        if (errors.Length > 0)
+        {
+            text.AppendLine();
+            text.AppendLine($"## {LocalizationService.T("Report_ErrorLines")}");
+            text.AppendLine(errors);
+        }
+
         var hints = Diagnose(data.Output, data.Repository, data.Branch);
         if (hints.Count > 0)
         {
@@ -121,6 +129,27 @@ public static class DeploymentReport
         Add(@"no space left on device", "Report_Hint_Disk");
         return hints;
     }
+
+    /// <summary>Las últimas líneas de la salida que parecen un error, para ver de un vistazo qué falló.</summary>
+    public static string ErrorExcerpt(string? output, int maxLines = 6)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return string.Empty;
+
+        var lines = output.Split('\n')
+            .Select(x => x.Trim())
+            .Where(x => x.Length > 0
+                        && ErrorLine.IsMatch(x)
+                        && !x.Contains("warning", StringComparison.OrdinalIgnoreCase))
+            .Select(x => Regex.Replace(x, @"^#\d+\s+[\d.]+\s+", string.Empty))   // prefijo de BuildKit "#36 12.7"
+            .Select(x => x.Length > 220 ? x[..220] + "…" : x)
+            .Distinct()
+            .TakeLast(maxLines);
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static readonly Regex ErrorLine = new(
+        @"\b(error|fatal|failed|denied|cannot|unable|exception|NU\d{4}|CS\d{4})\b|exit [1-9]\d*",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static void Line(StringBuilder text, string labelKey, string? value)
     {

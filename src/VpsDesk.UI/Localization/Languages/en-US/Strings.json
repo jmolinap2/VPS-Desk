@@ -528,5 +528,8 @@
   "Report_Hint_Remote": "The VPS could not reach the remote repository (DNS, network or credentials). Check connectivity and the deploy key access.",
   "Report_Hint_Permission": "Permission denied. Check the SSH user, repository file ownership and the deploy key.",
   "Report_Hint_Port": "A port is already in use on the VPS. Stop the process or container using it, or change the published port.",
-  "Report_Hint_Disk": "The VPS disk is full. Free space (Storage → Docker cleanup) and repeat the run."
+  "Report_Hint_Disk": "The VPS disk is full. Free space (Storage → Docker cleanup) and repeat the run.",
+  "Report_WhatFailed": "What failed",
+  "Report_ErrorLines": "Error lines",
+  "Deployments_Elapsed": "Elapsed time"
 }

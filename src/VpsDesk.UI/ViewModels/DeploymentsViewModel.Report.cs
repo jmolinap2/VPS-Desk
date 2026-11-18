@@ -15,6 +15,27 @@ public partial class DeploymentsViewModel
 
     public bool CanShareHistoryReport => SelectedHistoryEntry is not null;
 
+    // «Qué falló» del pase abierto en el historial: causa probable y líneas de error de la salida.
+    public string HistoryDiagnosis => SelectedHistoryEntry is { } entry
+        ? string.Join(Environment.NewLine + Environment.NewLine,
+            DeploymentReport.Diagnose(entry.Output, entry.RemoteRepositoryPath, entry.Branch))
+        : string.Empty;
+
+    public string HistoryErrorExcerpt => DeploymentReport.ErrorExcerpt(SelectedHistoryEntry?.Output);
+
+    public bool HasHistoryDiagnosis => HistoryDiagnosis.Length > 0;
+
+    public bool HasHistoryFailureInfo => SelectedHistoryEntry is { Outcome: not OperationOutcome.Success } entry
+        && (!string.IsNullOrWhiteSpace(entry.FailedStep) || HasHistoryDiagnosis || HistoryErrorExcerpt.Length > 0);
+
+    private void NotifyHistoryFailureInfo()
+    {
+        OnPropertyChanged(nameof(HistoryDiagnosis));
+        OnPropertyChanged(nameof(HistoryErrorExcerpt));
+        OnPropertyChanged(nameof(HasHistoryDiagnosis));
+        OnPropertyChanged(nameof(HasHistoryFailureInfo));
+    }
+
     private void NotifyReportAvailability()
     {
         if (!IsDeploymentRunning) _lastRunFinishedAt = DateTimeOffset.UtcNow;

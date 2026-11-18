@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using VpsDesk.Desktop.ViewModels;
 
 namespace VpsDesk.Desktop.Views;
@@ -12,6 +13,7 @@ public partial class MobileShell : UserControl
     private readonly ShellTelemetryController _telemetry = new(refreshOnActivation: true);
     private IInputPane? _inputPane;
     private TopLevel? _topLevel;
+    private TopLevel? _focusTopLevel;
 
     public MobileShell()
     {
@@ -44,16 +46,38 @@ public partial class MobileShell : UserControl
 
         _inputPane.StateChanged += OnInputPaneStateChanged;
         ApplyKeyboardInset(_inputPane.State == InputPaneState.Open ? _inputPane.OccludedRect.Height : 0);
+
+        // Red de seguridad: si el sistema cierra el teclado sin avisar (botón Atrás, cambio de foco),
+        // el relleno quedaría puesto y la pantalla se vería recortada con un bloque negro debajo.
+        _focusTopLevel = TopLevel.GetTopLevel(this);
+        _focusTopLevel?.AddHandler(InputElement.GotFocusEvent, OnAnyFocusOrPress, RoutingStrategies.Tunnel);
+        _focusTopLevel?.AddHandler(InputElement.PointerPressedEvent, OnAnyFocusOrPress, RoutingStrategies.Tunnel);
     }
 
     private void DetachInputPane()
     {
         if (_inputPane is not null) _inputPane.StateChanged -= OnInputPaneStateChanged;
         _inputPane = null;
+        _focusTopLevel?.RemoveHandler(InputElement.GotFocusEvent, OnAnyFocusOrPress);
+        _focusTopLevel?.RemoveHandler(InputElement.PointerPressedEvent, OnAnyFocusOrPress);
+        _focusTopLevel = null;
     }
 
     private void OnInputPaneStateChanged(object? sender, InputPaneStateEventArgs e)
         => ApplyKeyboardInset(e.NewState == InputPaneState.Open ? e.EndRect.Height : 0);
+
+    private void OnAnyFocusOrPress(object? sender, RoutedEventArgs e)
+        => DispatcherTimer.RunOnce(ReconcileKeyboardInset, TimeSpan.FromMilliseconds(250));
+
+    // Sin teclado visible no debe haber relleno: ni el estado del panel de entrada dice «abierto»
+    // ni hay un campo de texto enfocado (Avalonia oculta el teclado al salir del campo).
+    private void ReconcileKeyboardInset()
+    {
+        if (Padding.Bottom <= 0 || _inputPane is null) return;
+
+        var textFocused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox;
+        if (_inputPane.State != InputPaneState.Open || !textFocused) ApplyKeyboardInset(0);
+    }
 
     private void ApplyKeyboardInset(double height)
         => Padding = new Thickness(0, 0, 0, Math.Max(0, height));

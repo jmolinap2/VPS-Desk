@@ -528,5 +528,8 @@
   "Report_Hint_Remote": "El VPS no pudo alcanzar el repositorio remoto (DNS, red o credenciales). Comprueba la conectividad y el acceso de la clave de despliegue.",
   "Report_Hint_Permission": "Permiso denegado. Comprueba el usuario SSH, la propiedad de los archivos del repositorio y la clave de despliegue.",
   "Report_Hint_Port": "Un puerto ya está en uso en el VPS. Detén el proceso o contenedor que lo ocupa o cambia el puerto publicado.",
-  "Report_Hint_Disk": "El disco del VPS está lleno. Libera espacio (Almacenamiento → limpieza de Docker) y repite el pase."
+  "Report_Hint_Disk": "El disco del VPS está lleno. Libera espacio (Almacenamiento → limpieza de Docker) y repite el pase.",
+  "Report_WhatFailed": "Qué falló",
+  "Report_ErrorLines": "Líneas con error",
+  "Deployments_Elapsed": "Tiempo transcurrido"
 }

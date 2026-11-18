@@ -50,9 +50,9 @@
     </Border>
 
     <!-- línea de comandos fija abajo -->
-    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.Surface.Inset}" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="{DynamicResource Radius.L}" Padding="8,6" Margin="0,10,0,0">
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.Terminal.Bar}" BorderBrush="{DynamicResource Brush.Terminal.Border}" BorderThickness="1" CornerRadius="{DynamicResource Radius.L}" Padding="8,6" Margin="0,10,0,0">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-        <TextBlock Text="$" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.16}" Foreground="{DynamicResource Brush.Success}" VerticalAlignment="Center" Margin="6,0,0,0" />
+        <TextBlock Text="$" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.16}" Foreground="{DynamicResource Brush.Terminal.Secondary}" VerticalAlignment="Center" Margin="6,0,0,0" />
         <TextBox x:Name="CommandInput"
                  Grid.Column="1"
                  Text="{Binding CommandText}"
@@ -60,6 +60,7 @@
                  FontFamily="{DynamicResource Font.Mono}"
                  FontSize="{Binding FontSize}"
                  Background="Transparent"
+                 Foreground="{DynamicResource Brush.Terminal.Text}" CaretBrush="{DynamicResource Brush.Terminal.Accent}"
                  BorderThickness="0"
                  KeyDown="CommandInput_OnKeyDown"
                  IsEnabled="{Binding IsConnected}" />
@@ -68,26 +69,39 @@
     </Border>
 
     <!-- salida: ocupa el resto y sigue el final -->
-    <Border Classes="surface" Padding="0" ClipToBounds="True">
-      <Panel>
-      <TextBox Foreground="{DynamicResource Brush.Code.Text}" CaretBrush="{DynamicResource Brush.Accent.Text}" x:Name="OutputBox"
+    <Border Classes="terminal-frame">
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="terminal-header">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <TextBlock Text="SSH" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.12}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Terminal.Secondary}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding ActiveServerLabel}" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.12}" Foreground="{DynamicResource Brush.Terminal.Muted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Ellipse Classes="terminal-status" Classes.connected="{Binding IsConnected}" />
+              <TextBlock Text="{DynamicResource Ui_Connected}" IsVisible="{Binding IsConnected}" Foreground="{DynamicResource Brush.Terminal.Accent}" FontSize="{DynamicResource Font.Size.11}" />
+              <TextBlock Text="{DynamicResource Terminal_Offline}" IsVisible="{Binding !IsConnected}" Foreground="{DynamicResource Brush.Terminal.Muted}" FontSize="{DynamicResource Font.Size.11}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      <Panel Grid.Row="1">
+      <TextBox Foreground="{DynamicResource Brush.Terminal.Text}" CaretBrush="{DynamicResource Brush.Terminal.Accent}" x:Name="OutputBox"
                Text="{Binding TerminalOutput}"
                IsReadOnly="True"
                AcceptsReturn="True" VerticalContentAlignment="Top"
                TextWrapping="NoWrap"
                FontFamily="{DynamicResource Font.Mono}"
                FontSize="{Binding FontSize}"
-               Background="{DynamicResource Brush.Surface.Code}"
+               Background="{DynamicResource Brush.Terminal.Background}"
                BorderThickness="0"
                Padding="12"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                ScrollViewer.VerticalScrollBarVisibility="Auto" />
         <StackPanel IsVisible="{Binding TerminalOutput, Converter={x:Static StringConverters.IsNullOrEmpty}}"
                     IsHitTestVisible="False" VerticalAlignment="Center" Spacing="10" Margin="24">
-          <Path Classes="icon tertiary" Data="{StaticResource Icon.Server}" Width="28" Height="28" HorizontalAlignment="Center" />
-          <TextBlock Classes="t-body-s" Text="{DynamicResource Terminal_EmptyHint}" TextAlignment="Center" TextWrapping="Wrap" />
+          <Path Classes="icon" Stroke="{DynamicResource Brush.Terminal.Accent}" Data="{StaticResource Icon.Server}" Width="28" Height="28" HorizontalAlignment="Center" />
+          <TextBlock Classes="t-body-s" Foreground="{DynamicResource Brush.Terminal.Muted}" Text="{DynamicResource Terminal_EmptyHint}" TextAlignment="Center" TextWrapping="Wrap" />
         </StackPanel>
       </Panel>
+      </Grid>
     </Border>
   </DockPanel>
 </UserControl>

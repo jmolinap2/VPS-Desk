@@ -464,7 +464,7 @@
                 </Grid>
 
                 <StackPanel Grid.Row="1" Spacing="8">
-                  <views:DeploymentJet HorizontalAlignment="Left" IsVisible="{Binding IsDeploymentRunning}" />
+                  <views:DeploymentJet HorizontalAlignment="Stretch" IsVisible="{Binding IsDeploymentRunning}" />
                   <TextBlock Text="{Binding DeploymentProgressText}" Foreground="#F1F5F9" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
                              IsVisible="{Binding IsDeploymentRunning}" views:DeploymentAttention.IsRunning="{Binding IsDeploymentRunning}" />
                   <ProgressBar IsVisible="{Binding IsDeploymentRunning}"
@@ -483,6 +483,7 @@
                   </WrapPanel>
                 </StackPanel>
 
+                <ProgressBar Grid.Row="2" VerticalAlignment="Top" IsVisible="{Binding IsDeploymentRunning}" IsIndeterminate="True" Height="3" ZIndex="1" />
                 <TextBox Grid.Row="2"
                          MinHeight="280"
                          Text="{Binding DeploymentOutput}"

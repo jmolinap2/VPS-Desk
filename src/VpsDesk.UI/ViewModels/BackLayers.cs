@@ -30,7 +30,9 @@ public partial class ContainersViewModel : IBackDismissible
     // La hoja de detalle de un contenedor está abierta mientras haya uno seleccionado.
     public bool TryDismissTopLayer()
     {
-        if (!HasSelection) return false;
+        if (HasPendingAction) { CancelPendingAction(); return true; }
+        if (!IsDetailOpen) return false;
+        IsDetailOpen = false;
         SelectedContainer = null;
         return true;
     }

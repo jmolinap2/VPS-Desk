@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Snapshots;
 using VpsDesk.Desktop.Services;
+using VpsDesk.Desktop.Localization;
 using VpsDesk.Domain.Servers;
 
 namespace VpsDesk.Desktop.ViewModels;
@@ -43,6 +44,14 @@ public partial class DeploymentsViewModel
     public bool CanUseSnapshots => IsSnapshotConfigured && _serverAccessor() is not null && !IsBusy && !IsSnapshotBusy && !IsAppBackupBusy;
     public bool CanRestoreSnapshot => CanUseSnapshots && HasSnapshot;
     public bool HasProviderBackups => ProviderBackups.Count > 0;
+    public string ProviderBackupTitle => LocalizationService.Current.Format("Backups_ProviderNamed",
+        _snapshots?.ProviderName ?? LocalizationService.T("Backups_ProviderUnknown"));
+    public string ProviderBackupLocation => string.Equals(_snapshots?.ProviderName, "Hostinger", StringComparison.OrdinalIgnoreCase)
+        ? LocalizationService.Current.Format("Backups_HostingerLocation", _serverAccessor()?.Name ?? string.Empty)
+        : LocalizationService.T("Backups_ProviderLocationUnknown");
+    public string ProviderBackupCapabilities => LocalizationService.T(
+        string.Equals(_snapshots?.ProviderName, "Hostinger", StringComparison.OrdinalIgnoreCase)
+            ? "Backups_HostingerCapabilities" : "Backups_ProviderCapabilities");
     public bool CanConfirmSnapshotAction => HasPendingSnapshotAction
         && (!PendingSnapshotRequiresPhrase
             || string.Equals(SnapshotConfirmPhrase.Trim(), SnapshotActionPhrase, StringComparison.OrdinalIgnoreCase));
@@ -73,6 +82,9 @@ public partial class DeploymentsViewModel
         _snapshots = service;
         ProviderBackups.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProviderBackups));
         OnPropertyChanged(nameof(IsSnapshotConfigured));
+        OnPropertyChanged(nameof(ProviderBackupTitle));
+        OnPropertyChanged(nameof(ProviderBackupLocation));
+        OnPropertyChanged(nameof(ProviderBackupCapabilities));
         NotifySnapshotAvailability();
         NotifyProtectionsChanged();
 
@@ -137,6 +149,9 @@ public partial class DeploymentsViewModel
             var backups = await _snapshots!.ListBackupsAsync(server.Host);
             if (_serverAccessor()?.Id != server.Id) return;
             ProviderBackups.Clear();
+            OnPropertyChanged(nameof(ProviderBackupTitle));
+            OnPropertyChanged(nameof(ProviderBackupLocation));
+            OnPropertyChanged(nameof(ProviderBackupCapabilities));
             foreach (var backup in backups) ProviderBackups.Add(backup);
             SnapshotSummary += backups.Count == 0
                 ? " · Hostinger no tiene backups automáticos de este VPS."

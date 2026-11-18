@@ -26,6 +26,7 @@ public partial class ContainersViewModel : ObservableObject
     public event EventHandler? HistoryChanged;
 
     [ObservableProperty] private DockerContainerInfo? _selectedContainer;
+    [ObservableProperty] private bool _isDetailOpen;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _autoRefreshEnabled;
     [ObservableProperty] private string _statusMessage = "Open Containers to inspect Docker on the active VPS.";
@@ -75,6 +76,7 @@ public partial class ContainersViewModel : ObservableObject
 
     public void Reset()
     {
+        IsDetailOpen = false;
         Items.Clear();
         SelectedContainer = null;
         TotalCount = 0;
@@ -126,8 +128,8 @@ public partial class ContainersViewModel : ObservableObject
 
             SelectedContainer = selectedName == null
                 ? Items.FirstOrDefault()
-                : Items.FirstOrDefault(x => x.Name.Equals(selectedName, StringComparison.OrdinalIgnoreCase))
-                  ?? Items.FirstOrDefault();
+                : Items.FirstOrDefault(x => x.Name.Equals(selectedName, StringComparison.OrdinalIgnoreCase));
+            if (SelectedContainer is null) IsDetailOpen = false;
 
             _lastRefreshUtc = DateTimeOffset.UtcNow;
             LastUpdated = DateTimeOffset.Now.ToString("HH:mm:ss");

@@ -1,4 +1,12 @@
 {
+  "Terminal_Offline": "Disconnected",
+  "Backups_ProviderNamed": "Automatic backups from {0}",
+  "Backups_ProviderUnknown": "unknown provider",
+  "Backups_HostingerLocation": "Stored by Hostinger separately from the VPS. Panel: VPS → {0} → Backups and monitoring → Snapshots and backups. No file path is available.",
+  "Backups_ProviderLocationUnknown": "File location unavailable. Check the provider panel.",
+  "Backups_HostingerCapabilities": "VPS Desk cannot delete these backups. Hostinger states that daily backups cannot be deleted manually.",
+  "Backups_ProviderCapabilities": "VPS Desk can list these backups but cannot delete them.",
+  "Backups_Path": "Backup path",
   "Recovery_Pending": "Recovery pending",
   "Recovery_Checking": "Checking server status…",
   "Recovery_VerifyAgain": "Check status again",

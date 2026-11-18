@@ -37,8 +37,20 @@
       </StackPanel>
     </Border>
 
-    <Border Grid.Row="2" Background="{DynamicResource Brush.Surface.Code}" BorderBrush="{DynamicResource Brush.Border.Strong}" BorderThickness="1" CornerRadius="{DynamicResource Radius.M}" Padding="10">
-      <TextBox x:Name="OutputBox"
+    <Border Grid.Row="2" Classes="terminal-frame">
+      <Grid RowDefinitions="Auto,*">
+        <Border Classes="terminal-header">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <TextBlock Text="SSH" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.12}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Terminal.Secondary}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding ActiveServerLabel}" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.12}" Foreground="{DynamicResource Brush.Terminal.Muted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Ellipse Classes="terminal-status" Classes.connected="{Binding IsConnected}" />
+              <TextBlock Text="{DynamicResource Ui_Connected}" IsVisible="{Binding IsConnected}" Foreground="{DynamicResource Brush.Terminal.Accent}" FontSize="{DynamicResource Font.Size.11}" />
+              <TextBlock Text="{DynamicResource Terminal_Offline}" IsVisible="{Binding !IsConnected}" Foreground="{DynamicResource Brush.Terminal.Muted}" FontSize="{DynamicResource Font.Size.11}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      <TextBox Grid.Row="1" Foreground="{DynamicResource Brush.Terminal.Text}" CaretBrush="{DynamicResource Brush.Terminal.Accent}" Padding="12" x:Name="OutputBox"
                Text="{Binding TerminalOutput}"
                IsReadOnly="True"
                AcceptsReturn="True"
@@ -49,12 +61,14 @@
                BorderThickness="0"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                ScrollViewer.VerticalScrollBarVisibility="Auto" />
+      </Grid>
     </Border>
 
     <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-      <TextBlock Text="$" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.16}" Foreground="{DynamicResource Brush.Success}" VerticalAlignment="Center" />
+      <TextBlock Text="$" FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.16}" Foreground="{DynamicResource Brush.Terminal.Secondary}" VerticalAlignment="Center" />
       <TextBox x:Name="CommandInput"
                Grid.Column="1"
+               Foreground="{DynamicResource Brush.Terminal.Text}" Background="{DynamicResource Brush.Terminal.Bar}" BorderBrush="{DynamicResource Brush.Terminal.Border}" CaretBrush="{DynamicResource Brush.Terminal.Accent}"
                Text="{Binding CommandText}"
                PlaceholderText="{DynamicResource Ui_EnterACommandAndPressEnter}"
                FontFamily="{DynamicResource Font.Mono}"

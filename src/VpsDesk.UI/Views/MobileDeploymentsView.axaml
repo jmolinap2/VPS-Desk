@@ -282,7 +282,7 @@
                     IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"
                     HorizontalAlignment="Stretch" Classes="btn-danger" />
             <StackPanel Spacing="8" IsVisible="{Binding IsDeploymentRunning}">
-              <views:DeploymentJet HorizontalAlignment="Left" />
+              <views:DeploymentJet HorizontalAlignment="Stretch" />
               <TextBlock Classes="t-headline" Text="{Binding DeploymentProgressText}" TextWrapping="Wrap"
                          views:DeploymentAttention.IsRunning="{Binding IsDeploymentRunning}" />
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding DeploymentProgressPercent}" Height="6" />
@@ -313,6 +313,7 @@
               </Grid>
             </Border>
 
+            <ProgressBar IsVisible="{Binding IsDeploymentRunning}" IsIndeterminate="True" Height="3" />
             <Border x:Name="OutputPanel" Background="{DynamicResource Brush.Surface.Code}" BorderBrush="{DynamicResource Brush.Border.Subtle}"
                     BorderThickness="1" CornerRadius="{DynamicResource Radius.M}" Height="320">
               <TextBox Text="{Binding DeploymentOutput}" views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput, Mode=TwoWay}"

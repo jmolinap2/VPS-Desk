@@ -179,8 +179,9 @@
 
             <StackPanel Spacing="6" IsVisible="{Binding HasProviderBackups}">
               <Border Classes="divider" />
-              <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Backups_Provider}" />
-              <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_ProviderHelp}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding ProviderBackupTitle}" />
+              <TextBlock Classes="t-body-s" Text="{Binding ProviderBackupLocation}" TextWrapping="Wrap" />
+              <TextBlock Classes="t-body-s" Text="{Binding ProviderBackupCapabilities}" TextWrapping="Wrap" />
               <ItemsControl ItemsSource="{Binding ProviderBackups}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="snapshot:VpsBackupInfo">
@@ -292,6 +293,8 @@
         </Grid>
         <ScrollViewer Grid.Row="2">
           <StackPanel Margin="16,0,16,24" Spacing="8">
+            <TextBlock Classes="t-label" Text="{DynamicResource Backups_Path}" />
+            <TextBlock Classes="t-mono" Text="{Binding SelectedAppBackup.FullPath}" TextWrapping="Wrap" />
             <Button Classes="row" HorizontalAlignment="Stretch" Command="{Binding RequestRestoreDatabaseCommand}" IsEnabled="{Binding CanRestoreDatabase}" Padding="16,0">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                 <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,10">

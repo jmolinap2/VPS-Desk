@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:VpsDesk.Desktop.ViewModels" x:DataType="vm:DeploymentsViewModel"
              x:Class="VpsDesk.Desktop.Views.DeploymentJet"
-             Width="76" Height="36" IsHitTestVisible="False">
+             Height="36" HorizontalAlignment="Stretch" ClipToBounds="True" IsHitTestVisible="False">
   <UserControl.Styles>
     <!-- Las estelas pulsan mientras corre el pase. Se anima Opacity (double) y NO RenderTransform:
          en Android (Release/AOT) Avalonia lanza "No animator registered for the property
@@ -14,11 +14,16 @@
         </Animation>
       </Style.Animations>
     </Style>
+    <Style Selector="Grid.jet.phase-start > Path.trail"><Setter Property="Stroke" Value="{DynamicResource Brush.Info}" /></Style>
+    <Style Selector="Grid.jet.phase-progress > Path.trail"><Setter Property="Stroke" Value="{DynamicResource Brush.Accent.Text}" /></Style>
+    <Style Selector="Grid.jet.phase-final > Path.trail"><Setter Property="Stroke" Value="{DynamicResource Brush.Success}" /></Style>
   </UserControl.Styles>
-  <Grid Classes="jet" Classes.running="{Binding IsDeploymentRunning}">
+  <Canvas x:Name="FlightPath">
+  <Grid x:Name="Jet" Width="76" Height="36" Classes="jet" Classes.running="{Binding IsDeploymentRunning}">
     <!-- Estelas y silueta vectorial: ligeras en escritorio y teléfono. -->
-    <Path Classes="trail" Data="M 4,15 L 25,15 M 9,21 L 26,21 M 16,26 L 29,26" Stroke="#5EEAD4" StrokeThickness="2" Opacity="0.6" />
-    <Path Data="M 23,18 L 38,15 L 31,6 L 39,6 L 49,14 L 62,14 Q 69,14 72,18 Q 69,22 62,22 L 49,22 L 39,30 L 31,30 L 38,21 Z" Fill="#5EEAD4" />
-    <Path Data="M 52,15 L 61,15 Q 64,15 66,18 L 52,18 Z" Fill="#134E4A" />
+    <Path Classes="trail" Data="M 4,15 L 25,15 M 9,21 L 26,21 M 16,26 L 29,26" StrokeThickness="2" Opacity="0.6" />
+    <Path Data="M 23,18 L 38,15 L 31,6 L 39,6 L 49,14 L 62,14 Q 69,14 72,18 Q 69,22 62,22 L 49,22 L 39,30 L 31,30 L 38,21 Z" Fill="{DynamicResource Brush.Accent.Text}" />
+    <Path Data="M 52,15 L 61,15 Q 64,15 66,18 L 52,18 Z" Fill="{DynamicResource Brush.Surface.Inset}" />
   </Grid>
+  </Canvas>
 </UserControl>

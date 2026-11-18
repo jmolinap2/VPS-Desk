@@ -11,6 +11,9 @@ public interface IVpsSnapshotService
     /// <summary>False si falta el token del proveedor: la UI lo explica en vez de fallar.</summary>
     bool IsConfigured { get; }
 
+    /// <summary>Nombre de la integración que entrega los respaldos, si está disponible.</summary>
+    string? ProviderName => null;
+
     /// <summary>El snapshot actual del VPS, o null si no tiene ninguno.</summary>
     Task<VpsSnapshotInfo?> GetAsync(string serverHost, CancellationToken cancellationToken = default);
 

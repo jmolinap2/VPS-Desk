@@ -1,4 +1,12 @@
 {
+  "Terminal_Offline": "Desconectada",
+  "Backups_ProviderNamed": "Respaldos automáticos de {0}",
+  "Backups_ProviderUnknown": "proveedor desconocido",
+  "Backups_HostingerLocation": "Guardados por Hostinger fuera del VPS. Panel: VPS → {0} → Copias de seguridad y monitoreo → Snapshots y copias de seguridad. No hay una ruta de archivo disponible.",
+  "Backups_ProviderLocationUnknown": "Ubicación de archivo no disponible. Consulta el panel del proveedor.",
+  "Backups_HostingerCapabilities": "VPS Desk no permite borrar estos respaldos. Hostinger indica que los respaldos diarios no se pueden eliminar manualmente.",
+  "Backups_ProviderCapabilities": "VPS Desk permite consultar estos respaldos, pero no eliminarlos.",
+  "Backups_Path": "Ruta de la copia",
   "Recovery_Pending": "Recuperación pendiente",
   "Recovery_Checking": "Comprobando el estado del servidor…",
   "Recovery_VerifyAgain": "Volver a comprobar el estado",

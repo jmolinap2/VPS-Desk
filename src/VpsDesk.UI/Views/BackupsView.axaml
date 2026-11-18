@@ -143,6 +143,7 @@
                           <TextBlock Text="{Binding CreatedAt, Converter={StaticResource BackupDate}}" FontWeight="SemiBold" Margin="0,0,12,0" />
                           <TextBlock Text="{Binding SizeBytes, Converter={StaticResource BackupSize}}" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,12,0" />
                         </WrapPanel>
+                        <TextBlock Classes="t-mono" Text="{Binding FullPath}" TextWrapping="Wrap" />
                         <TextBlock Text="{DynamicResource Backups_Remote}" IsVisible="{Binding StoredOnServer}" Foreground="{DynamicResource Brush.Accent.Text}" FontSize="{DynamicResource Font.Size.12}" />
                         <TextBlock Text="{DynamicResource Backups_Local}" IsVisible="{Binding !StoredOnServer}" Foreground="{DynamicResource Brush.Info}" FontSize="{DynamicResource Font.Size.12}" />
                       </StackPanel>
@@ -177,8 +178,9 @@
                 </WrapPanel>
 
                 <StackPanel Spacing="6" IsVisible="{Binding HasProviderBackups}">
-                  <TextBlock Text="{DynamicResource Backups_Provider}" FontWeight="SemiBold" />
-                  <TextBlock Classes="t-body-s" Text="{DynamicResource Backups_ProviderHelp}" />
+                  <TextBlock Text="{Binding ProviderBackupTitle}" FontWeight="SemiBold" />
+                  <TextBlock Classes="t-body-s" Text="{Binding ProviderBackupLocation}" />
+              <TextBlock Classes="t-body-s" Text="{Binding ProviderBackupCapabilities}" TextWrapping="Wrap" />
                   <ItemsControl ItemsSource="{Binding ProviderBackups}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="snapshot:VpsBackupInfo">

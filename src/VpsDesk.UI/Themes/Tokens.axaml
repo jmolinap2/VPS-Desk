@@ -12,6 +12,13 @@
       <SolidColorBrush x:Key="Brush.Surface.Card" Color="#121826" />
       <SolidColorBrush x:Key="Brush.Surface.Inset" Color="#0E131B" />
       <SolidColorBrush x:Key="Brush.Surface.Raised" Color="#161E2C" />
+      <SolidColorBrush x:Key="Brush.Terminal.Background" Color="#080D19" />
+      <SolidColorBrush x:Key="Brush.Terminal.Bar" Color="#101A2B" />
+      <SolidColorBrush x:Key="Brush.Terminal.Border" Color="#276276" />
+      <SolidColorBrush x:Key="Brush.Terminal.Accent" Color="#69E5E8" />
+      <SolidColorBrush x:Key="Brush.Terminal.Secondary" Color="#DDB5FF" />
+      <SolidColorBrush x:Key="Brush.Terminal.Text" Color="#D7F3F0" />
+      <SolidColorBrush x:Key="Brush.Terminal.Muted" Color="#A1B8C5" />
       <SolidColorBrush x:Key="Brush.Surface.Code" Color="#070A0F" />
       <SolidColorBrush x:Key="Brush.Code.Text" Color="#CBD5E1" />
       <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#1E2735" />
@@ -41,6 +48,13 @@
       <SolidColorBrush x:Key="Brush.Surface.Card" Color="#FFFFFF" />
       <SolidColorBrush x:Key="Brush.Surface.Inset" Color="#EEF1F5" />
       <SolidColorBrush x:Key="Brush.Surface.Raised" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Terminal.Background" Color="#080D19" />
+      <SolidColorBrush x:Key="Brush.Terminal.Bar" Color="#101A2B" />
+      <SolidColorBrush x:Key="Brush.Terminal.Border" Color="#276276" />
+      <SolidColorBrush x:Key="Brush.Terminal.Accent" Color="#69E5E8" />
+      <SolidColorBrush x:Key="Brush.Terminal.Secondary" Color="#DDB5FF" />
+      <SolidColorBrush x:Key="Brush.Terminal.Text" Color="#D7F3F0" />
+      <SolidColorBrush x:Key="Brush.Terminal.Muted" Color="#A1B8C5" />
       <SolidColorBrush x:Key="Brush.Surface.Code" Color="#0F172A" />
       <SolidColorBrush x:Key="Brush.Code.Text" Color="#CBD5E1" />
       <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#E2E6EC" />

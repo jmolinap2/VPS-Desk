@@ -42,6 +42,7 @@ public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposab
     }
 
     public bool IsConfigured { get; }
+    public string ProviderName => "Hostinger";
 
     public async Task<VpsSnapshotInfo?> GetAsync(string serverHost, CancellationToken cancellationToken = default)
     {

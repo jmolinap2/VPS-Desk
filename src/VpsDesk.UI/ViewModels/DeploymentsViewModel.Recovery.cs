@@ -9,7 +9,10 @@ namespace VpsDesk.Desktop.ViewModels;
 
 public partial class DeploymentsViewModel
 {
+    [ObservableProperty] private bool _isRecoveryChecking;
     [ObservableProperty] private bool _requiresRecoveryReview;
+
+    partial void OnHasDeploymentRecoveryChanged(bool value) => OnPropertyChanged(nameof(HasExecutionActivity));
     [ObservableProperty] private bool _recoveryReviewConfirmed;
 
     private bool TryReadRecovery(ServerProfile server, out DeploymentRecoveryRecord? recovery)
@@ -133,6 +136,7 @@ public partial class DeploymentsViewModel
         var request = new PostDeployVerificationRequest(server, recovery.ProjectPath, recovery.ComposeFile, urls, recovery.Services);
         var secret = _secretAccessor();
         IsSnapshotBusy = true;
+        IsRecoveryChecking = true;
         try
         {
             var verification = await CheckFailedDeploymentAsync(server, request, secret);
@@ -143,15 +147,20 @@ public partial class DeploymentsViewModel
                 ClearDeploymentRecovery();
                 DeploymentNextAction = "La salud de los servicios comprobados está confirmada. Se cerró la recuperación pendiente.";
                 StatusMessage = DeploymentNextAction;
+                Toast.Success(DeploymentNextAction, "Recuperación completada");
             }
-            else if (recovery.NeedsReview)
-                DeploymentNextAction += " El pase anterior todavía requiere revisión de sus comandos o migraciones.";
+            else
+            {
+                if (recovery.NeedsReview)
+                    DeploymentNextAction += " El pase anterior todavía requiere revisión de sus comandos o migraciones.";
+                Toast.Warning(DeploymentNextAction, "Recuperación pendiente");
+            }
         }
         catch (Exception exception)
         {
             Toast.Error(exception, "No se pudo completar la revisión de recuperación");
         }
-        finally { IsSnapshotBusy = false; }
+        finally { IsRecoveryChecking = false; IsSnapshotBusy = false; }
     }
 
     [RelayCommand]

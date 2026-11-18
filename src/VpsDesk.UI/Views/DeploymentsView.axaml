@@ -438,8 +438,16 @@
                     <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="18" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding DeploymentOutcomeTitle}" FontWeight="Bold" TextWrapping="Wrap" IsVisible="{Binding HasExecutionActivity}" />
                     <TextBlock Text="{Binding DeploymentNextAction}" Foreground="#A8B4C5" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
+                    <StackPanel Spacing="8" IsVisible="{Binding HasDeploymentRecovery}">
+                      <TextBlock Classes="t-headline warning" Text="{DynamicResource Recovery_Pending}" />
+                      <TextBlock Classes="t-body-s" Text="{Binding DeploymentRecoveryMessage}" TextWrapping="Wrap" />
+                      <StackPanel Spacing="4" IsVisible="{Binding IsRecoveryChecking}">
+                        <TextBlock Classes="t-body-s" Text="{DynamicResource Recovery_Checking}" />
+                        <ProgressBar IsIndeterminate="True" Height="4" />
+                      </StackPanel>
+                    </StackPanel>
                     <Button Classes="btn-secondary" Content="{DynamicResource Recovery_VerifyAgain}"
-                            IsVisible="{Binding HasDeploymentRecovery}" Command="{Binding VerifyDeploymentRecoveryCommand}" />
+                            IsVisible="{Binding HasDeploymentRecovery}" IsEnabled="{Binding !IsSnapshotBusy}" Command="{Binding VerifyDeploymentRecoveryCommand}" />
                     <Button Content="{DynamicResource Recovery_RestoreSnapshot}"
                             Command="{Binding RequestRestoreDeploymentSnapshotCommand}"
                             IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"

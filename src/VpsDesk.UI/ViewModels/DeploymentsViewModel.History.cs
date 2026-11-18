@@ -70,7 +70,7 @@ public partial class DeploymentsViewModel
 
     // La vista móvil solo muestra la tarjeta de ejecución (progreso + salida)
     // cuando hay algo que mostrar, para no ocupar pantalla con un panel vacío.
-    public bool HasExecutionActivity => IsDeploymentRunning || !string.IsNullOrEmpty(DeploymentOutput);
+    public bool HasExecutionActivity => IsDeploymentRunning || HasDeploymentRecovery || !string.IsNullOrEmpty(DeploymentOutput);
     public bool IsDeploymentConfigurationCollapsed => !IsDeploymentConfigurationExpanded;
     public event EventHandler? HistoryChanged;
 

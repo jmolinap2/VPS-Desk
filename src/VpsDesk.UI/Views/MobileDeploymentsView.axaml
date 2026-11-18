@@ -267,8 +267,16 @@
 
             <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding DeploymentOutcomeTitle}" TextWrapping="Wrap" />
             <TextBlock Classes="t-body-s" Text="{Binding DeploymentNextAction}" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
-            <Button Classes="btn-secondary" Content="{DynamicResource Recovery_VerifyAgain}"
-                    IsVisible="{Binding HasDeploymentRecovery}" Command="{Binding VerifyDeploymentRecoveryCommand}" />
+            <StackPanel Spacing="8" IsVisible="{Binding HasDeploymentRecovery}">
+                      <TextBlock Classes="t-headline warning" Text="{DynamicResource Recovery_Pending}" />
+                      <TextBlock Classes="t-body-s" Text="{Binding DeploymentRecoveryMessage}" TextWrapping="Wrap" />
+                      <StackPanel Spacing="4" IsVisible="{Binding IsRecoveryChecking}">
+                        <TextBlock Classes="t-body-s" Text="{DynamicResource Recovery_Checking}" />
+                        <ProgressBar IsIndeterminate="True" Height="4" />
+                      </StackPanel>
+                    </StackPanel>
+                    <Button Classes="btn-secondary" Content="{DynamicResource Recovery_VerifyAgain}"
+                    IsVisible="{Binding HasDeploymentRecovery}" IsEnabled="{Binding !IsSnapshotBusy}" Command="{Binding VerifyDeploymentRecoveryCommand}" />
             <Button Content="{DynamicResource Recovery_RestoreSnapshot}"
                     Command="{Binding RequestRestoreDeploymentSnapshotCommand}"
                     IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"

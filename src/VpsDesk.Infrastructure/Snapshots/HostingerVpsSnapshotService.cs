@@ -24,7 +24,7 @@ public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposab
 
     private readonly HttpClient _http;
     private readonly string? _configuredVirtualMachineId;
-    private string? _resolvedVirtualMachineId;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _resolvedVirtualMachineIds = new(StringComparer.OrdinalIgnoreCase);
 
     public HostingerVpsSnapshotService(string? apiToken, string? virtualMachineId = null, HttpMessageHandler? handler = null)
     {
@@ -117,7 +117,8 @@ public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposab
     {
         EnsureConfigured();
         if (_configuredVirtualMachineId is not null) return _configuredVirtualMachineId;
-        if (_resolvedVirtualMachineId is not null) return _resolvedVirtualMachineId;
+        serverHost = serverHost.Trim();
+        if (_resolvedVirtualMachineIds.TryGetValue(serverHost, out var cachedId)) return cachedId;
 
         using var response = await _http.GetAsync("api/vps/v1/virtual-machines", cancellationToken);
         var root = await ReadJsonAsync(response, cancellationToken);
@@ -140,7 +141,7 @@ public sealed class HostingerVpsSnapshotService : IVpsSnapshotService, IDisposab
 
                 if (matchesHostname || matchesIp)
                 {
-                    return _resolvedVirtualMachineId = id.ValueKind == JsonValueKind.Number ? id.GetRawText() : id.GetString()!;
+                    return _resolvedVirtualMachineIds[serverHost] = id.ValueKind == JsonValueKind.Number ? id.GetRawText() : id.GetString()!;
                 }
             }
         }

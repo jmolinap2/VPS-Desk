@@ -70,6 +70,10 @@
               <TextBlock Classes="t-body-s" Text="{Binding PendingDeployMessage}" TextWrapping="Wrap"
                          IsVisible="{Binding !IsProductionServer}" />
 
+              <CheckBox IsVisible="{Binding RequiresRecoveryReview}" IsChecked="{Binding RecoveryReviewConfirmed}">
+                <TextBlock Text="{DynamicResource Deployments_ConfirmRecoveryReview}" TextWrapping="Wrap" />
+              </CheckBox>
+
               <StackPanel Spacing="8" IsVisible="{Binding HasPendingNotices}">
                 <TextBlock Classes="t-overline" Text="{DynamicResource Deployments_BeforeDeploy}" />
                 <ItemsControl ItemsSource="{Binding PendingNotices}">
@@ -114,7 +118,7 @@
               <TextBlock Classes="t-body" Text="{Binding PendingSnapshotMessage}" TextWrapping="Wrap" />
               <StackPanel Spacing="6" IsVisible="{Binding PendingSnapshotRequiresPhrase}">
                 <TextBlock Classes="t-label danger" Text="{DynamicResource Backups_TypeToConfirm}" TextWrapping="Wrap" />
-                <TextBox Text="{Binding SnapshotConfirmPhrase}" PlaceholderText="RESTAURAR" MinHeight="48" VerticalContentAlignment="Center" />
+                <TextBox Text="{Binding SnapshotConfirmPhrase}" PlaceholderText="{Binding SnapshotActionPhrase}" MinHeight="48" VerticalContentAlignment="Center" />
               </StackPanel>
             </StackPanel>
           </ScrollViewer>

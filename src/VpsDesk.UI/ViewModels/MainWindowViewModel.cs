@@ -363,6 +363,9 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (_server == null) return;
 
+        var server = _server;
+        var secret = _activeSecret;
+        var checkingMetrics = false;
         IsRefreshing = true;
         if (!periodic) StatusMessage = "Checking SSH and server capabilities...";
 
@@ -375,13 +378,13 @@ public partial class MainWindowViewModel : ObservableObject
 
             var compatibility = cacheValid
                 ? _cachedCompatibility!
-                : await _probe.CheckCompatibilityAsync(_server, _activeSecret);
+                : await _probe.CheckCompatibilityAsync(server, secret);
+            if (!ReferenceEquals(_server, server)) return;
             var ssh = compatibility.Capabilities.FirstOrDefault(x => x.Capability == ServerCapability.Ssh);
 
             if (ssh?.Available != true)
             {
                 _cachedCompatibility = null;
-                ConnectionStatus = "SSH Offline";
                 HandleProbeFailure(periodic, ssh?.Detail ?? "SSH connection failed.", ssh?.Detail ?? "No hubo respuesta SSH del servidor.", "Servidor sin conexión");
                 return;
             }
@@ -393,7 +396,11 @@ public partial class MainWindowViewModel : ObservableObject
                 _cachedCompatibilityAt = DateTimeOffset.UtcNow;
             }
 
-            ConnectionStatus = "SSH Online";
+            if (!cacheValid)
+            {
+                _consecutiveProbeFailures = 0;
+                ConnectionStatus = "SSH Online";
+            }
             CompatibilityLabel = compatibility.Level switch
             {
                 CompatibilityLevel.Certified => $"{_server.ProviderLabel?.ToUpperInvariant()} · CERTIFIED",
@@ -407,7 +414,10 @@ public partial class MainWindowViewModel : ObservableObject
             NginxStatus = CapabilityText(compatibility, ServerCapability.Nginx);
 
             if (!periodic) StatusMessage = "Reading live telemetry...";
-            var metrics = await _probe.ReadMetricsAsync(_server, _activeSecret);
+            checkingMetrics = true;
+            var metrics = await _probe.ReadMetricsAsync(server, secret);
+            if (!ReferenceEquals(_server, server)) return;
+            ConnectionStatus = "SSH Online";
 
             CpuUsage = Math.Clamp(metrics.CpuUsagePercent, 0, 100);
             MemoryUsage = Math.Clamp(metrics.MemoryUsagePercent, 0, 100);
@@ -429,8 +439,19 @@ public partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            if (!ReferenceEquals(_server, server)) return;
             var friendly = UserFacingErrors.Describe(ex);
-            HandleProbeFailure(periodic, friendly, friendly, "No se pudo actualizar el servidor");
+            if (checkingMetrics)
+            {
+                // Un comando de métricas lento o fallido no demuestra que SSH esté caído.
+                // Invalidar la caché obliga al siguiente intento a comprobar SSH de nuevo.
+                _cachedCompatibility = null;
+                AutoRefreshEnabled = true;
+                ConnectionStatus = "Reconectando...";
+                StatusMessage = $"No se pudieron actualizar las métricas: {friendly}. Se volverá a comprobar la conexión.";
+                if (!periodic) Toast.Error(friendly, "No se pudieron actualizar las métricas");
+            }
+            else HandleProbeFailure(periodic, friendly, friendly, "No se pudo actualizar el servidor");
         }
         finally
         {
@@ -455,10 +476,11 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         _cachedCompatibility = null;
-        AutoRefreshEnabled = false;
+        AutoRefreshEnabled = true;
         ConnectionStatus = "SSH Offline";
         StatusMessage = statusDetail;
-        Toast.Error(toastDetail, toastTitle);
+        if (!periodic || _consecutiveProbeFailures == ProbeFailuresBeforeOffline)
+            Toast.Error(toastDetail, toastTitle);
     }
 
     private bool TryBuildEditorProfile(Guid id, out ServerProfile? profile, out string error)

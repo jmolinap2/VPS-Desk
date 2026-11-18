@@ -1,4 +1,6 @@
 {
+  "Recovery_VerifyAgain": "Volver a comprobar el estado",
+  "Deployments_ConfirmRecoveryReview": "Revisé si el pase anterior sigue ejecutándose y si dejó cambios o migraciones parciales.",
   "Recovery_RestoreSnapshot": "Restaurar snapshot previo a este pase",
   "Notifications_Sound": "Sonidos de notificaciones",
   "Backups_LocalDataTitle": "Perfiles y ajustes de VPS Desk",

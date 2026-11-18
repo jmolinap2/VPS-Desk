@@ -191,6 +191,7 @@ public partial class DeploymentsViewModel : ObservableObject
             LoadProjectPreferences(saved);
 
             RefreshServerContext(server);
+            if (server is not null && TryReadRecovery(server, out var recovery)) ShowSavedRecovery(server, recovery);
             // Con un proyecto ya configurado la tarjeta de destino basta; se abre sola si falta configurar.
             IsDeploymentConfigurationExpanded = string.IsNullOrWhiteSpace(RemoteRepositoryPath);
             StatusMessage = server is null
@@ -227,6 +228,7 @@ public partial class DeploymentsViewModel : ObservableObject
             HttpHealthUrls = string.Empty;
             LoadProjectPreferences(saved);
             RefreshServerContext(server);
+            if (server is not null && TryReadRecovery(server, out var recovery)) ShowSavedRecovery(server, recovery);
             IsDeploymentConfigurationExpanded = string.IsNullOrWhiteSpace(RemoteRepositoryPath);
             StatusMessage = $"Proyecto activo: {project.Name}. Detectando rama, Compose y capacidades declaradas por el proyecto...";
         }

@@ -383,6 +383,9 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        if (!TryReadRecovery(server, out var recovery)) return;
+        RequiresRecoveryReview = recovery?.NeedsReview == true;
+        RecoveryReviewConfirmed = false;
         RefreshServerContext();
         PendingExecution = BuildExecutionSummary();
         PendingDeployMessage = LocalizationService.T(server.Environment == ServerEnvironment.Production
@@ -394,6 +397,8 @@ public partial class DeploymentsViewModel
         {
             if (!string.IsNullOrWhiteSpace(notice)) PendingNotices.Add(notice.Trim());
         }
+        if (recovery is not null)
+            PendingNotices.Add($"Pase pendiente de revisión ({recovery.ProjectPath}). El snapshot existente se conservará y las copias no se rotarán.");
         OnPropertyChanged(nameof(HasPendingNotices));
 
         HasPendingDeploy = true;
@@ -413,13 +418,59 @@ public partial class DeploymentsViewModel
 
         if (!ValidateConfiguration()) return;
 
-        ClearDeploymentRecovery();
-        // Punto de restauración del VPS completo: sin él no se toca el servidor.
-        if (!await TakeSnapshotBeforeDeployAsync(server)) return;
+        if (!TryReadRecovery(server, out var prior)) return;
+        var projectPath = RemoteRepositoryPath.Trim().TrimEnd('/');
+        var composeFile = ComposeFile.Trim();
+        if (prior is not null && (prior.ProjectPath != projectPath || prior.ComposeFile != composeFile))
+        {
+            Toast.Warning($"Primero resuelve el pase pendiente de {prior.ProjectPath} ({prior.ComposeFile}).", "Recuperación pendiente");
+            return;
+        }
+        if (prior?.NeedsReview == true && !RecoveryReviewConfirmed)
+        {
+            Toast.Warning("Confirma que revisaste el pase anterior y sus posibles cambios parciales.", "Pase pendiente de revisión");
+            return;
+        }
 
-        // Copia descargable de la aplicación: conserva varias versiones, a diferencia del snapshot.
+        var branch = Branch.Trim();
+        var secret = _secretAccessor();
+        var deploymentServices = GetDeploymentServices();
+        var operation = BuildProjectOperation();
+        var migrationOnly = MigrationOnly;
+        var dataSaver = IsDataSaverActive;
+        var request = new ComposeDeploymentRequest(server, projectPath, branch, composeFile,
+            PullImages, BuildImages, CleanBuildCache, DeployApplication: !migrationOnly,
+            Services: deploymentServices, Operation: operation, DataSaver: dataSaver);
+        var healthUrls = ParseHealthUrls().Concat(prior?.HealthUrls ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var verificationServices = prior is null ? deploymentServices
+            : prior.Services is not { Count: > 0 } || deploymentServices.Count == 0 ? []
+            : deploymentServices.Concat(prior.Services).Distinct(StringComparer.Ordinal).ToArray();
+        var verificationRequest = new PostDeployVerificationRequest(server, projectPath, composeFile,
+            healthUrls, verificationServices);
+
         if (!await TakeAppBackupBeforeDeployAsync(server)) return;
+        if (_serverAccessor()?.Id != server.Id || !HasSameDeploymentContext(projectPath, composeFile, branch)) return;
+        if (prior is null)
+        {
+            ClearDeploymentRecovery();
+            if (!await TakeSnapshotBeforeDeployAsync(server, verificationRequest, secret)) return;
+        }
+        if (_serverAccessor()?.Id != server.Id || !HasSameDeploymentContext(projectPath, composeFile, branch)) return;
 
+        var recovery = new DeploymentRecoveryRecord(projectPath, composeFile,
+            prior is null ? _deploymentSnapshot : prior.Snapshot,
+            operation is not null, "En curso o interrumpido", prior?.PreviousCommit, prior?.DeployedCommit, verificationServices, healthUrls, ExecutionNeedsReview: true);
+        try { _profileStore.SaveRecovery(server.Id, recovery); }
+        catch (Exception exception)
+        {
+            Toast.Error(exception, "No se pudo guardar el estado de recuperación. Pase cancelado");
+            return;
+        }
+        _deploymentSnapshot = recovery.Snapshot;
+        _deploymentSnapshotServerId = server.Id;
+
+        _previousDeploymentCommit = recovery.PreviousCommit;
+        _deployedCommit = recovery.DeployedCommit;
         IsBusy = true;
         CanDeploy = false;
         Steps.Clear();
@@ -431,30 +482,22 @@ public partial class DeploymentsViewModel
         StatusMessage = LocalizationService.T("Deployments_StatusRunning");
         CancelPendingDeploy();
 
-        var deploymentServices = GetDeploymentServices();
-        var operation = BuildProjectOperation();
-        var verificationRequest = new PostDeployVerificationRequest(
-            server, RemoteRepositoryPath.Trim(), ComposeFile.Trim(), ParseHealthUrls(), deploymentServices);
-        // La red se evalúa ahora: puede haber cambiado desde que se abrió la pantalla.
-        var dataSaver = IsDataSaverActive;
-        RefreshDataSaverStatus();
-
         try
         {
-            var result = await _deployment.ExecuteAsync(
-                new ComposeDeploymentRequest(
-                    server,
-                    RemoteRepositoryPath.Trim(),
-                    Branch.Trim(),
-                    ComposeFile.Trim(),
-                    PullImages,
-                    BuildImages,
-                    CleanBuildCache,
-                    DeployApplication: !MigrationOnly,
-                    Services: deploymentServices,
-                    Operation: operation,
-                    DataSaver: dataSaver),
-                _secretAccessor());
+            var result = await _deployment.ExecuteAsync(request, secret);
+            recovery = recovery with
+            {
+                PreviousCommit = recovery.PreviousCommit ?? result.PreviousCommit,
+                DeployedCommit = result.DeployedCommit ?? recovery.DeployedCommit,
+                ExecutionNeedsReview = result.FailedStep is { ExitCode: -1 },
+                Status = result.Succeeded ? "Pendiente de verificación" : "Pase fallido",
+                MigrationNeedsReview = operation is not null &&
+                    result.Steps.Any(step => step.Code == operation.Code && !step.Succeeded)
+            };
+            _profileStore.SaveRecovery(server.Id, recovery);
+            if (_serverAccessor()?.Id != server.Id) return;
+            _previousDeploymentCommit = recovery.PreviousCommit;
+            _deployedCommit = recovery.DeployedCommit;
 
             while (_progressQueue.TryDequeue(out var pending)) ApplyProgress(pending);
             Steps.Clear();
@@ -481,28 +524,29 @@ public partial class DeploymentsViewModel
                 DeploymentOutcomeTitle = "Pase detenido";
                 DeploymentNextAction = "Revisa el paso fallido y los servicios. Puede haber cambios aplicados. Ejecuta un nuevo prevuelo antes de repetir.";
                 Toast.Error(StatusMessage, "El despliegue se detuvo");
-                await CheckFailedDeploymentAsync(server, verificationRequest);
+                await CheckFailedDeploymentAsync(server, verificationRequest, secret);
                 return;
             }
 
             var elapsed = (result.FinishedAt - result.StartedAt).TotalSeconds;
-            if (MigrationOnly)
-            {
-                DeploymentOutcomeTitle = "Migraciones completadas";
-                DeploymentProgressPercent = 100;
-                DeploymentNextAction = "Revisa la salida de las migraciones antes de continuar.";
-                StatusMessage = $"Migraciones completadas en {elapsed:F1}s · {SelectedMigrationMode?.Label}.";
-                Toast.Success(StatusMessage, "Migraciones completadas");
-                return;
-            }
-
             StatusMessage = LocalizationService.T("Deployments_StatusVerifying");
             var verification = await _postDeployVerification.VerifyAsync(
-                verificationRequest,
-                _secretAccessor());
+                verificationRequest, secret);
 
             if (_serverAccessor()?.Id != server.Id) return;
             foreach (var check in verification.Checks) PostChecks.Add(check);
+
+            if (verification.IsHealthy && !recovery.NeedsReview)
+            {
+                _profileStore.ClearRecovery(server.Id);
+                ClearDeploymentRecovery();
+            }
+            else
+            {
+                recovery = recovery with { Status = verification.Passed ? "Salud pendiente de confirmar" : "Pase con problemas" };
+                _profileStore.SaveRecovery(server.Id, recovery);
+                ShowSavedRecovery(server, recovery);
+            }
 
             var hasWarnings = result.HasWarnings || verification.HasWarnings;
             DeploymentOutcomeTitle = !verification.Passed ? "Pase con problemas" : hasWarnings ? "Pase completado con avisos" : "Pase verificado";
@@ -522,12 +566,13 @@ public partial class DeploymentsViewModel
                 ApplyDeploymentRecovery(verification);
             }
             else if (hasWarnings)
-                Toast.Warning($"Desplegado en {elapsed:F1}s y saludable, con avisos de mantenimiento o posteriores que conviene revisar.", "Despliegue completado con avisos");
+                Toast.Warning($"Pase ejecutado en {elapsed:F1}s. Revisa los avisos de las comprobaciones.", "Despliegue completado con avisos");
             else
                 Toast.Success($"Desplegado en {elapsed:F1}s y la verificación posterior pasó.", "Despliegue completado");
         }
         catch (Exception ex)
         {
+            if (_serverAccessor()?.Id != server.Id) return;
             var friendly = UserFacingErrors.Describe(ex);
             StatusMessage = $"La ejecución falló o no pudo verificarse: {friendly}";
             DeploymentOutcomeTitle = "Pase interrumpido · estado sin confirmar";
@@ -537,7 +582,7 @@ public partial class DeploymentsViewModel
             DeploymentNextAction = "Recupera la conexión y revisa contenedores, logs y migraciones antes de repetir. El servidor puede haber aplicado cambios.";
             DeploymentOutput += $"\n[Interrupción] {friendly}";
             Toast.Error(friendly, "El despliegue falló");
-            await CheckFailedDeploymentAsync(server, verificationRequest);
+            await CheckFailedDeploymentAsync(server, verificationRequest, secret);
         }
         finally
         {
@@ -547,6 +592,9 @@ public partial class DeploymentsViewModel
 
     [RelayCommand]
     private void CancelDeploy() => CancelPendingDeploy();
+
+    private bool HasSameDeploymentContext(string path, string compose, string branch)
+        => RemoteRepositoryPath.Trim().TrimEnd('/') == path && ComposeFile.Trim() == compose && Branch.Trim() == branch;
 
     private IReadOnlyList<string> ParseHealthUrls()
         => HttpHealthUrls

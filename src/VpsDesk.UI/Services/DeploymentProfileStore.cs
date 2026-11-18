@@ -44,6 +44,34 @@ public sealed class DeploymentProfileStore
         _filePath = filePath ?? Path.Combine(VpsDeskDataPaths.RoamingRoot, "deployments.json");
     }
 
+    private string RecoveryPath(Guid serverId) => _filePath + "." + serverId.ToString("N") + ".recovery.json";
+
+    internal DeploymentRecoveryRecord? ReadRecovery(Guid serverId)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<DeploymentRecoveryRecord>(File.ReadAllText(RecoveryPath(serverId)), JsonOptions)
+                ?? throw new InvalidDataException("El registro de recuperación está vacío.");
+        }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
+    }
+
+    internal void SaveRecovery(Guid serverId, DeploymentRecoveryRecord record)
+    {
+        var path = RecoveryPath(serverId);
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllText(temp, JsonSerializer.Serialize(record, JsonOptions));
+            File.Move(temp, path, overwrite: true);
+        }
+        finally { File.Delete(temp); }
+    }
+
+    internal void ClearRecovery(Guid serverId) => File.Delete(RecoveryPath(serverId));
+
     public DeploymentProfile? Find(Guid serverId)
     {
         var profiles = Load().Profiles;
@@ -158,4 +186,12 @@ public sealed class DeploymentProfileStore
         if (trimmed.Length > 1) trimmed = trimmed.TrimEnd('/');
         return trimmed;
     }
+}
+
+internal sealed record DeploymentRecoveryRecord(
+    string ProjectPath, string ComposeFile, VpsDesk.Application.Snapshots.VpsSnapshotInfo? Snapshot,
+    bool MigrationNeedsReview, string Status, string? PreviousCommit = null, string? DeployedCommit = null,
+    IReadOnlyList<string>? Services = null, IReadOnlyList<string>? HealthUrls = null, bool ExecutionNeedsReview = false)
+{
+    public bool NeedsReview => MigrationNeedsReview || ExecutionNeedsReview;
 }

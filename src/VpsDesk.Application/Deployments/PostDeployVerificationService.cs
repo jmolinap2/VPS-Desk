@@ -32,7 +32,8 @@ public sealed record PostDeployVerificationResult(
     public bool Passed => Checks.All(x => x.Status != PostDeployCheckStatus.Failed);
     public bool HasWarnings => Checks.Any(x => x.Status == PostDeployCheckStatus.Warning);
     public bool IsStateConfirmed => Checks.Count > 0 && Checks.All(x => !x.StateUnconfirmed);
-    public bool HasConfirmedFailure => IsStateConfirmed && !Passed;
+    public bool HasConfirmedFailure => Checks.Any(x => x.Status == PostDeployCheckStatus.Failed && !x.StateUnconfirmed);
+    public bool IsHealthy => IsStateConfirmed && Passed && !HasWarnings;
 }
 
 public interface IPostDeployVerificationService
@@ -77,9 +78,9 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
         var command =
             $"REPO={repo}; COMPOSE={compose}; " +
             "cd \"$REPO\" || exit 9; " +
-            $"IDS=\"$(docker compose -f \"$COMPOSE\" ps -aq{services})\"; " +
+            $"IDS=\"$(docker compose -f \"$COMPOSE\" ps -aq{services})\" || exit $?; " +
             "if [ -z \"$IDS\" ]; then echo __VPSDESK_NO_CONTAINERS__; exit 0; fi; " +
-            "docker inspect --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $IDS";
+            "docker inspect --format '{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{index .Config.Labels \"com.docker.compose.service\"}}' $IDS";
 
         var result = await SshReadRetry.ExecuteAsync(ssh,
             new SshCommandRequest(request.Server, command, TimeSpan.FromSeconds(20)),
@@ -95,7 +96,7 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 string.IsNullOrWhiteSpace(result.StandardError)
                     ? "Could not inspect the deployed containers."
                     : result.StandardError.Trim(),
-                StateUnconfirmed: result.ExitCode == -1 || result.TimedOut || result.Cancelled));
+                StateUnconfirmed: true));
             return;
         }
 
@@ -114,20 +115,23 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
             return;
         }
 
+        var observedServices = new HashSet<string>(StringComparer.Ordinal);
         foreach (var line in lines)
         {
             if (line == "__VPSDESK_NO_CONTAINERS__") continue;
-            var parts = line.Split('|', 3, StringSplitOptions.TrimEntries);
-            if (parts.Length < 2) continue;
+            var parts = line.Split('|', 4, StringSplitOptions.TrimEntries);
+            if (parts.Length < 2 || string.IsNullOrWhiteSpace(parts[1])) continue;
 
             var name = parts[0].Trim().TrimStart('/');
             var state = parts[1].Trim();
             var health = parts.Length >= 3 ? parts[2].Trim() : "none";
 
+            if (parts.Length == 4) observedServices.Add(parts[3]);
             var status = state.Equals("running", StringComparison.OrdinalIgnoreCase)
                 ? health.Equals("unhealthy", StringComparison.OrdinalIgnoreCase)
                     ? PostDeployCheckStatus.Failed
                     : health.Equals("starting", StringComparison.OrdinalIgnoreCase)
+                        || (health.Equals("none", StringComparison.OrdinalIgnoreCase) && !request.HttpHealthUrls.Any(url => !string.IsNullOrWhiteSpace(url)))
                         ? PostDeployCheckStatus.Warning
                         : PostDeployCheckStatus.Passed
                 : PostDeployCheckStatus.Failed;
@@ -137,7 +141,9 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 PostDeployCheckStatus.Passed => health.Equals("none", StringComparison.OrdinalIgnoreCase)
                     ? "Running · no Docker healthcheck configured."
                     : $"Running · health {health}.",
-                PostDeployCheckStatus.Warning => "Running · Docker healthcheck is still starting.",
+                PostDeployCheckStatus.Warning => health.Equals("none", StringComparison.OrdinalIgnoreCase)
+                    ? "Running · no Docker healthcheck or HTTP check configured."
+                    : "Running · Docker healthcheck is still starting.",
                 _ => $"State {state} · health {health}. Review the container logs."
             };
 
@@ -146,6 +152,12 @@ public sealed class PostDeployVerificationService(ISshCommandExecutor ssh) : IPo
                 $"Container {name}",
                 status,
                 detail));
+        }
+        foreach (var service in request.Services ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(service) && !observedServices.Contains(service.Trim()))
+                checks.Add(new($"service:{service}", $"Compose service {service}", PostDeployCheckStatus.Failed,
+                    "No container was found for this service."));
         }
         if (checks.Count == 0)
             checks.Add(new PostDeployCheckResult("compose-state", "Docker Compose container state",

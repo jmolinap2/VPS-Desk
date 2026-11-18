@@ -176,6 +176,8 @@ public partial class DeploymentsViewModel
             return false;
         }
 
+        if (!TryReadRecovery(server, out var recovery)) return false;
+
         IsAppBackupBusy = true;
         using var cancellation = new CancellationTokenSource();
         _appBackupCancellation = cancellation;
@@ -191,9 +193,13 @@ public partial class DeploymentsViewModel
                         : string.IsNullOrWhiteSpace(AppBackupPostgresContainer) ? null : AppBackupPostgresContainer.Trim(),
                     KeepOnServerOnly: KeepAppBackupOnServer,
                     Content: content,
-                    Database: database),
+                    Database: database,
+                    PreserveExistingCopies: recovery is not null),
                 secret,
                 progress, cancellation.Token);
+
+            if (content != AppBackupContent.FilesOnly && !result.DatabaseIncluded)
+                throw new InvalidDataException("La copia no incluye la base de datos requerida.");
 
             foreach (var warning in result.Warnings) AppendSnapshotLog($"AVISO: {warning}");
             AppendSnapshotLog(result.StoredOnServer

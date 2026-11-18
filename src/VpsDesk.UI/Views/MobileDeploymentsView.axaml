@@ -267,6 +267,8 @@
 
             <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding DeploymentOutcomeTitle}" TextWrapping="Wrap" />
             <TextBlock Classes="t-body-s" Text="{Binding DeploymentNextAction}" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
+            <Button Classes="btn-secondary" Content="{DynamicResource Recovery_VerifyAgain}"
+                    IsVisible="{Binding HasDeploymentRecovery}" Command="{Binding VerifyDeploymentRecoveryCommand}" />
             <Button Content="{DynamicResource Recovery_RestoreSnapshot}"
                     Command="{Binding RequestRestoreDeploymentSnapshotCommand}"
                     IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"

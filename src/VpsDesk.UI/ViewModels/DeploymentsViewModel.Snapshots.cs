@@ -45,7 +45,9 @@ public partial class DeploymentsViewModel
     public bool HasProviderBackups => ProviderBackups.Count > 0;
     public bool CanConfirmSnapshotAction => HasPendingSnapshotAction
         && (!PendingSnapshotRequiresPhrase
-            || string.Equals(SnapshotConfirmPhrase.Trim(), RestorePhrase, StringComparison.OrdinalIgnoreCase));
+            || string.Equals(SnapshotConfirmPhrase.Trim(), SnapshotActionPhrase, StringComparison.OrdinalIgnoreCase));
+
+    public string SnapshotActionPhrase => _pendingSnapshotAction == SnapshotAction.Create ? "REEMPLAZAR" : RestorePhrase;
 
     partial void OnSnapshotConfirmPhraseChanged(string value) => OnPropertyChanged(nameof(CanConfirmSnapshotAction));
 
@@ -165,10 +167,11 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private void RequestCreateSnapshot()
     {
-        if (!CanUseSnapshots) return;
+        if (!CanUseSnapshots || _serverAccessor() is not { } server || !TryReadRecovery(server, out var recovery)) return;
 
         _pendingSnapshotAction = SnapshotAction.Create;
-        PendingSnapshotRequiresPhrase = false;
+        OnPropertyChanged(nameof(SnapshotActionPhrase));
+        PendingSnapshotRequiresPhrase = recovery is not null;
         SnapshotConfirmPhrase = string.Empty;
         _pendingSnapshotServerId = _serverAccessor()?.Id;
         PendingSnapshotTitle = "Crear snapshot del servidor";
@@ -176,6 +179,8 @@ public partial class DeploymentsViewModel
         PendingSnapshotMessage = _currentSnapshot is { } existing
             ? $"Hostinger conserva un solo snapshot por VPS: este REEMPLAZARÁ al del {existing.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} y ese punto de restauración se perderá. Para tener varias copias descargables usa «Copia de la aplicación»."
             : "Se creará un snapshot de todo el VPS. Caduca al día siguiente y Hostinger solo conserva uno. Puede tardar varios minutos; el servidor sigue funcionando mientras tanto.";
+        if (recovery is not null)
+            PendingSnapshotMessage += " Hay un pase sin resolver. Escribe REEMPLAZAR para confirmar que aceptas perder el snapshot anterior.";
         HasPendingSnapshotAction = true;
     }
 
@@ -185,6 +190,7 @@ public partial class DeploymentsViewModel
         if (!CanRestoreSnapshot || _currentSnapshot is not { } snapshot) return;
 
         _pendingSnapshotAction = SnapshotAction.Restore;
+        OnPropertyChanged(nameof(SnapshotActionPhrase));
         PendingSnapshotRequiresPhrase = true;
         SnapshotConfirmPhrase = string.Empty;
         _pendingSnapshotServerId = _serverAccessor()?.Id;
@@ -217,6 +223,7 @@ public partial class DeploymentsViewModel
         var serverId = _pendingSnapshotServerId;
         var snapshotId = _pendingSnapshotId;
         var expectedSnapshot = _pendingRestoreSnapshot;
+        var confirmedReplacement = PendingSnapshotRequiresPhrase;
         CancelSnapshotAction();
 
         if (_snapshots is not { IsConfigured: true } || _serverAccessor() is not { } server || server.Id != serverId) return;
@@ -224,6 +231,7 @@ public partial class DeploymentsViewModel
 
         if (action == SnapshotAction.Create)
         {
+            if (!TryReadRecovery(server, out var recovery) || (recovery is not null && !confirmedReplacement)) return;
             await CreateSnapshotWithFeedbackAsync(
                 server,
                 "Creando snapshot del servidor",
@@ -252,7 +260,7 @@ public partial class DeploymentsViewModel
             return;
         }
         finally { IsSnapshotBusy = false; }
-        await RestoreSnapshotWithFeedbackAsync(server);
+        await RestoreSnapshotWithFeedbackAsync(server, expectedSnapshot!);
     }
 
     /// <summary>
@@ -273,7 +281,7 @@ public partial class DeploymentsViewModel
         }
 
         return _currentSnapshot is { } existing
-            ? $" Antes de desplegar se creará un snapshot del VPS (reemplaza al del {existing.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm})."
+            ? $" Antes de desplegar se creará un snapshot del VPS (reemplaza al del {existing.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} solo si se confirma la salud del proyecto)."
             : " Antes de desplegar se creará un snapshot del VPS.";
     }
 
@@ -281,11 +289,37 @@ public partial class DeploymentsViewModel
     /// Paso previo al despliegue. Devuelve false si el snapshot era obligatorio
     /// y no se pudo crear: sin punto de restauración no se toca el servidor.
     /// </summary>
-    private async Task<bool> TakeSnapshotBeforeDeployAsync(ServerProfile server)
+    private async Task<bool> TakeSnapshotBeforeDeployAsync(ServerProfile server,
+        VpsDesk.Application.Deployments.PostDeployVerificationRequest verification, string? secret)
     {
         if (!SnapshotBeforeDeploy || _snapshots is not { IsConfigured: true }) return true;
 
         CancelPendingDeploy();
+        IsSnapshotBusy = true;
+        try
+        {
+            var existing = await _snapshots.GetAsync(server.Host);
+            if (_serverAccessor()?.Id != server.Id) return false;
+            if (existing is not null)
+            {
+                var health = await _postDeployVerification.VerifyAsync(verification, secret);
+                if (_serverAccessor()?.Id != server.Id) return false;
+                if (!health.IsHealthy)
+                {
+                    _deploymentSnapshot = existing;
+                    _deploymentSnapshotServerId = server.Id;
+                    Toast.Warning("Se conservó el snapshot actual porque la salud del proyecto no está confirmada.", "Snapshot conservado");
+                    return true;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            Toast.Error(exception, "No se pudo verificar el punto de restauración. Pase cancelado");
+            return false;
+        }
+        finally { IsSnapshotBusy = false; }
+
         var created = await CreateSnapshotWithFeedbackAsync(
             server,
             "Creando snapshot previo al despliegue",
@@ -341,7 +375,7 @@ public partial class DeploymentsViewModel
         }
     }
 
-    private async Task RestoreSnapshotWithFeedbackAsync(ServerProfile server)
+    private async Task RestoreSnapshotWithFeedbackAsync(ServerProfile server, VpsSnapshotInfo restoredSnapshot)
     {
         IsSnapshotBusy = true;
         BeginOperationFeedback(
@@ -352,6 +386,13 @@ public partial class DeploymentsViewModel
         try
         {
             await _snapshots!.RestoreAsync(server.Host, progress);
+            if (TryReadRecovery(server, out var recovery) && recovery?.Snapshot is { } protectedSnapshot &&
+                SnapshotRecoveryPolicy.IsSameAvailableSnapshot(protectedSnapshot, restoredSnapshot, DateTimeOffset.UtcNow))
+            {
+                recovery = recovery with { MigrationNeedsReview = false, ExecutionNeedsReview = false, Status = "Snapshot restaurado. Salud pendiente de comprobar" };
+                _profileStore.SaveRecovery(server.Id, recovery);
+                if (_serverAccessor()?.Id == server.Id) ShowSavedRecovery(server, recovery);
+            }
             CompleteOperationFeedback(
                 true,
                 "Restauración completada. Espera a que el servidor termine de arrancar y actualiza el Panel para confirmar que los contenedores están arriba.");

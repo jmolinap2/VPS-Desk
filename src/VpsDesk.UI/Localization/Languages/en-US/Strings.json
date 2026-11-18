@@ -1,4 +1,6 @@
 {
+  "Recovery_VerifyAgain": "Check status again",
+  "Deployments_ConfirmRecoveryReview": "I checked whether the previous deployment is still running and whether it left partial changes or migrations.",
   "Recovery_RestoreSnapshot": "Restore snapshot from before this deployment",
   "Notifications_Sound": "Notification sounds",
   "Backups_LocalDataTitle": "VPS Desk profiles and settings",

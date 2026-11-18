@@ -103,7 +103,8 @@ public sealed record AppBackupRequest(
     string? PostgresContainer = null,
     bool KeepOnServerOnly = false,
     AppBackupContent Content = AppBackupContent.Full,
-    string? Database = null);
+    string? Database = null,
+    bool PreserveExistingCopies = false);
 
 public sealed record AppBackupInfo(
     string FileName,

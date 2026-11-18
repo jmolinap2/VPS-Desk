@@ -9,6 +9,40 @@ namespace VpsDesk.Desktop.ViewModels;
 
 public partial class DeploymentsViewModel
 {
+    [ObservableProperty] private bool _requiresRecoveryReview;
+    [ObservableProperty] private bool _recoveryReviewConfirmed;
+
+    private bool TryReadRecovery(ServerProfile server, out DeploymentRecoveryRecord? recovery)
+    {
+        try
+        {
+            recovery = _profileStore.ReadRecovery(server.Id);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            recovery = null;
+            Toast.Error(exception, "No se pudo leer el estado de recuperación");
+            return false;
+        }
+    }
+
+    private void ShowSavedRecovery(ServerProfile server, DeploymentRecoveryRecord? recovery)
+    {
+        if (recovery is null) return;
+        _deploymentSnapshot = recovery.Snapshot;
+        _deploymentSnapshotServerId = server.Id;
+        HasDeploymentRecovery = true;
+        SuggestDeploymentRestore = recovery.Snapshot is { } snapshot
+            && (snapshot.ExpiresAt is null || snapshot.ExpiresAt > DateTimeOffset.UtcNow);
+        DeploymentRecoveryMessage = $"Recuperación pendiente para {recovery.ProjectPath}. {recovery.Status}. "
+            + "El snapshot no se reemplazará automáticamente.";
+        DeploymentNextAction = DeploymentRecoveryMessage;
+        OnPropertyChanged(nameof(CanRestoreDeploymentSnapshot));
+    }
+
+    private string? _previousDeploymentCommit;
+    private string? _deployedCommit;
     private VpsSnapshotInfo? _deploymentSnapshot;
     private Guid? _deploymentSnapshotServerId;
     [ObservableProperty] private bool _hasDeploymentRecovery;
@@ -28,30 +62,32 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(CanRestoreDeploymentSnapshot));
     }
 
-    private async Task CheckFailedDeploymentAsync(ServerProfile server, PostDeployVerificationRequest verificationRequest)
+    private async Task<PostDeployVerificationResult?> CheckFailedDeploymentAsync(ServerProfile server, PostDeployVerificationRequest verificationRequest, string? secret)
     {
         StatusMessage = "Recuperando conexión SSH y comprobando el estado del VPS...";
         DeploymentNextAction = "Comprobando los servicios después del fallo. Espera el diagnóstico antes de repetir el pase.";
         try
         {
             // VerifyAsync abre conexiones nuevas y reintenta las consultas de lectura.
-            var verification = await _postDeployVerification.VerifyAsync(verificationRequest, _secretAccessor());
-            if (_serverAccessor()?.Id != server.Id) return;
+            var verification = await _postDeployVerification.VerifyAsync(verificationRequest, secret);
+            if (_serverAccessor()?.Id != server.Id) return null;
             PostChecks.Clear();
             foreach (var check in verification.Checks) PostChecks.Add(check);
             ApplyDeploymentRecovery(verification);
+            return verification;
         }
         catch (Exception ex)
         {
-            if (_serverAccessor()?.Id != server.Id) return;
-            ShowUnconfirmedRecovery(UserFacingErrors.Describe(ex));
+            if (_serverAccessor()?.Id == server.Id) ShowUnconfirmedRecovery(UserFacingErrors.Describe(ex));
+            return null;
         }
     }
 
     private void ShowUnconfirmedRecovery(string detail)
     {
         HasDeploymentRecovery = true;
-        SuggestDeploymentRestore = false;
+        SuggestDeploymentRestore = _deploymentSnapshot is not null;
+        OnPropertyChanged(nameof(CanRestoreDeploymentSnapshot));
         DeploymentRecoveryMessage = "Estado sin confirmar. No se pudo recuperar la conexión o completar las comprobaciones. "
             + "Revisa el VPS en el panel del proveedor; perder SSH no confirma que el servidor esté roto. " + detail;
         DeploymentOutcomeTitle = "Pase interrumpido · estado sin confirmar";
@@ -61,19 +97,19 @@ public partial class DeploymentsViewModel
 
     private void ApplyDeploymentRecovery(PostDeployVerificationResult verification)
     {
-        if (!verification.IsStateConfirmed)
+        if (!verification.IsStateConfirmed && !verification.HasConfirmedFailure)
         {
             ShowUnconfirmedRecovery(string.Join(" · ", verification.Checks.Where(c => c.StateUnconfirmed).Select(c => c.Detail)));
             return;
         }
 
         HasDeploymentRecovery = true;
-        var failures = verification.Checks.Where(c => c.Status == PostDeployCheckStatus.Failed).ToArray();
+        var failures = verification.Checks.Where(c => c.Status == PostDeployCheckStatus.Failed && !c.StateUnconfirmed).ToArray();
         SuggestDeploymentRestore = failures.Length > 0 && _deploymentSnapshot is { } snapshot
             && (snapshot.ExpiresAt is null || snapshot.ExpiresAt > DateTimeOffset.UtcNow)
             && _deploymentSnapshotServerId == _serverAccessor()?.Id;
         DeploymentRecoveryMessage = failures.Length == 0
-            ? "Conexión recuperada. Los servicios comprobados responden. Revisa el paso fallido y las migraciones antes de repetir el pase."
+            ? "Se recuperó la conexión. Revisa las comprobaciones, el paso fallido y las migraciones antes de repetir el pase."
             : "Se recuperó la conexión y se confirmaron problemas: "
                 + string.Join(" · ", failures.Select(c => $"{c.Label}: {c.Detail}"))
                 + (SuggestDeploymentRestore
@@ -82,6 +118,40 @@ public partial class DeploymentsViewModel
         DeploymentNextAction = DeploymentRecoveryMessage;
         StatusMessage = failures.Length == 0 ? "Comprobación tras el fallo: servicios disponibles." : "Comprobación tras el fallo: problemas confirmados.";
         OnPropertyChanged(nameof(CanRestoreDeploymentSnapshot));
+    }
+
+    [RelayCommand]
+    private async Task VerifyDeploymentRecoveryAsync()
+    {
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy || _serverAccessor() is not { } server
+            || !TryReadRecovery(server, out var recovery) || recovery is null) return;
+
+        var sameProject = RemoteRepositoryPath.Trim().TrimEnd('/') == recovery.ProjectPath
+            && ComposeFile.Trim() == recovery.ComposeFile;
+        var urls = (recovery.HealthUrls ?? []).Concat(sameProject ? ParseHealthUrls() : [])
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var request = new PostDeployVerificationRequest(server, recovery.ProjectPath, recovery.ComposeFile, urls, recovery.Services);
+        var secret = _secretAccessor();
+        IsSnapshotBusy = true;
+        try
+        {
+            var verification = await CheckFailedDeploymentAsync(server, request, secret);
+            if (_serverAccessor()?.Id != server.Id) return;
+            if (!recovery.NeedsReview && verification?.IsHealthy == true)
+            {
+                _profileStore.ClearRecovery(server.Id);
+                ClearDeploymentRecovery();
+                DeploymentNextAction = "La salud de los servicios comprobados está confirmada. Se cerró la recuperación pendiente.";
+                StatusMessage = DeploymentNextAction;
+            }
+            else if (recovery.NeedsReview)
+                DeploymentNextAction += " El pase anterior todavía requiere revisión de sus comandos o migraciones.";
+        }
+        catch (Exception exception)
+        {
+            Toast.Error(exception, "No se pudo completar la revisión de recuperación");
+        }
+        finally { IsSnapshotBusy = false; }
     }
 
     [RelayCommand]

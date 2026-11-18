@@ -83,7 +83,7 @@ public sealed partial class SshAppBackupService : IAppBackupService
                 _ => "Preparando la copia en el VPS (base de datos, proyecto y configuración)..."
             });
             var script = BuildRemoteScript(stamp, repository, request.PostgresContainer, keep, request.KeepOnServerOnly,
-                request.Content, request.Database);
+                request.Content, request.Database, request.PreserveExistingCopies);
             var command = $"printf %s '{Convert.ToBase64String(Encoding.UTF8.GetBytes(script))}' | base64 -d | bash";
 
             var result = await _ssh.ExecuteAsync(
@@ -148,7 +148,7 @@ public sealed partial class SshAppBackupService : IAppBackupService
 
             // Solo con la copia nueva verificada se descartan las más antiguas del mismo tipo:
             // una copia de solo base de datos no debe desplazar a las completas.
-            var pruned = Prune(request.Server, request.Content, keep, progress);
+            var pruned = request.PreserveExistingCopies ? 0 : Prune(request.Server, request.Content, keep, progress);
             var warnings = result.StandardOutput
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(line => line.StartsWith("WARN:", StringComparison.Ordinal))
@@ -279,7 +279,7 @@ public sealed partial class SshAppBackupService : IAppBackupService
     }
 
     private static string BuildRemoteScript(string stamp, string repository, string? postgresContainer, int keep, bool serverOnly,
-        AppBackupContent content, string? database)
+        AppBackupContent content, string? database, bool preserveExistingCopies)
         => Unix($"STAMP={Quote(stamp)}\n"
             + $"REPO={Quote(repository)}\n"
             + $"PGC={Quote(postgresContainer?.Trim() ?? string.Empty)}\n"
@@ -288,6 +288,7 @@ public sealed partial class SshAppBackupService : IAppBackupService
             + $"KIND={Quote(content switch { AppBackupContent.DatabaseOnly => "db", AppBackupContent.FilesOnly => "files", _ => "full" })}\n"
             + $"SUFFIX={Quote(AppBackupNames.SuffixOf(content))}\n"
             + $"DBSEL={Quote(database?.Trim() ?? string.Empty)}\n"
+            + $"PRESERVE={(preserveExistingCopies ? "1" : "0")}\n"
             + PostgresFunctions
             + RemoteScript);
 
@@ -397,7 +398,7 @@ public sealed partial class SshAppBackupService : IAppBackupService
             while IFS= read -r D; do
               [ -n "$D" ] || continue
               case "$D" in
-                */*|.*|-*) echo "WARN: se omite la base con nombre no apto para archivo: $D"; continue ;;
+                */*|.*|-*) fail "No se puede incluir la base $D en la copia." 20 ;;
               esac
               echo "Volcando la base $D..."
               docker exec "$PGC" sh -c 'pg_dump -U "${POSTGRES_USER:-postgres}" -Fc -d "$1"' _ "$D" > "$WORK/content/db/$D.dump" \
@@ -407,10 +408,8 @@ public sealed partial class SshAppBackupService : IAppBackupService
             done <<< "$DBS"
             [ "$COUNT" -gt 0 ] || fail "El contenedor $PGC no tiene bases que copiar." 20
             DB=yes
-          elif [ "$KIND" = "db" ]; then
-            fail "No se encontró un contenedor PostgreSQL activo en el VPS." 20
           else
-            echo "WARN: no se encontró un contenedor PostgreSQL; la copia NO incluye base de datos."
+            fail "No se encontró un contenedor PostgreSQL activo. Para copiar solo el proyecto, selecciona Archivos." 20
           fi
         fi
 
@@ -450,9 +449,11 @@ public sealed partial class SshAppBackupService : IAppBackupService
             files) SAME=(-name '*-files.vpsbackup.tar') ;;
             *) SAME=(-name '*.vpsbackup.tar' ! -name '*-db.vpsbackup.tar' ! -name '*-files.vpsbackup.tar') ;;
           esac
-          while IFS= read -r OLD; do
-            rm -f -- "$OLD" "$OLD.sha256"
-          done < <(find "$DEST" -maxdepth 1 -type f "${SAME[@]}" -printf '%T@ %p\n' | sort -rn | tail -n +$((KEEP + 1)) | cut -d' ' -f2-)
+          if [ "$PRESERVE" = "0" ]; then
+            while IFS= read -r OLD; do
+              rm -f -- "$OLD" "$OLD.sha256"
+            done < <(find "$DEST" -maxdepth 1 -type f "${SAME[@]}" -printf '%T@ %p\n' | sort -rn | tail -n +$((KEEP + 1)) | cut -d' ' -f2-)
+          fi
           echo "VPSDESK_REMOTE_PATH=$OUT"
         fi
         echo "VPSDESK_SHA256=$SHA"

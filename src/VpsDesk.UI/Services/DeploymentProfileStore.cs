@@ -26,7 +26,8 @@ public sealed record DeploymentProfile(
     int? BackupKeepCopies = null,
     bool? StoreBackupOnServer = null,
     bool? SnapshotBeforeDeploy = null,
-    string? BackupPostgresContainer = null);
+    string? BackupPostgresContainer = null,
+    string? HttpHealthUrls = null);
 
 public sealed record DeploymentProfileStoreSnapshot(IReadOnlyList<DeploymentProfile> Profiles);
 

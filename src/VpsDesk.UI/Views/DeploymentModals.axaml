@@ -70,9 +70,16 @@
               <TextBlock Classes="t-body-s" Text="{Binding PendingDeployMessage}" TextWrapping="Wrap"
                          IsVisible="{Binding !IsProductionServer}" />
 
-              <CheckBox IsVisible="{Binding RequiresRecoveryReview}" IsChecked="{Binding RecoveryReviewConfirmed}">
-                <TextBlock Text="{DynamicResource Deployments_ConfirmRecoveryReview}" TextWrapping="Wrap" />
-              </CheckBox>
+              <Border Classes="surface-inset" Background="{DynamicResource Brush.Warning.Subtle}"
+                      IsVisible="{Binding RequiresRecoveryReview}">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{DynamicResource Deployments_RecoveryReviewTitle}" TextWrapping="Wrap" />
+                  <TextBlock Classes="t-body-s" Text="{DynamicResource Deployments_RecoveryReviewHelp}" TextWrapping="Wrap" />
+                  <CheckBox IsChecked="{Binding RecoveryReviewConfirmed}">
+                    <TextBlock Text="{DynamicResource Deployments_ConfirmRecoveryReview}" TextWrapping="Wrap" />
+                  </CheckBox>
+                </StackPanel>
+              </Border>
 
               <StackPanel Spacing="8" IsVisible="{Binding HasPendingNotices}">
                 <TextBlock Classes="t-overline" Text="{DynamicResource Deployments_BeforeDeploy}" />

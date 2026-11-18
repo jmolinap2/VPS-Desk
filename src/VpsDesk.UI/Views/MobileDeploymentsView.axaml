@@ -523,6 +523,8 @@
                   <TextBlock Classes="t-label" Text="{DynamicResource Deployments_HealthUrls}" TextWrapping="Wrap" />
                   <TextBox Text="{Binding HttpHealthUrls}" AcceptsReturn="True" MinHeight="72" TextWrapping="Wrap"
                            IsEnabled="{Binding !MigrationOnly}" PlaceholderText="https://app.example.com/health" />
+                  <Button Classes="btn-secondary" Content="{DynamicResource Deployments_SaveProfile}"
+                          Command="{Binding SaveProfileCommand}" IsEnabled="{Binding !IsBusy}" />
                 </StackPanel>
               </StackPanel>
             </Border>

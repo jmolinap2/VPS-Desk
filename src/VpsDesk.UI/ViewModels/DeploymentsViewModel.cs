@@ -187,7 +187,7 @@ public partial class DeploymentsViewModel : ObservableObject
             PullImages = saved?.PullImages ?? true;
             BuildImages = saved?.BuildImages ?? true;
             CleanBuildCache = saved?.CleanBuildCache ?? true;
-            HttpHealthUrls = string.Empty;
+            HttpHealthUrls = saved?.HttpHealthUrls ?? string.Empty;
             LoadProjectPreferences(saved);
 
             RefreshServerContext(server);
@@ -225,7 +225,7 @@ public partial class DeploymentsViewModel : ObservableObject
             PullImages = saved?.PullImages ?? true;
             BuildImages = saved?.BuildImages ?? true;
             CleanBuildCache = saved?.CleanBuildCache ?? true;
-            HttpHealthUrls = string.Empty;
+            HttpHealthUrls = saved?.HttpHealthUrls ?? string.Empty;
             LoadProjectPreferences(saved);
             RefreshServerContext(server);
             if (server is not null && TryReadRecovery(server, out var recovery)) ShowSavedRecovery(server, recovery);

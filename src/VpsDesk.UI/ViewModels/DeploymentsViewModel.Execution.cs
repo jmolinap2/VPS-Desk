@@ -697,5 +697,6 @@ public partial class DeploymentsViewModel
             KeepCopies,
             StoreAppBackupOnServer,
             SnapshotBeforeDeploy,
-            AppBackupPostgresContainer.Trim());
+            AppBackupPostgresContainer.Trim(),
+            HttpHealthUrls.Trim());
 }

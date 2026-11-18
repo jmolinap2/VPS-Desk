@@ -9,12 +9,15 @@ namespace VpsDesk.Desktop.ViewModels;
 
 public partial class DeploymentsViewModel
 {
+    private bool _lastSourceUpdateSucceeded;
+    private bool _lastDiscoverySucceeded;
     public Task TryAutoDiscoverRepositoryAsync()
         => DiscoverRemoteOptionsAsync();
 
     [RelayCommand]
     public async Task DiscoverRemoteOptionsAsync()
     {
+        _lastDiscoverySucceeded = false;
         if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
         var server = _serverAccessor();
         if (server == null)
@@ -64,6 +67,7 @@ public partial class DeploymentsViewModel
 
             await RefreshProjectModelAsync(server);
             PersistProfile(server);
+            _lastDiscoverySucceeded = true;
 
             StatusMessage = IsProjectRecipeInvalid
                 ? "La detección encontró una receta .vpsdesk inválida. Corrígela antes de desplegar."
@@ -134,6 +138,7 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     public async Task PullSourceAsync()
     {
+        _lastSourceUpdateSucceeded = false;
         if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
 
         var server = _serverAccessor();
@@ -153,6 +158,9 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        var sourcePath = RemoteRepositoryPath.Trim();
+        var sourceBranch = Branch.Trim();
+        var sourceProjectId = _activeProjectId;
         CanDeploy = false;
         CancelPendingDeploy();
         Checks.Clear();
@@ -173,8 +181,8 @@ public partial class DeploymentsViewModel
             var result = await _gitUpdate.PullAsync(
                 new GitRepositoryUpdateRequest(
                     server,
-                    RemoteRepositoryPath.Trim(),
-                    Branch.Trim()),
+                    sourcePath,
+                    sourceBranch),
                 _secretAccessor());
 
             var output = new StringBuilder();
@@ -220,9 +228,29 @@ public partial class DeploymentsViewModel
             IsBusy = false;
         }
 
-        if (!succeeded) return;
+        if (!succeeded || _serverAccessor()?.Id != server.Id || _activeProjectId != sourceProjectId
+            || !string.Equals(RemoteRepositoryPath.Trim(), sourcePath, StringComparison.Ordinal)
+            || !string.Equals(Branch.Trim(), sourceBranch, StringComparison.Ordinal)) return;
 
         await DiscoverRemoteOptionsAsync();
+        _lastSourceUpdateSucceeded = _lastDiscoverySucceeded;
+    }
+
+    [RelayCommand]
+    private async Task PullSourceAndRetryPreflightAsync()
+    {
+        if (!IsPreflightFinished || IsBusy) return;
+        var serverId = _serverAccessor()?.Id;
+        var projectId = _activeProjectId;
+        var projectPath = RemoteRepositoryPath.Trim();
+        var branch = Branch.Trim();
+        IsPreflightModalOpen = false;
+        await PullSourceAsync();
+        if (!_lastSourceUpdateSucceeded || _serverAccessor()?.Id != serverId || _activeProjectId != projectId
+            || !string.Equals(RemoteRepositoryPath.Trim(), projectPath, StringComparison.Ordinal)
+            || !string.Equals(Branch.Trim(), branch, StringComparison.Ordinal)) return;
+        IsOperationFeedbackModalOpen = false;
+        await RunPreflightCoreAsync();
     }
 
     [RelayCommand]

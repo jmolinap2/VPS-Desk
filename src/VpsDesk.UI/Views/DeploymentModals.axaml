@@ -213,7 +213,13 @@
             </ItemsControl>
           </ScrollViewer>
 
-          <Panel Grid.Row="3">
+          <StackPanel Grid.Row="3" Spacing="8">
+            <StackPanel Spacing="6" IsVisible="{Binding IsPreflightFinished}">
+              <TextBlock Classes="t-body-s" Text="{DynamicResource Deployments_PreflightPullHelp}" TextWrapping="Wrap" />
+              <Button Classes="btn-secondary" HorizontalAlignment="Stretch"
+                      Content="{DynamicResource Deployments_PreflightPull}" Command="{Binding PullSourceAndRetryPreflightCommand}" />
+            </StackPanel>
+            <Panel>
             <Button Classes="btn-secondary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Cancel}"
                     Command="{Binding CancelPreflightCommand}" IsVisible="{Binding IsPreflightRunning}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding PreflightSucceeded}">
@@ -228,7 +234,8 @@
               <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch"
                       Content="{DynamicResource Deployments_Retry}" Command="{Binding RunPreflightCommand}" />
             </Grid>
-          </Panel>
+            </Panel>
+          </StackPanel>
         </Grid>
       </Border>
     </Border>

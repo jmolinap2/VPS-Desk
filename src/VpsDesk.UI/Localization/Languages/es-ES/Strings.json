@@ -169,6 +169,8 @@
   "Deployments_ExecuteTooltip": "Detecta las opciones necesarias si hace falta y valida el VPS antes de pedir tu confirmación final.",
   "Deployments_Discover": "Detectar opciones",
   "Deployments_DiscoverTooltip": "Se conecta por SSH y lee qué ramas y archivos *.yml existen realmente en el repositorio remoto.",
+  "Deployments_PreflightPull": "Traer cambios y repetir prevuelo",
+  "Deployments_PreflightPullHelp": "Actualiza los archivos del repositorio y vuelve a comprobarlos; no inicia contenedores. Los archivos compartidos con servicios activos pueden cambiar.",
   "Deployments_PullSource": "Traer cambios",
   "Deployments_PullSourceTooltip": "Ejecuta fetch, checkout y pull --ff-only en la rama seleccionada sin desplegar ni reiniciar contenedores.",
   "Deployments_OperationToggleTerminal": "Ver / ocultar terminal",

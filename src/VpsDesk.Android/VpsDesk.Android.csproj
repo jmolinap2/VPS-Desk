@@ -31,6 +31,9 @@
     <AssemblyMetadata Include="VpsDesk.UpdateUrl" Value="$(VpsDeskUpdateUrl)" Condition="'$(VpsDeskUpdateUrl)' != ''" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Avalonia descubre los cargadores XAML compilados por reflexión. Deben
+         conservarse al recortar Release o Android falla antes de abrir la UI. -->
+    <TrimmerRootAssembly Include="VpsDesk.UI" RootMode="All" />
     <ProjectReference Include="../VpsDesk.UI/VpsDesk.UI.csproj" />
     <PackageReference Include="Avalonia.Android" />
   </ItemGroup>

@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.vpsdesk.app</ApplicationId>
-    <ApplicationVersion>7</ApplicationVersion>
-    <ApplicationDisplayVersion>1.0.6</ApplicationDisplayVersion>
+    <ApplicationVersion>8</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0.7</ApplicationDisplayVersion>
     <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
     <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == '' AND Exists('C:\Android\Sdk')">C:\Android\Sdk</AndroidSdkDirectory>
     <AndroidPackageFormat>apk</AndroidPackageFormat>

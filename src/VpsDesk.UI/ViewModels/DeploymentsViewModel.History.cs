@@ -14,6 +14,9 @@ namespace VpsDesk.Desktop.ViewModels;
 
 public partial class DeploymentsViewModel
 {
+    [ObservableProperty] private DeploymentFinaleOutcome _deploymentFinale;
+    public bool ShowProgressJet => IsDeploymentRunning && DeploymentFinale == DeploymentFinaleOutcome.None;
+    partial void OnDeploymentFinaleChanged(DeploymentFinaleOutcome value) => OnPropertyChanged(nameof(ShowProgressJet));
     private IOperationHistoryStore? _historyStore;
     private bool _deploymentObserved;
     private bool _historyRecordedForCurrentRun;
@@ -87,6 +90,7 @@ public partial class DeploymentsViewModel
 
     partial void OnIsDeploymentRunningChanged(bool value)
     {
+        OnPropertyChanged(nameof(ShowProgressJet));
         OnPropertyChanged(nameof(HasExecutionActivity));
         NotifyReportAvailability();
         UpdateElapsedTimer(value);
@@ -107,6 +111,7 @@ public partial class DeploymentsViewModel
             || value.Contains("despliegue está en ejecución", StringComparison.OrdinalIgnoreCase))
         {
             _deploymentObserved = true;
+            DeploymentFinale = DeploymentFinaleOutcome.None;
             _historyRecordedForCurrentRun = false;
             _observedDeploymentStartedAt = DateTimeOffset.UtcNow;
             IsDeploymentRunning = true;

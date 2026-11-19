@@ -563,6 +563,8 @@ public partial class DeploymentsViewModel
             {
                 StatusMessage = $"La ejecución se detuvo en '{result.FailedStep?.Label ?? "paso desconocido"}'. Revisa la salida sanitizada.";
                 DeploymentOutcomeTitle = "Pase detenido";
+                if (result.FailedStep is { ExitCode: not -1 })
+                    DeploymentFinale = DeploymentFinaleOutcome.Failed;
                 DeploymentNextAction = "Revisa el paso fallido y los servicios. Puede haber cambios aplicados. Ejecuta un nuevo prevuelo antes de repetir.";
                 Toast.Error(StatusMessage, "El despliegue se detuvo");
                 DeploymentBackgroundExecution.Complete?.Invoke("Pase detenido", "Revisa el paso fallido y el estado del servidor.");
@@ -593,6 +595,9 @@ public partial class DeploymentsViewModel
 
             var hasWarnings = result.HasWarnings || verification.HasWarnings;
             DeploymentOutcomeTitle = !verification.Passed ? "Pase con problemas" : hasWarnings ? "Pase completado con avisos" : "Pase verificado";
+            DeploymentFinale = verification.IsHealthy && !result.HasWarnings
+                ? DeploymentFinaleOutcome.Success
+                : verification.HasConfirmedFailure ? DeploymentFinaleOutcome.Failed : DeploymentFinaleOutcome.None;
             DeploymentBackgroundExecution.Complete?.Invoke(DeploymentOutcomeTitle,
                 verification.Passed ? "Abre VPS Desk para consultar el resultado." : "Revisa las comprobaciones del servidor.");
             DeploymentProgressPercent = 100;

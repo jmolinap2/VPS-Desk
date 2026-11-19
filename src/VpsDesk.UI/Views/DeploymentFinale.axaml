@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VpsDesk.Desktop.Views.DeploymentFinale"
+             IsHitTestVisible="False" ClipToBounds="True">
+  <Canvas x:Name="Scene" ClipToBounds="True" IsHitTestVisible="False">
+    <Path x:Name="Clouds" Opacity="0" Fill="{DynamicResource Brush.Info.Subtle}"
+          Data="M 0,45 C 25,18 57,28 75,38 C 91,5 132,5 150,35 C 172,13 208,20 216,44 C 249,19 282,30 300,45 L 300,0 L 0,0 Z" />
+    <Grid x:Name="Aircraft" Width="76" Height="36" RenderTransformOrigin="50%,50%" Opacity="0">
+      <Path Data="M 4,15 L 25,15 M 9,21 L 26,21 M 16,26 L 29,26" Stroke="{DynamicResource Brush.Accent.Text}" StrokeThickness="2" />
+      <Path Data="M 23,18 L 38,15 L 31,6 L 39,6 L 49,14 L 62,14 Q 69,14 72,18 Q 69,22 62,22 L 49,22 L 39,30 L 31,30 L 38,21 Z" Fill="{DynamicResource Brush.Accent.Text}" />
+      <Path Data="M 52,15 L 61,15 Q 64,15 66,18 L 52,18 Z" Fill="{DynamicResource Brush.Surface.Inset}" />
+    </Grid>
+    <Ellipse x:Name="BlastRing" Width="10" Height="10" Stroke="{DynamicResource Brush.Warning}" StrokeThickness="4" Opacity="0" />
+    <Path x:Name="Blast" Width="80" Height="80" Stretch="Uniform" Opacity="0"
+          Fill="{DynamicResource Brush.Danger}" Stroke="{DynamicResource Brush.Warning}" StrokeThickness="2"
+          Data="M 40,0 L 47,25 L 66,9 L 57,31 L 80,32 L 59,42 L 72,62 L 49,53 L 40,80 L 32,54 L 8,66 L 23,44 L 0,34 L 24,31 L 13,10 L 32,25 Z" />
+  </Canvas>
+</UserControl>

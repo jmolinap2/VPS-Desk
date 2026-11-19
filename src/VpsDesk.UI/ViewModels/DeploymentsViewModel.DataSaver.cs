@@ -60,6 +60,7 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(DataSaverMode));
         OnPropertyChanged(nameof(IsDataSaverActive));
         OnPropertyChanged(nameof(DataSaverStatus));
+        OnPropertyChanged(nameof(HasDataSaverProtection));
         NotifyExecutionSummaryChanged();
     }
 

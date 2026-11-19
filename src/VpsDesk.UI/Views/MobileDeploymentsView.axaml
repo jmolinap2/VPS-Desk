@@ -119,7 +119,7 @@
               <StackPanel Spacing="6">
                 <TextBlock Classes="t-label" Text="{DynamicResource Deployments_Branch}" />
                 <ComboBox HorizontalAlignment="Stretch" MinHeight="48" ItemsSource="{Binding AvailableBranches}"
-                          SelectedItem="{Binding Branch}"
+                          SelectedItem="{Binding SelectedBranchSuggestion}"
                           PlaceholderText="{DynamicResource Deployments_BranchPlaceholder}" />
               </StackPanel>
 
@@ -282,7 +282,7 @@
                     IsVisible="{Binding SuggestDeploymentRestore}" IsEnabled="{Binding CanRestoreDeploymentSnapshot}"
                     HorizontalAlignment="Stretch" Classes="btn-danger" />
             <StackPanel Spacing="8" IsVisible="{Binding IsDeploymentRunning}">
-              <views:DeploymentJet HorizontalAlignment="Stretch" />
+              <views:DeploymentJet HorizontalAlignment="Stretch" IsVisible="{Binding ShowProgressJet}" />
               <TextBlock Classes="t-headline" Text="{Binding DeploymentProgressText}" TextWrapping="Wrap"
                          views:DeploymentAttention.IsRunning="{Binding IsDeploymentRunning}" />
               <ProgressBar Minimum="0" Maximum="100" Value="{Binding DeploymentProgressPercent}" Height="6" />
@@ -599,5 +599,6 @@
 
     <!-- modales: confirmar, prevuelo, postvuelo y progreso (hojas inferiores en el teléfono) -->
     <views:DeploymentModals Grid.RowSpan="3" />
+    <views:DeploymentFinale Grid.RowSpan="3" />
   </Grid>
 </UserControl>

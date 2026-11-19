@@ -20,11 +20,13 @@ public sealed record ComposeDeploymentRequest(
     string ComposeFile,
     bool PullImages = true,
     bool BuildImages = true,
-    bool CleanBuildCache = true,
+    bool CleanBuildCache = false,
     bool DeployApplication = true,
     IReadOnlyList<string>? Services = null,
     DeploymentProjectOperationRequest? Operation = null,
-    bool DataSaver = false);
+    bool DataSaver = false,
+    string? VerifiedCommit = null,
+    string? VerifiedFilesDigest = null);
 
 public sealed record DeploymentStepResult(
     string Code,
@@ -98,25 +100,30 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             throw new ArgumentException("Compose file is required.", nameof(request));
         if (!request.DeployApplication && request.Operation is null)
             throw new ArgumentException("The request must deploy the application or execute a project operation.", nameof(request));
+        if (request.VerifiedCommit is not { } verifiedCommit || !Regex.IsMatch(verifiedCommit, "\\A(?:[0-9a-f]{40}|[0-9a-f]{64})\\z"))
+            throw new ArgumentException("A verified Git commit is required. Run preflight again.", nameof(request));
+        if (request.VerifiedFilesDigest is not { } verifiedDigest || !Regex.IsMatch(verifiedDigest, "\\A[0-9a-f]{64}\\z"))
+            throw new ArgumentException("Verified deployment files are required. Run preflight again.", nameof(request));
 
         var startedAt = DateTimeOffset.UtcNow;
         var steps = new List<DeploymentStepResult>();
         var repo = DeploymentPreflightService.ShellQuote(request.RemoteRepositoryPath.Trim().TrimEnd('/'));
         var branch = DeploymentPreflightService.ShellQuote(request.Branch.Trim());
         var compose = DeploymentPreflightService.ShellQuote(request.ComposeFile.Trim());
-        var remoteBranch = DeploymentPreflightService.ShellQuote("origin/" + request.Branch.Trim());
-        var localRef = DeploymentPreflightService.ShellQuote("refs/heads/" + request.Branch.Trim());
         var serviceArguments = BuildServiceArguments(request.Services);
+        var expectedCommit = DeploymentPreflightService.ShellQuote(verifiedCommit);
+        var revisionGuard = $"REPO={repo}; COMPOSE={compose}; " + DeploymentPreflightService.BuildFilesDigestCommand(emit: false)
+            + $"if [ \"$FILES_DIGEST\" != {DeploymentPreflightService.ShellQuote(verifiedDigest)} ] || "
+            + $"[ \"$(git -C {repo} rev-parse --verify HEAD 2>/dev/null)\" != {expectedCommit} ] || "
+            + $"[ \"$(git -C {repo} symbolic-ref --quiet --short HEAD 2>/dev/null)\" != {branch} ] || "
+            + $"! git -C {repo} diff --quiet --no-ext-diff -- || ! git -C {repo} diff --cached --quiet --no-ext-diff --; then "
+            + "echo 'La revisión o los archivos versionados cambiaron después del prevuelo. Repite el prevuelo.' >&2; exit 1; fi\n";
 
         var previousCommit = await TryReadCommitAsync(request, repo, secret, cancellationToken);
 
         var commands = new List<(string Code, string Label, string Command, TimeSpan Timeout, bool IsBlocking)>
         {
-            ("fetch", "Fetch Git", $"git -C {repo} fetch --prune origin", TimeSpan.FromSeconds(60), true),
-            ("checkout", "Checkout branch",
-                $"if git -C {repo} show-ref --verify --quiet {localRef}; then git -C {repo} checkout {branch}; else git -C {repo} checkout -B {branch} {remoteBranch}; fi",
-                TimeSpan.FromSeconds(45), true),
-            ("pull", "Fast-forward source", BuildFastForwardCommand(repo, branch, remoteBranch), TimeSpan.FromSeconds(90), true)
+            ("verify_revision", "Verificar revisión validada", revisionGuard + "echo 'Revisión del prevuelo confirmada.'", TimeSpan.FromSeconds(30), true)
         };
 
         if (request.DeployApplication && request.PullImages)
@@ -204,9 +211,10 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
             // Modo ahorro de datos: la salida se acumula en el VPS y solo vuelve el final
             // (tope por paso), sin transmitir el log en vivo. El código de salida se conserva.
+            var guardedCommand = step.Code == "verify_revision" ? step.Command : revisionGuard + step.Command;
             var commandText = request.DataSaver
-                ? LimitRemoteOutput(step.Command, DataSaverMaxStepOutputBytes)
-                : step.Command;
+                ? LimitRemoteOutput(guardedCommand, DataSaverMaxStepOutputBytes)
+                : guardedCommand;
             Action<string, bool>? onChunk = request.DataSaver
                 ? null
                 : (chunk, completed) =>
@@ -284,7 +292,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
             if (!result.Succeeded && step.IsBlocking) break;
         }
 
-        var deployedCommit = steps.Any(x => x.Code == "pull" && x.Succeeded)
+        var deployedCommit = steps.Any(x => x.Code == "verify_revision" && x.Succeeded)
             ? await TryReadCommitAsync(request, repo, secret, cancellationToken)
             : previousCommit;
 
@@ -324,7 +332,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
 
     private static readonly HashSet<string> IdempotentStepCodes = new(StringComparer.Ordinal)
     {
-        "fetch", "checkout", "pull", "compose_ps"
+        "verify_revision", "compose_ps"
     };
 
     private const int MaxIdempotentStepRetries = 2;

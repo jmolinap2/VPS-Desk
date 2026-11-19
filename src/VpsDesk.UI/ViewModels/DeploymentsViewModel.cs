@@ -41,7 +41,7 @@ public partial class DeploymentsViewModel : ObservableObject
     [ObservableProperty] private string _environmentFileName = ".env";
     [ObservableProperty] private bool _pullImages = true;
     [ObservableProperty] private bool _buildImages = true;
-    [ObservableProperty] private bool _cleanBuildCache = true;
+    [ObservableProperty] private bool _cleanBuildCache;
     [ObservableProperty] private string _httpHealthUrls = string.Empty;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _canDeploy;
@@ -95,6 +95,11 @@ public partial class DeploymentsViewModel : ObservableObject
     partial void OnBranchChanged(string value)
     {
         NotifyExecutionSummaryChanged();
+        if (!_isLoadingProfile) InvalidatePreflight();
+    }
+
+    partial void OnHttpHealthUrlsChanged(string value)
+    {
         if (!_isLoadingProfile) InvalidatePreflight();
     }
 
@@ -186,7 +191,7 @@ public partial class DeploymentsViewModel : ObservableObject
             EnvironmentFileName = saved?.EnvironmentFileName ?? ".env";
             PullImages = saved?.PullImages ?? true;
             BuildImages = saved?.BuildImages ?? true;
-            CleanBuildCache = saved?.CleanBuildCache ?? true;
+            CleanBuildCache = saved?.CleanBuildCache ?? false;
             HttpHealthUrls = saved?.HttpHealthUrls ?? string.Empty;
             LoadProjectPreferences(saved);
 
@@ -224,7 +229,7 @@ public partial class DeploymentsViewModel : ObservableObject
             EnvironmentFileName = saved?.EnvironmentFileName ?? project.EnvironmentFileName;
             PullImages = saved?.PullImages ?? true;
             BuildImages = saved?.BuildImages ?? true;
-            CleanBuildCache = saved?.CleanBuildCache ?? true;
+            CleanBuildCache = saved?.CleanBuildCache ?? false;
             HttpHealthUrls = saved?.HttpHealthUrls ?? string.Empty;
             LoadProjectPreferences(saved);
             RefreshServerContext(server);

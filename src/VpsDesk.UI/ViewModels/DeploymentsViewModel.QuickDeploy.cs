@@ -106,12 +106,6 @@ public partial class DeploymentsViewModel
                 MigrationOnly = false;
                 SelectedDeploymentTarget = value.Target;
 
-                // El interruptor de migraciones vuelve al valor por defecto del objetivo, también
-                // al regresar desde "solo migraciones" aunque el objetivo no haya cambiado.
-                if (HasMigrationRecipe && value.Target is not null)
-                {
-                    RunMigrations = value.Target.RunMigrationsByDefault;
-                }
             }
         }
         finally

@@ -11,6 +11,9 @@ public partial class DeploymentsViewModel
 {
     private bool _lastSourceUpdateSucceeded;
     private bool _lastDiscoverySucceeded;
+    private string? _validatedCommit;
+    private string? _validatedFilesDigest;
+    private int _preflightVersion;
     public Task TryAutoDiscoverRepositoryAsync()
         => DiscoverRemoteOptionsAsync();
 
@@ -307,6 +310,8 @@ public partial class DeploymentsViewModel
         Checks.Clear();
         PostChecks.Clear();
         var token = BeginPreflightModal();
+        var validationVersion = _preflightVersion;
+        var projectId = _activeProjectId;
         StatusMessage = "Ejecutando prevuelo remoto del despliegue...";
 
         try
@@ -326,6 +331,25 @@ public partial class DeploymentsViewModel
                     token)
                 .WaitAsync(token);
 
+            if (_recipeService is not null)
+            {
+                var currentRecipe = await _recipeService.LoadAsync(server, RemoteRepositoryPath.Trim(), _secretAccessor(), token).WaitAsync(token);
+                var sameRecipe = currentRecipe.Status switch
+                {
+                    ProjectRecipeStatus.NotFound => _activeRecipe is null && !HasProjectRecipe,
+                    ProjectRecipeStatus.Loaded => _activeRecipe is not null
+                        && string.Equals(currentRecipe.FileName, ProjectRecipeFileName, StringComparison.Ordinal)
+                        && System.Text.Json.JsonSerializer.Serialize(currentRecipe.Recipe) == System.Text.Json.JsonSerializer.Serialize(_activeRecipe),
+                    _ => false
+                };
+                if (!sameRecipe)
+                    result = result with { Checks = result.Checks.Append(new PreflightCheckResult("recipe_changed", "Receta del proyecto", PreflightCheckStatus.Failed,
+                        "La receta cambió o no se pudo verificar. Detecta de nuevo el proyecto y revisa las opciones antes del pase.", true)).ToArray() };
+            }
+            if (_serverAccessor()?.Id != server.Id || _activeProjectId != projectId || validationVersion != _preflightVersion)
+                result = result with { Checks = result.Checks.Append(new PreflightCheckResult("context_changed", "Configuración del pase", PreflightCheckStatus.Failed,
+                    "La configuración cambió durante el prevuelo. Revísala y vuelve a comprobar.", true)).ToArray() };
+
             var totalChecks = Math.Max(1, result.Checks.Count);
             for (var index = 0; index < result.Checks.Count; index++)
             {
@@ -338,18 +362,21 @@ public partial class DeploymentsViewModel
 
             CountPreflightChecks();
             CanDeploy = result.CanProceed;
+            _validatedCommit = result.CanProceed ? result.VerifiedCommit : null;
+            _validatedFilesDigest = result.CanProceed ? result.VerifiedFilesDigest : null;
+            if (_validatedCommit is null || _validatedFilesDigest is null) CanDeploy = false;
             LastChecked = DateTimeOffset.Now.ToString("HH:mm:ss");
-            if (result.CanProceed)
+            if (CanDeploy)
             {
                 PersistProfile(server);
             }
-            PreflightModalMessage = LocalizationService.T(result.CanProceed
+            PreflightModalMessage = LocalizationService.T(CanDeploy
                 ? "Deployments_PreflightPassed"
                 : "Deployments_PreflightBlocked");
-            StatusMessage = result.CanProceed
-                ? $"El prevuelo pasó. {BuildExecutionSummary()}."
+            StatusMessage = CanDeploy
+                ? $"El prevuelo pasó para el commit {_validatedCommit![..12]}. {BuildExecutionSummary()}."
                 : "El prevuelo bloqueó la ejecución. Corrige los requisitos fallidos y vuelve a ejecutar.";
-            return result.CanProceed;
+            return CanDeploy;
         }
         catch (OperationCanceledException)
         {
@@ -425,6 +452,8 @@ public partial class DeploymentsViewModel
         {
             if (!string.IsNullOrWhiteSpace(notice)) PendingNotices.Add(notice.Trim());
         }
+        if (_validatedCommit is { Length: >= 12 } commit)
+            PendingNotices.Add($"Se desplegará el commit {commit[..12]} validado; este pase no hará otro git pull.");
         if (recovery is not null)
             PendingNotices.Add($"Pase pendiente de revisión ({recovery.ProjectPath}). El snapshot existente se conservará y las copias no se rotarán.");
         OnPropertyChanged(nameof(HasPendingNotices));
@@ -435,7 +464,7 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private async Task ConfirmDeployAsync()
     {
-        if (!HasPendingDeploy || !CanDeploy || IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
+        if (!HasPendingDeploy || !CanDeploy || _validatedCommit is null || _validatedFilesDigest is null || IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
         var server = _serverAccessor();
         if (server == null)
         {
@@ -468,7 +497,8 @@ public partial class DeploymentsViewModel
         var dataSaver = IsDataSaverActive;
         var request = new ComposeDeploymentRequest(server, projectPath, branch, composeFile,
             PullImages, BuildImages, CleanBuildCache, DeployApplication: !migrationOnly,
-            Services: deploymentServices, Operation: operation, DataSaver: dataSaver);
+            Services: deploymentServices, Operation: operation, DataSaver: dataSaver,
+            VerifiedCommit: _validatedCommit, VerifiedFilesDigest: _validatedFilesDigest);
         var healthUrls = ParseHealthUrls().Concat(prior?.HealthUrls ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var verificationServices = prior is null ? deploymentServices
             : prior.Services is not { Count: > 0 } || deploymentServices.Count == 0 ? []
@@ -526,6 +556,29 @@ public partial class DeploymentsViewModel
         try
         {
             var result = await _deployment.ExecuteAsync(request, secret);
+            if (result.FailedStep is { Code: "verify_revision" } revisionFailure)
+            {
+                // The first step is read-only. Nothing in the deployment was applied, so
+                // do not leave a new recovery record that suggests a partial deployment.
+                if (prior is null)
+                {
+                    _profileStore.ClearRecovery(server.Id);
+                    ClearDeploymentRecovery();
+                }
+                else
+                {
+                    _profileStore.SaveRecovery(server.Id, prior);
+                    if (_serverAccessor()?.Id == server.Id) ShowSavedRecovery(server, prior);
+                }
+                if (_serverAccessor()?.Id != server.Id) return;
+                while (_progressQueue.TryDequeue(out var revisionUpdate)) ApplyProgress(revisionUpdate);
+                DeploymentOutput = revisionFailure.Output;
+                DeploymentOutcomeTitle = "Pase no iniciado";
+                DeploymentNextAction = "Comprueba el repositorio y ejecuta el prevuelo otra vez. No se aplicaron los pasos del pase.";
+                StatusMessage = "La revisión no pudo validarse; el pase no se inició.";
+                Toast.Warning(DeploymentNextAction, "Revisión del pase");
+                return;
+            }
             recovery = recovery with
             {
                 PreviousCommit = recovery.PreviousCommit ?? result.PreviousCommit,
@@ -655,6 +708,9 @@ public partial class DeploymentsViewModel
 
     private void InvalidatePreflight()
     {
+        _preflightVersion++;
+        _validatedCommit = null;
+        _validatedFilesDigest = null;
         if (CanDeploy || Checks.Count > 0)
         {
             CanDeploy = false;

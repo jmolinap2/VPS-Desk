@@ -15,6 +15,7 @@ public partial class DeploymentsViewModel
     private string? _preferredMigrationModeId;
     private bool? _preferredRunMigrations;
     private bool? _preferredMigrationOnly;
+    private bool? _runMigrationsBeforeOnly;
 
     public ObservableCollection<ProjectDeploymentTarget> AvailableTargets { get; } = new();
     public ObservableCollection<ProjectMigrationMode> MigrationModes { get; } = new();
@@ -54,10 +55,6 @@ public partial class DeploymentsViewModel
         NotifyExecutionSummaryChanged();
         if (_applyingProjectModel) return;
 
-        if (value is not null && HasMigrationRecipe && !MigrationOnly)
-        {
-            RunMigrations = value.RunMigrationsByDefault;
-        }
         InvalidatePreflight();
     }
 
@@ -76,9 +73,15 @@ public partial class DeploymentsViewModel
 
     partial void OnMigrationOnlyChanged(bool value)
     {
-        if (value && HasMigrationRecipe)
+        if (!_applyingProjectModel && value && HasMigrationRecipe)
         {
+            _runMigrationsBeforeOnly = RunMigrations;
             RunMigrations = true;
+        }
+        else if (!_applyingProjectModel && !value && _runMigrationsBeforeOnly is { } previous)
+        {
+            _runMigrationsBeforeOnly = null;
+            RunMigrations = previous;
         }
         OnPropertyChanged(nameof(ShowDeploymentTarget));
         OnPropertyChanged(nameof(SelectedTargetLabel));
@@ -122,6 +125,7 @@ public partial class DeploymentsViewModel
         try
         {
             _activeRecipe = null;
+            _runMigrationsBeforeOnly = null;
             AvailableTargets.Clear();
             MigrationModes.Clear();
             SelectedDeploymentTarget = null;
@@ -181,6 +185,15 @@ public partial class DeploymentsViewModel
             RemoteRepositoryPath.Trim(),
             _secretAccessor());
 
+        // Capture the current choices after discovery completes: the user may have edited
+        // them while the server was responding. Only reuse input for the same mode.
+        var hadModel = AvailableTargets.Count > 0 || HasMigrationRecipe;
+        var selectedTargetId = hadModel ? SelectedDeploymentTarget?.Id : _preferredTargetId;
+        var selectedModeId = hadModel ? SelectedMigrationMode?.Id : _preferredMigrationModeId;
+        var selectedInput = MigrationInput;
+        var selectedRunMigrations = hadModel ? RunMigrations : _preferredRunMigrations;
+        var selectedMigrationOnly = hadModel ? MigrationOnly : _preferredMigrationOnly;
+
         _applyingProjectModel = true;
         try
         {
@@ -216,7 +229,7 @@ public partial class DeploymentsViewModel
                     AvailableTargets.Add(target);
                 }
 
-                var preferredTarget = FindTarget(_preferredTargetId)
+                var preferredTarget = FindTarget(selectedTargetId)
                                       ?? FindTarget(_activeRecipe.Deploy.DefaultTarget)
                                       ?? AvailableTargets.FirstOrDefault();
                 SelectedDeploymentTarget = preferredTarget;
@@ -228,12 +241,13 @@ public partial class DeploymentsViewModel
                         MigrationModes.Add(mode);
                     }
 
-                    SelectedMigrationMode = FindMigrationMode(_preferredMigrationModeId)
+                    SelectedMigrationMode = FindMigrationMode(selectedModeId)
                                             ?? FindMigrationMode(migrations.DefaultMode)
                                             ?? MigrationModes.FirstOrDefault();
-                    MigrationOnly = _preferredMigrationOnly ?? false;
+                    if (SelectedMigrationMode?.Id == selectedModeId) MigrationInput = selectedInput;
+                    MigrationOnly = selectedMigrationOnly ?? false;
                     RunMigrations = MigrationOnly
-                        || (_preferredRunMigrations
+                        || (selectedRunMigrations
                             ?? SelectedDeploymentTarget?.RunMigrationsByDefault
                             ?? true);
                 }
@@ -245,7 +259,7 @@ public partial class DeploymentsViewModel
             }
             else
             {
-                BuildGenericTargets(composeServices);
+                BuildGenericTargets(composeServices, selectedTargetId);
                 ProjectModelStatus = serviceDiscoveryError is null
                     ? $"Modo genérico Docker Compose · {composeServices.Count} servicio(s) detectado(s)"
                     : $"Modo genérico Docker Compose · no se pudieron enumerar servicios: {serviceDiscoveryError}";
@@ -264,7 +278,7 @@ public partial class DeploymentsViewModel
         }
     }
 
-    private void BuildGenericTargets(IReadOnlyList<string> services)
+    private void BuildGenericTargets(IReadOnlyList<string> services, string? preferredTargetId)
     {
         var all = services
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -288,7 +302,7 @@ public partial class DeploymentsViewModel
                 false));
         }
 
-        SelectedDeploymentTarget = FindTarget(_preferredTargetId) ?? AvailableTargets.FirstOrDefault();
+        SelectedDeploymentTarget = FindTarget(preferredTargetId) ?? AvailableTargets.FirstOrDefault();
     }
 
     private ProjectDeploymentTarget? FindTarget(string? id)

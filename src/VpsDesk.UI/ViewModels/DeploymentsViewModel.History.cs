@@ -15,6 +15,7 @@ namespace VpsDesk.Desktop.ViewModels;
 public partial class DeploymentsViewModel
 {
     [ObservableProperty] private DeploymentFinaleOutcome _deploymentFinale;
+    [ObservableProperty] private bool _isExecutionDetailsExpanded;
     public bool ShowProgressJet => IsDeploymentRunning && DeploymentFinale == DeploymentFinaleOutcome.None;
     partial void OnDeploymentFinaleChanged(DeploymentFinaleOutcome value) => OnPropertyChanged(nameof(ShowProgressJet));
     private IOperationHistoryStore? _historyStore;
@@ -112,6 +113,7 @@ public partial class DeploymentsViewModel
         {
             _deploymentObserved = true;
             DeploymentFinale = DeploymentFinaleOutcome.None;
+            IsExecutionDetailsExpanded = true;
             _historyRecordedForCurrentRun = false;
             _observedDeploymentStartedAt = DateTimeOffset.UtcNow;
             IsDeploymentRunning = true;
@@ -154,6 +156,7 @@ public partial class DeploymentsViewModel
             DeploymentProgressText = DeploymentOutcomeTitle;
         }
         IsDeploymentRunning = false;
+        if (_deploymentObserved) IsExecutionDetailsExpanded = false;
         _deployment.ProgressChanged -= OnDeploymentProgressChanged;
 
         if (_deploymentObserved && !_historyRecordedForCurrentRun)
@@ -188,6 +191,12 @@ public partial class DeploymentsViewModel
         DeploymentOutput = string.Empty;
         DeploymentProgressPercent = 0;
         DeploymentProgressText = string.Empty;
+        DeploymentFinale = DeploymentFinaleOutcome.None;
+        DeploymentLastActivity = string.Empty;
+        FollowDeploymentOutput = true;
+        IsExecutionDetailsExpanded = false;
+        DeploymentOutcomeTitle = HasDeploymentRecovery ? "Recuperación pendiente" : string.Empty;
+        DeploymentNextAction = HasDeploymentRecovery ? DeploymentRecoveryMessage : string.Empty;
         CanDeploy = false;
         IsPreflightModalOpen = false;
         IsPostflightModalOpen = false;

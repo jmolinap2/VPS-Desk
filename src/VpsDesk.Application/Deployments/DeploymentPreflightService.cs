@@ -28,7 +28,9 @@ public sealed record PreflightCheckResult(
 
 public sealed record DeploymentPreflightResult(
     IReadOnlyList<PreflightCheckResult> Checks,
-    DateTimeOffset CheckedAt)
+    DateTimeOffset CheckedAt,
+    string? VerifiedCommit = null,
+    string? VerifiedFilesDigest = null)
 {
     public bool CanProceed => Checks.All(x => x.Status != PreflightCheckStatus.Failed || !x.IsBlocking);
     public bool HasFailures => Checks.Any(x => x.Status == PreflightCheckStatus.Failed);
@@ -62,6 +64,10 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
             "[ -d \"$REPO/.git\" ] && echo REPO=1 || echo REPO=0; " +
             "if [ -z \"$BRANCH\" ]; then echo BRANCH=2; " +
             "elif [ -d \"$REPO/.git\" ] && (git -C \"$REPO\" show-ref --verify --quiet \"refs/heads/$BRANCH\" || git -C \"$REPO\" show-ref --verify --quiet \"refs/remotes/origin/$BRANCH\"); then echo BRANCH=1; else echo BRANCH=0; fi; " +
+            "if [ \"$(git -C \"$REPO\" symbolic-ref --quiet --short HEAD 2>/dev/null)\" = \"$BRANCH\" ] && [ -n \"$BRANCH\" ]; then echo CHECKED_OUT=1; else echo CHECKED_OUT=0; fi; " +
+            "if git -C \"$REPO\" diff --quiet --no-ext-diff -- 2>/dev/null && git -C \"$REPO\" diff --cached --quiet --no-ext-diff -- 2>/dev/null; then echo CLEAN=1; else echo CLEAN=0; fi; " +
+            "git -C \"$REPO\" rev-parse --verify HEAD 2>/dev/null | sed 's/^/COMMIT=/'; " +
+            BuildFilesDigestCommand() +
             "if [ -z \"$COMPOSE\" ]; then echo COMPOSE_FILE=2; elif [ -f \"$REPO/$COMPOSE\" ]; then echo COMPOSE_FILE=1; else echo COMPOSE_FILE=0; fi; " +
             "[ -f \"$REPO/$ENVFILE\" ] && echo ENVFILE=1 || echo ENVFILE=0";
 
@@ -104,7 +110,22 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
         if (!string.IsNullOrWhiteSpace(request.Branch))
         {
             checks.Add(Flag("branch", $"Rama '{request.Branch}' disponible", flags, true));
+            var checkedOut = flags.TryGetValue("CHECKED_OUT", out var active) && active == "1";
+            checks.Add(new("checked_out", "Rama activa en el repositorio", checkedOut ? PreflightCheckStatus.Passed : PreflightCheckStatus.Failed,
+                checkedOut ? null : "Usa «Traer cambios» para activar y actualizar la rama antes de validar.", true));
         }
+
+        var clean = flags.TryGetValue("CLEAN", out var cleanFlag) && cleanFlag == "1";
+        checks.Add(new("clean", "Archivos versionados sin cambios locales", clean ? PreflightCheckStatus.Passed : PreflightCheckStatus.Failed,
+            clean ? null : "El repositorio tiene cambios versionados sin confirmar. Revísalos antes del pase.", true));
+        var commit = flags.TryGetValue("COMMIT", out var commitValue) && System.Text.RegularExpressions.Regex.IsMatch(commitValue, "\\A(?:[0-9a-f]{40}|[0-9a-f]{64})\\z")
+            ? commitValue : null;
+        checks.Add(new("commit", "Revisión Git para el pase", commit is null ? PreflightCheckStatus.Failed : PreflightCheckStatus.Passed,
+            commit is null ? "No se pudo identificar el commit actual." : commit[..12], true));
+        var digest = flags.TryGetValue("FILES_DIGEST", out var digestValue) && System.Text.RegularExpressions.Regex.IsMatch(digestValue, "\\A[0-9a-f]{64}\\z")
+            ? digestValue : null;
+        checks.Add(new("files_digest", "Archivos del pase identificados", digest is null ? PreflightCheckStatus.Failed : PreflightCheckStatus.Passed,
+            digest is null ? "No se pudieron verificar los archivos del pase. Comprueba que sha256sum esté disponible." : null, true));
 
         if (!string.IsNullOrWhiteSpace(request.ComposeFile))
         {
@@ -137,7 +158,7 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
                 cancellationToken);
         }
 
-        return new DeploymentPreflightResult(checks, DateTimeOffset.UtcNow);
+        return new DeploymentPreflightResult(checks, DateTimeOffset.UtcNow, commit, digest);
     }
 
     private async Task AddComposeServiceChecksAsync(
@@ -224,4 +245,10 @@ public sealed class DeploymentPreflightService(ISshCommandExecutor ssh) : IDeplo
 
     internal static string ShellQuote(string value)
         => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
+
+    internal static string BuildFilesDigestCommand(bool emit = true)
+        => "FILES_DATA=$(for F in \"$COMPOSE\" .vpsdesk.yml .vpsdesk.yaml; do "
+           + "if [ -f \"$REPO/$F\" ]; then sha256sum -- \"$REPO/$F\" || exit 1; else printf 'missing:%s\\n' \"$F\"; fi; "
+           + "done) && FILES_DIGEST=$(printf '%s' \"$FILES_DATA\" | sha256sum | cut -d ' ' -f 1) || FILES_DIGEST=; "
+           + (emit ? "echo FILES_DIGEST=$FILES_DIGEST; " : "");
 }

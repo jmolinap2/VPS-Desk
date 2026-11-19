@@ -8,6 +8,7 @@ Variables de usuario (se leen del registro si no están en el entorno):
 """
 import argparse, hashlib, json, os, re, shutil, subprocess, sys, tempfile, winreg
 from pathlib import Path
+from android_release_version import ensure_can_publish, read_channel
 
 SITE_ID = '9892281b-d354-4673-96b3-f86eba7c57f6'
 SITE_URL = 'https://candid-concha-ffbd40.netlify.app'
@@ -44,6 +45,14 @@ def main():
     token = None if args.sin_subir else user_var('NETLIFY_AUTH_TOKEN')
     if not args.sin_subir and not token:
         sys.exit('Falta NETLIFY_AUTH_TOKEN (token personal de Netlify). Usa --sin-subir para solo compilar.')
+
+    channel = None
+    if not args.sin_subir:
+        try:
+            channel = read_channel(f'{SITE_URL}/version.json')
+            ensure_can_publish(code, channel)
+        except Exception as exc:
+            sys.exit(f'Publicación cancelada: {exc}')
 
     env = os.environ.copy()
     env.update(VPSDESK_KEYSTORE_PASS=password, VPSDESK_KEY_PASS=password,
@@ -84,6 +93,10 @@ def main():
     if args.sin_subir:
         print(f'Sitio preparado (sin subir): {site}')
         return
+    try:
+        ensure_can_publish(code, read_channel(f'{SITE_URL}/version.json'), channel[1])
+    except Exception as exc:
+        sys.exit(f'Publicación cancelada: {exc}')
     env['NETLIFY_AUTH_TOKEN'] = token
     deploy = ['npx', '--yes', 'netlify-cli@27.17.0', 'deploy', '--prod', '--dir', str(site), '--site', SITE_ID, '--no-build']
     sys.exit(subprocess.run(deploy, env=env, shell=True).returncode)

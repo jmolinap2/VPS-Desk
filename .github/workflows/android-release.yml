@@ -2,10 +2,12 @@ name: Android Release (Netlify)
 
 # Compila y firma el APK y lo publica en el sitio privado de Netlify junto con version.json.
 # La app instalada consulta ese version.json y ofrece instalar la actualización.
-# Solo se ejecuta a mano (Actions > Android Release > Run workflow).
+# Cada push a main publica una versión; también se puede ejecutar a mano.
 # El APK NO se sube como artifact: el repositorio es público y los artifacts también lo serían.
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       notes:
@@ -18,11 +20,12 @@ permissions:
 
 concurrency:
   group: android-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   android:
     name: Build, sign and publish APK
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -40,6 +43,21 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Validate interface resources
+        run: |
+          python3 Scripts/Validate-UiTokens.py
+          python3 -m unittest discover -s Scripts/tests -p test_android_release_version.py
+
+      - name: Allocate a new version
+        id: release_version
+        env:
+          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
+        run: |
+          test -n "$UPDATE_BASE_URL" || { echo "::error::Falta el secret ANDROID_UPDATE_URL"; exit 1; }
+          python3 Scripts/android_release_version.py prepare \
+            --manifest "${UPDATE_BASE_URL%/}/version.json" \
+            --project src/VpsDesk.Android/VpsDesk.Android.csproj --output "$GITHUB_OUTPUT"
+
       - name: Install Android workload
         run: dotnet workload install android
 
@@ -56,11 +74,15 @@ jobs:
           VPSDESK_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           VPSDESK_KEY_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RELEASE_CODE: ${{ steps.release_version.outputs.code }}
+          RELEASE_NAME: ${{ steps.release_version.outputs.name }}
         run: |
           test -n "$UPDATE_BASE_URL" || { echo "::error::Falta el secret ANDROID_UPDATE_URL"; exit 1; }
           dotnet publish src/VpsDesk.Android/VpsDesk.Android.csproj \
             --configuration Release \
             -p:RuntimeIdentifier=android-arm64 \
+            "-p:ApplicationVersion=$RELEASE_CODE" \
+            "-p:ApplicationDisplayVersion=$RELEASE_NAME" \
             "-p:VpsDeskUpdateUrl=${UPDATE_BASE_URL%/}/version.json" \
             -p:AndroidKeyStore=true \
             "-p:AndroidSigningKeyStore=$RUNNER_TEMP/vpsdesk.keystore" \
@@ -72,14 +94,15 @@ jobs:
         shell: pwsh
         env:
           NOTES: ${{ inputs.notes }}
+          RELEASE_CODE: ${{ steps.release_version.outputs.code }}
+          RELEASE_NAME: ${{ steps.release_version.outputs.name }}
         run: |
           $apk = Get-ChildItem src/VpsDesk.Android/bin/Release -Recurse -Filter '*-Signed.apk' |
                  Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $apk) { throw 'No se encontró el APK firmado.' }
 
-          [xml]$csproj = Get-Content src/VpsDesk.Android/VpsDesk.Android.csproj
-          $versionCode = [int]$csproj.Project.PropertyGroup.ApplicationVersion
-          $versionName = [string]$csproj.Project.PropertyGroup.ApplicationDisplayVersion
+          $versionCode = [int]$env:RELEASE_CODE
+          $versionName = $env:RELEASE_NAME
 
           New-Item -ItemType Directory -Path site | Out-Null
           $apkName = "vpsdesk-$versionCode.apk"
@@ -98,6 +121,24 @@ jobs:
           "User-agent: *`nDisallow: /" | Set-Content site/robots.txt -Encoding ascii
           "versionCode=$versionCode versionName=$versionName apk=$([math]::Round($apk.Length/1MB,1)) MB sha256=$sha"
 
+      - name: Verify package and publication preconditions
+        env:
+          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
+          RELEASE_CODE: ${{ steps.release_version.outputs.code }}
+          RELEASE_NAME: ${{ steps.release_version.outputs.name }}
+          CHANNEL_DIGEST: ${{ steps.release_version.outputs.channel_digest }}
+        run: |
+          set -euo pipefail
+          apk="site/vpsdesk-$RELEASE_CODE.apk"
+          build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$build_tools/apksigner" verify "$apk"
+          package_info="$("$build_tools/aapt" dump badging "$apk" | sed -n '1p')"
+          [[ "$package_info" == *"versionCode='$RELEASE_CODE'"* && "$package_info" == *"versionName='$RELEASE_NAME'"* ]] || { echo '::error::El APK no corresponde a la versión preparada.'; exit 1; }
+          head_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$head_sha" = "$GITHUB_SHA" || { echo '::error::Hay un commit más reciente en main; esta publicación queda cancelada.'; exit 1; }
+          python3 Scripts/android_release_version.py check \
+            --manifest "${UPDATE_BASE_URL%/}/version.json" --code "$RELEASE_CODE" --digest "$CHANNEL_DIGEST"
+
       - name: Deploy to Netlify
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
@@ -105,3 +146,19 @@ jobs:
         run: |
           test -n "$NETLIFY_AUTH_TOKEN" || { echo "::error::Falta el secret NETLIFY_AUTH_TOKEN"; exit 1; }
           npx --yes netlify-cli@27.17.0 deploy --prod --dir site --site "$NETLIFY_SITE_ID" --no-build
+
+      - name: Verify published update
+        env:
+          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
+          RELEASE_CODE: ${{ steps.release_version.outputs.code }}
+        run: |
+          apk_sha="$(sha256sum "site/vpsdesk-$RELEASE_CODE.apk" | cut -d ' ' -f1)"
+          for attempt in 1 2 3 4 5; do
+            if python3 Scripts/android_release_version.py verify \
+              --manifest "${UPDATE_BASE_URL%/}/version.json" --code "$RELEASE_CODE" --sha256 "$apk_sha"; then
+              exit 0
+            fi
+            echo "Comprobación $attempt fallida; esperando propagación del canal."
+            sleep 10
+          done
+          exit 1

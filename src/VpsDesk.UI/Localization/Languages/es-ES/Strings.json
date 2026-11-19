@@ -467,7 +467,7 @@
   "Ui_OpenFolder": "Abrir carpeta",
   "Ui_ResetPreferences": "Restablecer preferencias",
   "Ui_Updates": "Actualizaciones",
-  "Ui_VPSDeskChecksForUpdatesAt": "VPS Desk busca versiones nuevas al abrirse. Tú decides cuándo instalarlas.",
+  "Ui_VPSDeskChecksForUpdatesAt": "VPS Desk busca versiones nuevas al abrirse.",
   "Ui_CheckForUpdates": "Buscar actualizaciones",
   "Ui_AutomaticRefreshSeconds": "Actualización automática (segundos)",
   "Ui_ConfirmBeforePastingMultipleLines": "Pedir confirmación antes de pegar varias líneas",

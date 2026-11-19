@@ -279,6 +279,7 @@
   "Files_EnvCopyFile": "Copiar archivo",
   "Files_EnvCopied": "Copiado al portapapeles.",
   "Files_EnvCopyFailed": "No se pudo copiar al portapapeles.",
+  "Files_EditorDone": "Listo",
   "Files_EnvManagerTitle": "Variables de entorno",
   "Files_EnvManagerHelp": "Edita el .env como pares nombre/valor. VPS Desk conserva comentarios, líneas desconocidas y el orden existente; el respaldo .bak y la protección contra cambios externos siguen activos al guardar.",
   "Files_EnvRevealSecrets": "Mostrar secretos",

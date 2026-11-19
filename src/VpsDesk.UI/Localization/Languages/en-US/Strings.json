@@ -279,6 +279,7 @@
   "Files_EnvCopyFile": "Copy file",
   "Files_EnvCopied": "Copied to clipboard.",
   "Files_EnvCopyFailed": "Could not copy to clipboard.",
+  "Files_EditorDone": "Done",
   "Files_EnvManagerTitle": "Environment variables",
   "Files_EnvManagerHelp": "Edit the .env as name/value pairs. VPS Desk preserves comments, unknown lines and existing order; .bak backup and external-change protection remain active when saving.",
   "Files_EnvRevealSecrets": "Reveal secrets",

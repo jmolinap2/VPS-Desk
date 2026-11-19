@@ -8,8 +8,10 @@
     Variables .env para teléfono. El título está en la barra superior; aquí solo hay una línea de
     contexto y, según el caso, un estado vacío que dice qué hacer o el editor del archivo.
   -->
-  <Grid RowDefinitions="Auto,*" Margin="16,12,16,16">
-    <TextBlock Classes="t-body-s" Text="{DynamicResource Header_Environment}" TextWrapping="Wrap" Margin="0,0,0,12" />
+  <Grid RowDefinitions="Auto,*" Margin="12,8,12,12">
+    <!-- con el archivo abierto, esta línea solo quita espacio al editor -->
+    <TextBlock Classes="t-body-s" Text="{DynamicResource Header_Environment}" TextWrapping="Wrap" Margin="4,0,4,10"
+               IsVisible="{Binding !IsEnvironmentFile}" />
 
     <Grid Grid.Row="1">
       <!-- sin .env abierto: explica cómo abrirlo -->

@@ -1,10 +1,21 @@
+using CommunityToolkit.Mvvm.Input;
+using VpsDesk.Domain.Files;
+
 namespace VpsDesk.Desktop.ViewModels;
 
 public partial class FilesViewModel
 {
+    private string? _environmentProjectPath;
+    private string? _environmentFileName;
+
+    [RelayCommand]
+    private Task RetryEnvironmentAsync() => OpenEnvironmentFileAsync(_environmentProjectPath ?? string.Empty, _environmentFileName ?? ".env");
+
     public async Task OpenEnvironmentFileAsync(string remoteRepositoryPath, string environmentFileName)
     {
         if (IsBusy) return;
+        _environmentProjectPath = remoteRepositoryPath;
+        _environmentFileName = environmentFileName;
 
         if (string.IsNullOrWhiteSpace(remoteRepositoryPath))
         {
@@ -18,27 +29,21 @@ public partial class FilesViewModel
             ? NormalizePath(envName)
             : NormalizePath($"{projectPath}/{envName}");
 
-        var lastSlash = fullPath.LastIndexOf('/');
-        var directory = lastSlash <= 0 ? "/" : fullPath[..lastSlash];
-        var fileName = lastSlash < 0 ? fullPath : fullPath[(lastSlash + 1)..];
-
-        CurrentPath = directory;
-        _lastRefreshUtc = null;
-        await RefreshAsync();
-
-        var entry = Entries.FirstOrDefault(item =>
-            !item.IsDirectory &&
-            (string.Equals(NormalizePath(item.FullPath), fullPath, StringComparison.Ordinal) ||
-             string.Equals(item.Name, fileName, StringComparison.Ordinal)));
-
-        if (entry == null)
+        if (HasOpenTextFile && string.Equals(EditorPath, fullPath, StringComparison.Ordinal)) return;
+        if (IsEditorDirty)
         {
-            StatusMessage = $"No se encontró '{fileName}' en {directory}. Puedes abrir Archivos para revisar la ruta o crear el archivo fuera de VPS Desk por ahora.";
+            StatusMessage = "Hay cambios sin guardar en el archivo abierto. Guárdalos antes de abrir otro archivo de entorno.";
             return;
         }
 
-        SelectedEntry = entry;
-        await OpenFileAsync(entry, readOnly: false);
-        StatusMessage = $"Administrando variables de {fullPath}. Los cambios se aplican al VPS solo cuando confirmas Guardar.";
+        var serverId = _serverAccessor()?.Id;
+        var lastSlash = fullPath.LastIndexOf('/');
+        var directory = lastSlash <= 0 ? "/" : fullPath[..lastSlash];
+        var fileName = lastSlash < 0 ? fullPath : fullPath[(lastSlash + 1)..];
+        CurrentPath = directory;
+        var entry = new RemoteFileEntry(fileName, fullPath, false, 0, DateTimeOffset.MinValue);
+        await OpenFileAsync(entry, readOnly: false, forceEnvironment: true);
+        if (_serverAccessor()?.Id == serverId && HasOpenTextFile && EditorPath == fullPath)
+            StatusMessage = $"Administrando variables de {fullPath}. Los cambios se aplican al VPS solo cuando confirmas Guardar.";
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text;
+using VpsDesk.Desktop.Services;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -318,6 +319,8 @@ public partial class DeploymentsViewModel
     // unos milisegundos para no reconstruir todo el texto del terminal por cada línea.
     private void OnDeploymentProgressChanged(DeploymentProgressUpdate update)
     {
+        if (update.State == DeploymentProgressState.Started)
+            DeploymentBackgroundExecution.Report?.Invoke(update.Label);
         _progressQueue.Enqueue(update);
         ScheduleProgressDrain();
     }

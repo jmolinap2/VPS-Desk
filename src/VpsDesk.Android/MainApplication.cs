@@ -44,6 +44,16 @@ public class MainApplication : AvaloniaAndroidApplication<App>
         // Actualización in-app: lee versión instalada y la URL de version.json compilada en el APK.
         AppUpdatePlatform.Current = new AndroidAppUpdatePlatform(this);
 
+        VpsDesk.Desktop.Services.DeploymentBackgroundExecution.Start = () =>
+        {
+            MainActivity.RequestDeploymentNotifications();
+            var intent = new global::Android.Content.Intent(this, typeof(DeploymentForegroundService));
+            StartForegroundService(intent);
+            return new DeploymentServiceScope(this, intent);
+        };
+        VpsDesk.Desktop.Services.DeploymentBackgroundExecution.Report = DeploymentForegroundService.Report;
+        VpsDesk.Desktop.Services.DeploymentBackgroundExecution.Complete = DeploymentForegroundService.Complete;
+
         VpsDesk.Desktop.Services.NotificationAudio.PlaySound = _ =>
         {
             var audio = GetSystemService(AudioService) as global::Android.Media.AudioManager;
@@ -61,4 +71,9 @@ public class MainApplication : AvaloniaAndroidApplication<App>
             .WithInterFont();
 
     private global::Android.Media.Ringtone? _notificationRingtone;
+
+    private sealed class DeploymentServiceScope(MainApplication app, global::Android.Content.Intent intent) : IDisposable
+    {
+        public void Dispose() => app.StopService(intent);
+    }
 }

@@ -476,6 +476,17 @@ public partial class DeploymentsViewModel
         var verificationRequest = new PostDeployVerificationRequest(server, projectPath, composeFile,
             healthUrls, verificationServices);
 
+        IDisposable? backgroundExecution = null;
+        try
+        {
+            backgroundExecution = DeploymentBackgroundExecution.Start?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Toast.Warning($"No se pudo mantener activo el pase en segundo plano: {UserFacingErrors.Describe(ex)}. Mantén la app abierta.", "Protección en segundo plano no disponible");
+        }
+        using var backgroundScope = backgroundExecution;
+        DeploymentBackgroundExecution.Report?.Invoke("Preparando respaldos y recuperación");
         if (!await TakeAppBackupBeforeDeployAsync(server)) return;
         if (_serverAccessor()?.Id != server.Id || !HasSameDeploymentContext(projectPath, composeFile, branch)) return;
         if (prior is null)
@@ -506,7 +517,9 @@ public partial class DeploymentsViewModel
         DeploymentOutput = string.Empty;
         DeploymentOutcomeTitle = "Pase en curso";
         Toast.Info($"Desplegando la rama '{Branch.Trim()}'. Te avisaremos al terminar.", "Despliegue iniciado");
-        DeploymentNextAction = "Mantén la aplicación abierta. Los pasos reservan el último tramo para verificar el resultado.";
+        DeploymentNextAction = backgroundExecution is null
+            ? "Mantén la aplicación abierta mientras se comprueban los pasos y el resultado."
+            : "El pase continúa mientras se comprueban los pasos y el resultado.";
         StatusMessage = LocalizationService.T("Deployments_StatusRunning");
         CancelPendingDeploy();
 
@@ -552,12 +565,14 @@ public partial class DeploymentsViewModel
                 DeploymentOutcomeTitle = "Pase detenido";
                 DeploymentNextAction = "Revisa el paso fallido y los servicios. Puede haber cambios aplicados. Ejecuta un nuevo prevuelo antes de repetir.";
                 Toast.Error(StatusMessage, "El despliegue se detuvo");
+                DeploymentBackgroundExecution.Complete?.Invoke("Pase detenido", "Revisa el paso fallido y el estado del servidor.");
                 await CheckFailedDeploymentAsync(server, verificationRequest, secret);
                 return;
             }
 
             var elapsed = (result.FinishedAt - result.StartedAt).TotalSeconds;
             StatusMessage = LocalizationService.T("Deployments_StatusVerifying");
+            DeploymentBackgroundExecution.Report?.Invoke("Comprobando el resultado del pase");
             var verification = await _postDeployVerification.VerifyAsync(
                 verificationRequest, secret);
 
@@ -578,6 +593,8 @@ public partial class DeploymentsViewModel
 
             var hasWarnings = result.HasWarnings || verification.HasWarnings;
             DeploymentOutcomeTitle = !verification.Passed ? "Pase con problemas" : hasWarnings ? "Pase completado con avisos" : "Pase verificado";
+            DeploymentBackgroundExecution.Complete?.Invoke(DeploymentOutcomeTitle,
+                verification.Passed ? "Abre VPS Desk para consultar el resultado." : "Revisa las comprobaciones del servidor.");
             DeploymentProgressPercent = 100;
             DeploymentNextAction = verification.Passed
                 ? "Revisa las comprobaciones y los avisos. El resultado queda disponible al volver a esta pantalla."
@@ -610,6 +627,7 @@ public partial class DeploymentsViewModel
             DeploymentNextAction = "Recupera la conexión y revisa contenedores, logs y migraciones antes de repetir. El servidor puede haber aplicado cambios.";
             DeploymentOutput += $"\n[Interrupción] {friendly}";
             Toast.Error(friendly, "El despliegue falló");
+            DeploymentBackgroundExecution.Complete?.Invoke("Pase interrumpido", "El estado no está confirmado. Revisa el servidor antes de repetir.");
             await CheckFailedDeploymentAsync(server, verificationRequest, secret);
         }
         finally

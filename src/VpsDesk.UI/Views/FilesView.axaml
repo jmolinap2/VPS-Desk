@@ -266,6 +266,7 @@
                               <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.S}" Padding="6,2" IsVisible="{Binding IsSecret}">
                                 <TextBlock Text="{DynamicResource Files_EnvSecret}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
                               </Border>
+                              <Button Content="{DynamicResource Files_EnvCopyVariable}" Click="OnCopyVariable" IsEnabled="{Binding !IsValueMasked}" Padding="8,4" />
                               <Button Content="{DynamicResource Common_Delete}" Command="{Binding #EnvVariablesList.((vm:FilesViewModel)DataContext).RemoveEnvironmentVariableCommand}" CommandParameter="{Binding}" Padding="8,4" />
                             </StackPanel>
                           </Grid>

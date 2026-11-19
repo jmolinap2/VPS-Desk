@@ -23,10 +23,13 @@
                   <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" PasswordChar="●" IsVisible="{Binding IsValueMasked}" FontFamily="{DynamicResource Font.Mono}" />
                   <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" IsVisible="{Binding !IsValueMasked}" FontFamily="{DynamicResource Font.Mono}" />
                 </Grid>
-                <Button Grid.Column="1" Classes="btn-danger" Content="{DynamicResource Common_Delete}" Padding="12,10"
+                <StackPanel Grid.Column="1" Spacing="6">
+                <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvCopyVariable}" Click="OnCopyVariable" IsEnabled="{Binding !IsValueMasked}" Padding="12,10" />
+                <Button Classes="btn-danger" Content="{DynamicResource Common_Delete}" Padding="12,10"
                         Command="{Binding #EnvVariablesList.((vm:FilesViewModel)DataContext).RemoveEnvironmentVariableCommand}"
                         CommandParameter="{Binding}"
                         IsEnabled="{Binding !IsReadOnly}" />
+                </StackPanel>
               </Grid>
             </StackPanel>
           </Border>

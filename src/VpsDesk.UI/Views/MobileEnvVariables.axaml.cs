@@ -8,4 +8,6 @@ public partial class MobileEnvVariables : UserControl
     {
         InitializeComponent();
     }
+    private void OnCopyVariable(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => EnvironmentClipboardActions.CopyVariable(sender);
 }

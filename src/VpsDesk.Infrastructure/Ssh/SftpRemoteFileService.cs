@@ -1,5 +1,7 @@
 using System.Text;
+using System.Net.Sockets;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Domain.Files;
 using VpsDesk.Domain.Servers;
@@ -22,9 +24,7 @@ public sealed class SftpRemoteFileService : IRemoteFileService
         return await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            using var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(15)));
-            SshConnectionFactory.ApplyHostKeyPolicy(client, server);
-            client.Connect();
+            using var client = ConnectForRead(server, secret, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             var entries = client.ListDirectory(remotePath)
@@ -58,9 +58,7 @@ public sealed class SftpRemoteFileService : IRemoteFileService
         return await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            using var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(15)));
-            SshConnectionFactory.ApplyHostKeyPolicy(client, server);
-            client.Connect();
+            using var client = ConnectForRead(server, secret, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!client.Exists(remotePath))
@@ -216,5 +214,36 @@ public sealed class SftpRemoteFileService : IRemoteFileService
         }
 
         return remotePath.Length > 1 ? remotePath.TrimEnd('/') : remotePath;
+    }
+
+    private static SftpClient ConnectForRead(ServerProfile server, string? secret, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var client = new SftpClient(SshConnectionFactory.Create(server, secret, TimeSpan.FromSeconds(15)));
+            var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, server);
+            try
+            {
+                client.Connect();
+                return client;
+            }
+            catch (Exception ex) when (policy.Mismatch is not null)
+            {
+                client.Dispose();
+                throw new InvalidOperationException(policy.Mismatch.Describe(), ex);
+            }
+            catch (Exception ex) when (attempt < 2 && ex is (SocketException or SshConnectionException or IOException))
+            {
+                client.Dispose();
+                if (cancellationToken.WaitHandle.WaitOne(attempt == 0 ? 800 : 2500))
+                    cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
+        }
     }
 }

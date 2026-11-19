@@ -34,6 +34,7 @@
           <TextBlock Text="{DynamicResource Nav_Environment}" FontSize="{DynamicResource Font.Size.16}" FontWeight="SemiBold" />
           <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Brush.Text.Secondary}" TextWrapping="Wrap" />
           <TextBlock Text="{DynamicResource Header_Environment}" Foreground="{DynamicResource Brush.Text.Tertiary}" FontSize="{DynamicResource Font.Size.11}" TextWrapping="Wrap" />
+          <Button Content="{DynamicResource Files_EnvRetry}" Command="{Binding RetryEnvironmentCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Left" />
         </StackPanel>
       </Border>
 
@@ -42,6 +43,7 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Content="{DynamicResource Files_EnvVariables}" Command="{Binding OpenEnvironmentManagerCommand}" Background="{DynamicResource Brush.Info.Subtle}" Foreground="{DynamicResource Brush.Text.Primary}" />
             <Button Content="{DynamicResource Files_EnvRawFile}" Command="{Binding CloseEnvironmentManagerCommand}" />
+            <Button Content="{DynamicResource Files_EnvCopyFile}" Click="OnCopyFile" IsVisible="{Binding IsRawEditorVisible}" />
           </StackPanel>
 
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
@@ -79,6 +81,7 @@
                             <TextBox Text="{Binding Value}" IsReadOnly="{Binding IsReadOnly}" IsVisible="{Binding !IsValueMasked}" FontFamily="{DynamicResource Font.Mono}" />
                           </Grid>
                           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Button Content="{DynamicResource Files_EnvCopyVariable}" Click="OnCopyVariable" IsEnabled="{Binding !IsValueMasked}" Padding="8,4" />
                             <Border Background="{DynamicResource Brush.Warning.Subtle}" CornerRadius="{DynamicResource Radius.S}" Padding="6,2" IsVisible="{Binding IsSecret}">
                               <TextBlock Text="{DynamicResource Files_EnvSecret}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.11}" FontWeight="SemiBold" />
                             </Border>

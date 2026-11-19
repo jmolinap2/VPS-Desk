@@ -17,4 +17,19 @@ namespace VpsDesk.Android;
         | ConfigChanges.UiMode)]
 public class MainActivity : AvaloniaMainActivity
 {
+    private static WeakReference<MainActivity>? _current;
+
+    protected override void OnCreate(global::Android.OS.Bundle? savedInstanceState)
+    {
+        base.OnCreate(savedInstanceState);
+        _current = new WeakReference<MainActivity>(this);
+    }
+
+    internal static void RequestDeploymentNotifications()
+    {
+        if (OperatingSystem.IsAndroidVersionAtLeast(33)
+            && _current?.TryGetTarget(out var activity) == true
+            && activity.CheckSelfPermission(global::Android.Manifest.Permission.PostNotifications) != Permission.Granted)
+            activity.RequestPermissions([global::Android.Manifest.Permission.PostNotifications], 1401);
+    }
 }

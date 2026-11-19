@@ -303,7 +303,7 @@ public partial class FilesViewModel : ObservableObject
         }
     }
 
-    private async Task OpenFileAsync(RemoteFileEntry entry, bool readOnly)
+    private async Task OpenFileAsync(RemoteFileEntry entry, bool readOnly, bool forceEnvironment = false)
     {
         var server = _serverAccessor();
         if (server == null)
@@ -317,6 +317,7 @@ public partial class FilesViewModel : ObservableObject
         try
         {
             var content = await _files.ReadTextAsync(server, entry.FullPath, _secretAccessor());
+            if (_serverAccessor()?.Id != server.Id) return;
             if (content == null)
             {
                 StatusMessage = LocalizationService.T("Files_StatusGone");
@@ -324,8 +325,8 @@ public partial class FilesViewModel : ObservableObject
             }
 
             EditorPath = entry.FullPath;
-            EditorFileType = DetermineFileType(entry.FullPath);
-            IsSensitiveFile = entry.IsSensitive;
+            EditorFileType = forceEnvironment ? "ENV" : DetermineFileType(entry.FullPath);
+            IsSensitiveFile = forceEnvironment || entry.IsSensitive;
             IsEditorReadOnly = readOnly;
             _originalEditorContent = content;
             HasOpenTextFile = true;
@@ -340,7 +341,7 @@ public partial class FilesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            HasOpenTextFile = false;
+            if (_serverAccessor()?.Id != server.Id) return;
             var friendly = UserFacingErrors.Describe(ex);
             StatusMessage = LocalizationService.Current.Format("Files_StatusOpenFailed", friendly);
             Toast.Error(friendly, "No se pudo abrir el archivo");
@@ -538,6 +539,13 @@ public partial class FilesViewModel : ObservableObject
         {
             IsEditorValid = true;
             EditorValidationMessage = string.Empty;
+            return;
+        }
+
+        if (IsEnvironmentFile)
+        {
+            if (IsEnvironmentManagerOpen) ValidateEnvironmentRows();
+            else ValidateEnvironmentText(EditorContent);
             return;
         }
 

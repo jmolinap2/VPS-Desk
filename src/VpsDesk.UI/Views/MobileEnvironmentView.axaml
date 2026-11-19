@@ -18,6 +18,7 @@
           <Path Classes="icon tertiary" Data="{StaticResource Icon.File}" Width="28" Height="28" HorizontalAlignment="Center" />
           <TextBlock Classes="t-headline" Text="{DynamicResource Env_EmptyTitle}" HorizontalAlignment="Center" />
           <TextBlock Classes="t-body-s" Text="{Binding StatusMessage}" TextAlignment="Center" TextWrapping="Wrap" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvRetry}" Command="{Binding RetryEnvironmentCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Center" />
         </StackPanel>
       </Border>
 

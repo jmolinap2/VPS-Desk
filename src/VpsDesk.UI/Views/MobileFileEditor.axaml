@@ -33,10 +33,13 @@
         <Expander Header="{DynamicResource Files_EditorTools}" HorizontalAlignment="Stretch"><WrapPanel>
           <Button Classes="btn-secondary" Content="{DynamicResource Files_Reload}" Command="{Binding ReloadEditorCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
           <Button Classes="btn-secondary" Content="{DynamicResource Files_Validate}" Command="{Binding ValidateEditorCommand}" IsVisible="{Binding !IsEnvironmentManagerOpen}" Margin="0,0,8,8" />
-          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvVariables}" Command="{Binding OpenEnvironmentManagerCommand}" IsVisible="{Binding IsEnvironmentFile}" Margin="0,0,8,8" />
-          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvRawFile}" Command="{Binding CloseEnvironmentManagerCommand}" IsVisible="{Binding IsEnvironmentFile}" Margin="0,0,8,8" />
           
         </WrapPanel></Expander>
+        <WrapPanel IsVisible="{Binding IsEnvironmentFile}">
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvVariables}" Command="{Binding OpenEnvironmentManagerCommand}" IsEnabled="{Binding !IsEnvironmentManagerOpen}" Margin="0,0,8,4" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvRawFile}" Command="{Binding CloseEnvironmentManagerCommand}" IsEnabled="{Binding IsEnvironmentManagerOpen}" Margin="0,0,8,4" />
+          <Button Classes="btn-secondary" Content="{DynamicResource Files_EnvCopyFile}" Click="OnCopyFile" IsVisible="{Binding IsRawEditorVisible}" Margin="0,0,0,4" />
+        </WrapPanel>
       </StackPanel>
     </Border>
 

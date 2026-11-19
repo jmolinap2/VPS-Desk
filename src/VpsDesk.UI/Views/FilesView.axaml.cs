@@ -8,4 +8,6 @@ public partial class FilesView : UserControl
     {
         InitializeComponent();
     }
+    private void OnCopyVariable(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => EnvironmentClipboardActions.CopyVariable(sender);
 }

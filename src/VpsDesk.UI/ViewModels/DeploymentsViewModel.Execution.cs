@@ -279,6 +279,12 @@ public partial class DeploymentsViewModel
             return;
         }
 
+        // Un pase parte siempre del código más reciente de la rama: se traen los cambios antes del
+        // prevuelo para que valide (y despliegue) lo que hay en origin, no una copia atrasada.
+        await PullSourceAsync();
+        if (!_lastSourceUpdateSucceeded) return;
+        IsOperationFeedbackModalOpen = false;
+
         // Desde DESPLEGAR el prevuelo no se queda como un modal más: si pasa, se cierra y se
         // muestra directamente la confirmación (que resume lo que se va a hacer).
         if (!await RunPreflightCoreAsync(continueToConfirmation: true)) return;

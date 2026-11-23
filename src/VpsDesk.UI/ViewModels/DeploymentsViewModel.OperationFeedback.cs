@@ -21,6 +21,12 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private string _operationFeedbackTitle = string.Empty;
     [ObservableProperty] private string _operationFeedbackMessage = string.Empty;
     [ObservableProperty] private string _operationFeedbackOutput = string.Empty;
+    [ObservableProperty] private bool _canContinueAfterSourceUpdate;
+    private bool _sourceUpdateContinueToConfirmation;
+    private Guid? _sourceUpdateServerId;
+    private Guid? _sourceUpdateProjectId;
+    private string _sourceUpdatePath = string.Empty;
+    private string _sourceUpdateBranch = string.Empty;
 
     public bool IsOperationFeedbackFailed => !IsOperationFeedbackRunning && !OperationFeedbackSucceeded;
 
@@ -32,6 +38,7 @@ public partial class DeploymentsViewModel
 
     public void BeginOperationFeedback(string title, string message)
     {
+        CanContinueAfterSourceUpdate = false;
         OperationFeedbackTitle = title;
         OperationFeedbackMessage = message;
         OperationFeedbackSucceeded = false;
@@ -94,4 +101,21 @@ public partial class DeploymentsViewModel
     /// </summary>
     [RelayCommand]
     private void CloseOperationFeedbackModal() => IsOperationFeedbackModalOpen = false;
+
+    [RelayCommand]
+    private async Task ContinueAfterSourceUpdateAsync()
+    {
+        if (!CanContinueAfterSourceUpdate || IsBusy) return;
+        CanContinueAfterSourceUpdate = false;
+        IsOperationFeedbackModalOpen = false;
+        if (_serverAccessor()?.Id != _sourceUpdateServerId || _activeProjectId != _sourceUpdateProjectId
+            || !string.Equals(RemoteRepositoryPath.Trim(), _sourceUpdatePath, StringComparison.Ordinal)
+            || !string.Equals(Branch.Trim(), _sourceUpdateBranch, StringComparison.Ordinal))
+        {
+            StatusMessage = "El proyecto o la rama cambiaron. Revisa la configuración antes de continuar.";
+            return;
+        }
+        if (await RunPreflightCoreAsync(_sourceUpdateContinueToConfirmation) && _sourceUpdateContinueToConfirmation)
+            RequestDeploy();
+    }
 }

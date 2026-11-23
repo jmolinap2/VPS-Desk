@@ -359,8 +359,12 @@
               <Button Grid.Column="1" Classes="btn-secondary" HorizontalAlignment="Stretch"
                       Content="{DynamicResource Deployments_Hide}" Command="{Binding CloseOperationFeedbackModalCommand}" />
             </Grid>
-            <Button Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
-                    Command="{Binding CloseOperationFeedbackModalCommand}" IsVisible="{Binding !IsOperationFeedbackRunning}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" IsVisible="{Binding !IsOperationFeedbackRunning}">
+              <Button Classes="btn-secondary" Content="{DynamicResource Common_Close}"
+                      Command="{Binding CloseOperationFeedbackModalCommand}" />
+              <Button Grid.Column="1" Classes="btn-primary" HorizontalAlignment="Stretch" Content="Continuar al prevuelo"
+                      Command="{Binding ContinueAfterSourceUpdateCommand}" IsVisible="{Binding CanContinueAfterSourceUpdate}" />
+            </Grid>
           </Panel>
         </Grid>
       </Border>

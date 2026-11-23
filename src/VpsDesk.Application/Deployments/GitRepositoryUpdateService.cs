@@ -14,6 +14,7 @@ public sealed record GitRepositoryUpdateResult(
     string? PreviousCommit,
     string? UpdatedCommit)
 {
+    public string? ChangedFiles { get; init; }
     public bool Succeeded => Steps.Count > 0 && Steps.All(step => step.Succeeded);
     public DeploymentStepResult? FailedStep => Steps.FirstOrDefault(step => !step.Succeeded);
     public bool HasChanges => Succeeded
@@ -113,8 +114,26 @@ public sealed class GitRepositoryUpdateService(ISshCommandExecutor ssh) : IGitRe
             ? await TryReadCommitAsync(request, repo, secret, cancellationToken)
             : previousCommit;
 
-        return new GitRepositoryUpdateResult(steps, previousCommit, updatedCommit);
+        string? changedFiles = null;
+        if (steps.Count == commands.Length && steps.All(step => step.Succeeded)
+            && IsCommit(previousCommit) && IsCommit(updatedCommit)
+            && !string.Equals(previousCommit, updatedCommit, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var diff = await ssh.ExecuteAsync(new SshCommandRequest(request.Server,
+                    $"git -C {repo} diff --name-status {previousCommit} {updatedCommit} --", TimeSpan.FromSeconds(30)),
+                    secret, cancellationToken);
+                if (diff.Succeeded) changedFiles = LogSanitizer.Sanitize(diff.StandardOutput).Trim();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch { /* The update succeeded even if its optional summary cannot be read. */ }
+        }
+        return new GitRepositoryUpdateResult(steps, previousCommit, updatedCommit) { ChangedFiles = changedFiles };
     }
+
+    private static bool IsCommit(string? value) => value is { Length: >= 40 and <= 64 }
+        && value.All(c => char.IsAsciiHexDigit(c));
 
     private async Task<string?> TryReadCommitAsync(
         GitRepositoryUpdateRequest request,

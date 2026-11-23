@@ -211,14 +211,24 @@ public partial class DeploymentsViewModel
 
             succeeded = true;
             hasChanges = result.HasChanges;
+            var before = result.PreviousCommit is { Length: >= 12 } ? result.PreviousCommit[..12] : "no disponible";
+            var after = result.UpdatedCommit is { Length: >= 12 } ? result.UpdatedCommit[..12] : "no disponible";
+            var comparison = result.PreviousCommit is null || result.UpdatedCommit is null
+                ? "No se pudo determinar si cambió la revisión."
+                : hasChanges ? "Se recibieron cambios." : "El repositorio ya estaba actualizado.";
+            var files = result.PreviousCommit is null || result.UpdatedCommit is null
+                ? "No se pudo comparar los archivos."
+                : hasChanges
+                ? string.IsNullOrWhiteSpace(result.ChangedFiles) ? "No se pudo obtener la lista de archivos." : result.ChangedFiles
+                : "No hay archivos nuevos que mostrar.";
+            _operationFeedbackLog.AppendLine($"Rama: {sourceBranch}\nCommit anterior: {before}\nCommit actual: {after}\n{comparison}\n\nArchivos (estado y ruta):\n{files}");
+            OperationFeedbackOutput = _operationFeedbackLog.ToString().TrimEnd();
             StatusMessage = hasChanges
                 ? "Código actualizado correctamente. Volviendo a detectar la configuración del proyecto..."
                 : "El repositorio ya estaba actualizado. Volviendo a detectar la configuración del proyecto...";
             CompleteOperationFeedback(
                 true,
-                hasChanges
-                    ? "Cambios recibidos correctamente. No se reinició ningún contenedor."
-                    : "El repositorio ya estaba actualizado. No se reinició ningún contenedor.");
+                $"{comparison} Revisa los detalles. No se reinició ningún contenedor.");
         }
         catch (Exception ex)
         {
@@ -237,6 +247,8 @@ public partial class DeploymentsViewModel
 
         await DiscoverRemoteOptionsAsync();
         _lastSourceUpdateSucceeded = _lastDiscoverySucceeded;
+        if (!_lastDiscoverySucceeded)
+            CompleteOperationFeedback(false, "Git terminó, pero no se pudo volver a detectar la configuración. Revisa la conexión y detecta el proyecto de nuevo antes del prevuelo.");
     }
 
     [RelayCommand]
@@ -252,8 +264,7 @@ public partial class DeploymentsViewModel
         if (!_lastSourceUpdateSucceeded || _serverAccessor()?.Id != serverId || _activeProjectId != projectId
             || !string.Equals(RemoteRepositoryPath.Trim(), projectPath, StringComparison.Ordinal)
             || !string.Equals(Branch.Trim(), branch, StringComparison.Ordinal)) return;
-        IsOperationFeedbackModalOpen = false;
-        await RunPreflightCoreAsync();
+        PrepareSourceUpdateContinuation(serverId, projectId, projectPath, branch, false);
     }
 
     [RelayCommand]
@@ -265,6 +276,12 @@ public partial class DeploymentsViewModel
         if (server == null)
         {
             StatusMessage = "No hay un servidor activo. Selecciónalo y conéctalo primero en Servidores.";
+            return;
+        }
+
+        if (CanDeploy)
+        {
+            RequestDeploy();
             return;
         }
 
@@ -281,16 +298,25 @@ public partial class DeploymentsViewModel
 
         // Un pase parte siempre del código más reciente de la rama: se traen los cambios antes del
         // prevuelo para que valide (y despliegue) lo que hay en origin, no una copia atrasada.
+        var serverId = server.Id;
+        var projectId = _activeProjectId;
+        var projectPath = RemoteRepositoryPath.Trim();
+        var branch = Branch.Trim();
         await PullSourceAsync();
         if (!_lastSourceUpdateSucceeded) return;
-        IsOperationFeedbackModalOpen = false;
+        PrepareSourceUpdateContinuation(serverId, projectId, projectPath, branch, true);
+    }
 
-        // Desde DESPLEGAR el prevuelo no se queda como un modal más: si pasa, se cierra y se
-        // muestra directamente la confirmación (que resume lo que se va a hacer).
-        if (!await RunPreflightCoreAsync(continueToConfirmation: true)) return;
-
-        RequestDeploy();
-        StatusMessage = "Todo está listo. Revisa el objetivo, las migraciones y confirma la ejecución.";
+    private void PrepareSourceUpdateContinuation(Guid? serverId, Guid? projectId, string path, string branch, bool confirm)
+    {
+        _sourceUpdateServerId = serverId;
+        _sourceUpdateProjectId = projectId;
+        _sourceUpdatePath = path;
+        _sourceUpdateBranch = branch;
+        _sourceUpdateContinueToConfirmation = confirm;
+        CanContinueAfterSourceUpdate = true;
+        IsOperationFeedbackModalOpen = true;
+        StatusMessage = "Revisa los cambios y continúa al prevuelo cuando estés listo.";
     }
 
     private async Task<bool> RunPreflightCoreAsync(bool continueToConfirmation = false)

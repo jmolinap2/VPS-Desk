@@ -6,7 +6,8 @@ using VpsDesk.Application.Snapshots;
 var server = new ServerProfile(Guid.NewGuid(), "Test", "localhost", 22, "test",
     SshAuthenticationType.Password, null, null, null, ServerEnvironment.Development, []);
 var request = new ComposeDeploymentRequest(server, "/app", "main", "compose.yml",
-    PullImages: false, BuildImages: false, CleanBuildCache: false);
+    PullImages: false, BuildImages: false, CleanBuildCache: false,
+    VerifiedCommit: new string('a', 40), VerifiedFilesDigest: new string('b', 64));
 static SshCommandResult Ok() => new(0, "running", "", TimeSpan.Zero, false, false);
 static SshCommandResult Lost() => new(-1, "", "Software caused connection abort", TimeSpan.Zero, false, false, true);
 static void Check(bool passed, string label)

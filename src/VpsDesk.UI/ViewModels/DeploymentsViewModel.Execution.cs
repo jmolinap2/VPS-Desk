@@ -530,7 +530,8 @@ public partial class DeploymentsViewModel
         var request = new ComposeDeploymentRequest(server, projectPath, branch, composeFile,
             PullImages, BuildImages, CleanBuildCache, DeployApplication: !migrationOnly,
             Services: deploymentServices, Operation: operation, DataSaver: dataSaver,
-            VerifiedCommit: _validatedCommit, VerifiedFilesDigest: _validatedFilesDigest);
+            VerifiedCommit: _validatedCommit, VerifiedFilesDigest: _validatedFilesDigest,
+            DetachLongSteps: true);
         var healthUrls = ParseHealthUrls().Concat(prior?.HealthUrls ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var verificationServices = prior is null ? deploymentServices
             : prior.Services is not { Count: > 0 } || deploymentServices.Count == 0 ? []

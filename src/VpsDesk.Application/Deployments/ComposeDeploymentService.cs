@@ -26,7 +26,12 @@ public sealed record ComposeDeploymentRequest(
     DeploymentProjectOperationRequest? Operation = null,
     bool DataSaver = false,
     string? VerifiedCommit = null,
-    string? VerifiedFilesDigest = null);
+    string? VerifiedFilesDigest = null,
+    /// <summary>
+    /// Los pasos que no se pueden repetir (pull, up, migraciones) corren desacoplados de la sesión SSH: si la conexión se corta,
+    /// siguen en el servidor y la aplicación espera y vuelve a consultar, en vez de repetirlos o darlos por fallidos.
+    /// </summary>
+    bool DetachLongSteps = false);
 
 public sealed record DeploymentStepResult(
     string Code,
@@ -236,7 +241,29 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 step.Timeout,
                 OutputChunkReceived: onChunk);
 
-            var result = await ssh.ExecuteAsync(stepRequest, secret, cancellationToken);
+            SshCommandResult result;
+            if (request.DetachLongSteps && !IdempotentStepCodes.Contains(step.Code))
+            {
+                // Sin el envoltorio de modo ahorro: el resultado ya viene por consultas y aquí se recorta la salida.
+                var detachedCommand = "export NO_COLOR=1 COMPOSE_ANSI=never BUILDKIT_PROGRESS=plain;\n" + guardedCommand;
+                void Status(string message)
+                {
+                    terminal.Append($"\n[{message}]\n");
+                    ProgressChanged?.Invoke(new DeploymentProgressUpdate(
+                        step.Code, step.Label, DeploymentProgressState.OutputSnapshot,
+                        Output: LogSanitizer.Sanitize(terminal.GetText()), StepIndex: stepIndex,
+                        TotalSteps: commands.Count, IsBlocking: step.IsBlocking));
+                }
+
+                var detached = await new DetachedRemoteJob(ssh).RunAsync(
+                    request.Server, secret, DetachedRemoteJob.NewJobId(), detachedCommand, step.Timeout, onChunk, Status, cancellationToken);
+                var text = request.DataSaver ? TailForDataSaver(detached.Output) : detached.Output;
+                result = new SshCommandResult(detached.ExitCode, text, string.Empty, detached.Duration, detached.TimedOut, detached.Cancelled, detached.Unconfirmed);
+            }
+            else
+            {
+                result = await ssh.ExecuteAsync(stepRequest, secret, cancellationToken);
+            }
 
             // Si el TRANSPORTE se cortó (exit -1, sin plazo agotado ni cancelación) en un paso que se
             // puede repetir sin efectos, se reintenta: p. ej. "Software caused connection abort" al
@@ -336,6 +363,13 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
     };
 
     private const int MaxIdempotentStepRetries = 2;
+
+    private static string TailForDataSaver(string output)
+    {
+        var max = DataSaverMaxStepOutputBytes;
+        if (output.Length <= max) return output;
+        return $"[Modo ahorro de datos: se omitieron {output.Length - max} caracteres iniciales de la salida]\n" + output[^max..];
+    }
 
     private static bool IsTransportFailure(SshCommandResult result)
         => result.ConnectionLost && !result.TimedOut && !result.Cancelled;

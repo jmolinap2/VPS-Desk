@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/VpsDesk.Application/VpsDesk.Application.csproj" />
+    <ProjectReference Include="../../src/VpsDesk.Infrastructure/VpsDesk.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

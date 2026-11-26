@@ -23,8 +23,10 @@ public sealed class AppUpdateService : IDisposable
     public async Task<AppUpdateManifest?> CheckAsync(string manifestUrl, int currentVersionCode, CancellationToken ct = default)
     {
         var manifestUri = ParseHttpsUri(manifestUrl);
-        // Evita que un proxy o la caché del navegador sirva un version.json viejo.
-        using var request = new HttpRequestMessage(HttpMethod.Get, manifestUri);
+        // GitHub Releases conserva assets reemplazados en su CDN; una URL única evita
+        // recibir el version.json anterior durante la propagación.
+        var manifestRequestUri = WithCacheBuster(manifestUri);
+        using var request = new HttpRequestMessage(HttpMethod.Get, manifestRequestUri);
         request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -111,6 +113,12 @@ public sealed class AppUpdateService : IDisposable
             throw new InvalidOperationException("La URL de actualización debe ser https.");
         }
         return uri;
+    }
+
+    private static Uri WithCacheBuster(Uri uri)
+    {
+        var separator = string.IsNullOrEmpty(uri.Query) ? "?" : "&";
+        return new Uri(uri + separator + "vpsdesk-cache=" + Guid.NewGuid().ToString("N"));
     }
 
     public void Dispose() => _http.Dispose();

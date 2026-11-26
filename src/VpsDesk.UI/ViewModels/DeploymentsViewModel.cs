@@ -162,6 +162,7 @@ public partial class DeploymentsViewModel : ObservableObject
         HasProjectSuggestions = false;
         CanDeploy = false;
         DeploymentOutput = string.Empty;
+        ActiveDeploymentSummary = string.Empty;
         LastChecked = LocalizationService.T("Common_Never");
         StatusMessage = "Paso 1: conecta al servidor seleccionado y detecta sus ramas y archivos Compose.";
         ResetProjectModel();

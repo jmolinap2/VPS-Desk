@@ -183,6 +183,7 @@ public partial class DeploymentsViewModel
     partial void OnIsBusyChanged(bool value)
     {
         NotifySnapshotAvailability();
+        OnPropertyChanged(nameof(CanRestartDeployment));
         if (value) return;
 
         if (IsPostflightModalOpen)

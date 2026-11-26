@@ -306,8 +306,12 @@
             </ItemsControl>
           </ScrollViewer>
 
-          <Button Grid.Row="3" Classes="btn-primary" HorizontalAlignment="Stretch" Content="{DynamicResource Common_Close}"
-                  Command="{Binding ClosePostflightModalCommand}" />
+          <WrapPanel Grid.Row="3">
+            <Button Classes="btn-danger" Content="Abortar pase" Command="{Binding AbortDeploymentCommand}"
+                    IsVisible="{Binding CanAbortDeployment}" Margin="0,0,8,0" />
+            <Button Classes="btn-primary" Content="{DynamicResource Common_Close}"
+                    Command="{Binding ClosePostflightModalCommand}" />
+          </WrapPanel>
         </Grid>
       </Border>
     </Border>

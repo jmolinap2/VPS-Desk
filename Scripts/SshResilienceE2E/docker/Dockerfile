@@ -9,7 +9,9 @@ RUN apt-get update \
  && echo 'deploy:deploy-pass' | chpasswd \
  && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 COPY docker-shim.sh /usr/local/bin/docker
-RUN chmod +x /usr/local/bin/docker \
+# El checkout de Windows puede añadir CRLF al script que ejecuta Debian.
+RUN sed -i 's/\r$//' /usr/local/bin/docker \
+ && chmod +x /usr/local/bin/docker \
  && mkdir -p /srv/app \
  && chown deploy:deploy /srv/app
 USER deploy

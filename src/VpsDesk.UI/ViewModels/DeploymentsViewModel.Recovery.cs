@@ -12,7 +12,11 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private bool _isRecoveryChecking;
     [ObservableProperty] private bool _requiresRecoveryReview;
 
-    partial void OnHasDeploymentRecoveryChanged(bool value) => OnPropertyChanged(nameof(HasExecutionActivity));
+    partial void OnHasDeploymentRecoveryChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasExecutionActivity));
+        OnPropertyChanged(nameof(CanRestartDeployment));
+    }
     [ObservableProperty] private bool _recoveryReviewConfirmed;
 
     private bool TryReadRecovery(ServerProfile server, out DeploymentRecoveryRecord? recovery)

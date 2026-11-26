@@ -575,7 +575,11 @@ public partial class DeploymentsViewModel
         _deployedCommit = recovery.DeployedCommit;
         IsBusy = true;
         CanDeploy = false;
-        ActiveDeploymentSummary = $"{BuildExecutionSummary()} · Rama: {branch} · Compose: {composeFile}";
+        ActiveDeploymentSummary = $"{server.Name} ({server.Environment}) · {projectPath}\n"
+            + $"{BuildExecutionSummary()} · Rama: {branch} · Compose: {composeFile}\n"
+            + $"Descargar imágenes: {YesNo(request.PullImages && request.DeployApplication)} · "
+            + $"Construir imágenes: {YesNo(request.BuildImages && request.DeployApplication)} · "
+            + $"Limpiar caché: {YesNo(request.CleanBuildCache && request.DeployApplication)}";
         Steps.Clear();
         PostChecks.Clear();
         DeploymentOutput = string.Empty;
@@ -591,6 +595,7 @@ public partial class DeploymentsViewModel
         try
         {
             var result = await _deployment.ExecuteAsync(request, secret, deploymentCancellation);
+            deploymentCancellation.ThrowIfCancellationRequested();
             if (result.FailedStep is { Code: "verify_revision" } revisionFailure)
             {
                 // The first step is read-only. Nothing in the deployment was applied, so
@@ -664,7 +669,8 @@ public partial class DeploymentsViewModel
             StatusMessage = LocalizationService.T("Deployments_StatusVerifying");
             DeploymentBackgroundExecution.Report?.Invoke("Comprobando el resultado del pase");
             var verification = await _postDeployVerification.VerifyAsync(
-                verificationRequest, secret);
+                verificationRequest, secret, deploymentCancellation);
+            deploymentCancellation.ThrowIfCancellationRequested();
 
             if (_serverAccessor()?.Id != server.Id) return;
             foreach (var check in verification.Checks) PostChecks.Add(check);
@@ -711,11 +717,14 @@ public partial class DeploymentsViewModel
         catch (OperationCanceledException) when (IsDeploymentCancellationRequested(deploymentCancellation))
         {
             if (_serverAccessor()?.Id != server.Id) return;
-            StatusMessage = "Pase cancelado. Se detuvo el trabajo remoto y se guardó el estado para revisión.";
-            DeploymentOutcomeTitle = "Pase cancelado";
+            StatusMessage = "Se solicitó cancelar el pase. El estado remoto requiere revisión.";
+            DeploymentOutcomeTitle = "Cancelación solicitada";
             DeploymentNextAction = "Revisa los servicios y la salida antes de reiniciar. Puedes repetir el pase aunque Git no tenga cambios.";
             DeploymentOutput += "\n[Cancelación] Se solicitó detener el pase desde VPS Desk.";
-            DeploymentBackgroundExecution.Complete?.Invoke("Pase cancelado", "Revisa el estado del servidor antes de reiniciar.");
+            recovery = recovery with { Status = "Cancelación solicitada", ExecutionNeedsReview = true };
+            _profileStore.SaveRecovery(server.Id, recovery);
+            ShowSavedRecovery(server, recovery);
+            DeploymentBackgroundExecution.Complete?.Invoke("Cancelación solicitada", "Revisa el estado del servidor antes de reiniciar.");
             await CheckFailedDeploymentAsync(server, verificationRequest, secret);
         }
         catch (Exception ex)
@@ -743,13 +752,16 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private async Task RestartDeploymentAsync()
     {
-        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
+        if (!CanRestartDeployment || IsSnapshotBusy || IsAppBackupBusy) return;
 
+        InvalidatePreflight();
         DeploymentFinale = DeploymentFinaleOutcome.None;
         DeploymentNextAction = "Reiniciando el flujo completo: actualización Git, prevuelo y confirmación.";
         StatusMessage = "Reiniciando el pase con la configuración seleccionada…";
         await StartDeploymentAsync();
     }
+
+    private static string YesNo(bool value) => value ? "sí" : "no";
 
     [RelayCommand]
     private void CancelDeploy() => CancelPendingDeploy();

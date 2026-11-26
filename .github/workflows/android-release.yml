@@ -1,9 +1,12 @@
-name: Android Release (Netlify)
+name: Android Release (GitHub Releases)
 
-# Compila y firma el APK y lo publica en el sitio privado de Netlify junto con version.json.
-# La app instalada consulta ese version.json y ofrece instalar la actualización.
-# Cada push a main publica una versión; también se puede ejecutar a mano.
-# El APK NO se sube como artifact: el repositorio es público y los artifacts también lo serían.
+# Compila y firma el APK y lo publica en el release fijo `latest` de GitHub,
+# junto con version.json. Así el canal de actualización no depende de Netlify.
+# El repositorio es público: los assets del release también lo serán.
+#
+# La primera ejecución migra el canal 14 de Netlify a GitHub y publica la 15.
+# Las instalaciones anteriores recibirán esa APK puente por Telegram; desde
+# entonces, la URL incorporada en la app apunta al release de GitHub.
 
 on:
   push:
@@ -16,7 +19,7 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-release
@@ -28,6 +31,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      UPDATE_BASE_URL: https://github.com/jmolinap2/VPS-Desk/releases/download/latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -48,12 +53,28 @@ jobs:
           python3 Scripts/Validate-UiTokens.py
           python3 -m unittest discover -s Scripts/tests -p test_android_release_version.py
 
+      - name: Initialize GitHub update channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest >/dev/null 2>&1 && exit 0
+          cat > version.json <<'EOF'
+          {
+            "versionCode": 14,
+            "versionName": "1.0.9+14",
+            "apkUrl": "vpsdesk-14.apk",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "notes": "Canal migrado desde Netlify."
+          }
+          EOF
+          gh release create latest \
+            --title "Última versión" \
+            --notes "Canal de actualización administrado automáticamente por CI."
+          gh release upload latest version.json
+
       - name: Allocate a new version
         id: release_version
-        env:
-          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
         run: |
-          test -n "$UPDATE_BASE_URL" || { echo "::error::Falta el secret ANDROID_UPDATE_URL"; exit 1; }
           python3 Scripts/android_release_version.py prepare \
             --manifest "${UPDATE_BASE_URL%/}/version.json" \
             --project src/VpsDesk.Android/VpsDesk.Android.csproj --output "$GITHUB_OUTPUT"
@@ -70,14 +91,12 @@ jobs:
 
       - name: Build signed APK
         env:
-          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
           VPSDESK_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           VPSDESK_KEY_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           RELEASE_CODE: ${{ steps.release_version.outputs.code }}
           RELEASE_NAME: ${{ steps.release_version.outputs.name }}
         run: |
-          test -n "$UPDATE_BASE_URL" || { echo "::error::Falta el secret ANDROID_UPDATE_URL"; exit 1; }
           dotnet publish src/VpsDesk.Android/VpsDesk.Android.csproj \
             --configuration Release \
             -p:RuntimeIdentifier=android-arm64 \
@@ -90,7 +109,7 @@ jobs:
             -p:AndroidSigningKeyPass=env:VPSDESK_KEY_PASS \
             -p:AndroidSigningStorePass=env:VPSDESK_KEYSTORE_PASS
 
-      - name: Prepare site (APK + version.json)
+      - name: Prepare release assets
         shell: pwsh
         env:
           NOTES: ${{ inputs.notes }}
@@ -117,13 +136,10 @@ jobs:
             notes       = $env:NOTES
           } | ConvertTo-Json | Set-Content site/version.json -Encoding utf8
 
-          "/version.json`n  Cache-Control: no-cache`n/*`n  X-Robots-Tag: noindex, nofollow" | Set-Content site/_headers -Encoding ascii
-          "User-agent: *`nDisallow: /" | Set-Content site/robots.txt -Encoding ascii
           "versionCode=$versionCode versionName=$versionName apk=$([math]::Round($apk.Length/1MB,1)) MB sha256=$sha"
 
       - name: Verify package and publication preconditions
         env:
-          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
           RELEASE_CODE: ${{ steps.release_version.outputs.code }}
           RELEASE_NAME: ${{ steps.release_version.outputs.name }}
           CHANNEL_DIGEST: ${{ steps.release_version.outputs.channel_digest }}
@@ -139,17 +155,16 @@ jobs:
           python3 Scripts/android_release_version.py check \
             --manifest "${UPDATE_BASE_URL%/}/version.json" --code "$RELEASE_CODE" --digest "$CHANNEL_DIGEST"
 
-      - name: Deploy to Netlify
+      - name: Publish to GitHub Releases
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_CODE: ${{ steps.release_version.outputs.code }}
         run: |
-          test -n "$NETLIFY_AUTH_TOKEN" || { echo "::error::Falta el secret NETLIFY_AUTH_TOKEN"; exit 1; }
-          npx --yes netlify-cli@27.17.0 deploy --prod --dir site --site "$NETLIFY_SITE_ID" --no-build
+          gh release upload latest "site/vpsdesk-$RELEASE_CODE.apk" --clobber
+          gh release upload latest site/version.json --clobber
 
       - name: Verify published update
         env:
-          UPDATE_BASE_URL: ${{ secrets.ANDROID_UPDATE_URL }}
           RELEASE_CODE: ${{ steps.release_version.outputs.code }}
         run: |
           apk_sha="$(sha256sum "site/vpsdesk-$RELEASE_CODE.apk" | cut -d ' ' -f1)"
@@ -158,7 +173,7 @@ jobs:
               --manifest "${UPDATE_BASE_URL%/}/version.json" --code "$RELEASE_CODE" --sha256 "$apk_sha"; then
               exit 0
             fi
-            echo "Comprobación $attempt fallida; esperando propagación del canal."
+            echo "Comprobación $attempt fallida; esperando propagación de GitHub Releases."
             sleep 10
           done
           exit 1

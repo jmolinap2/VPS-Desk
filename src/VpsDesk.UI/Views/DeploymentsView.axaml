@@ -438,6 +438,18 @@
                     <TextBlock Text="{DynamicResource Deployments_Output}" FontSize="18" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding DeploymentOutcomeTitle}" FontWeight="Bold" TextWrapping="Wrap" IsVisible="{Binding HasExecutionActivity}" />
                     <TextBlock Text="{Binding DeploymentNextAction}" Foreground="#A8B4C5" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
+                    <Border Background="#0E131B" CornerRadius="8" Padding="10" Margin="0,6,0,0" IsVisible="{Binding HasExecutionActivity}">
+                      <StackPanel Spacing="3">
+                        <TextBlock Text="Configuración del pase" Foreground="#8290A3" FontSize="11" />
+                        <TextBlock Text="{Binding ActiveDeploymentSummary}" TextWrapping="Wrap" />
+                        <WrapPanel Margin="0,5,0,0">
+                          <Button Content="Abortar pase" Command="{Binding AbortDeploymentCommand}"
+                                  IsVisible="{Binding CanAbortDeployment}" Classes="btn-danger" Margin="0,0,8,0" />
+                          <Button Content="Reiniciar pase" Command="{Binding RestartDeploymentCommand}"
+                                  IsEnabled="{Binding CanRestartDeployment}" Classes="btn-secondary" />
+                        </WrapPanel>
+                      </StackPanel>
+                    </Border>
                     <StackPanel Spacing="8" IsVisible="{Binding HasDeploymentRecovery}">
                       <TextBlock Classes="t-headline warning" Text="{DynamicResource Recovery_Pending}" />
                       <TextBlock Classes="t-body-s" Text="{Binding DeploymentRecoveryMessage}" TextWrapping="Wrap" />

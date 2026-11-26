@@ -24,6 +24,7 @@ public partial class DeploymentsViewModel
     private DateTimeOffset _observedDeploymentStartedAt;
     private readonly StringBuilder _liveDeploymentOutput = new();
     private CancellationTokenSource? _preflightCts;
+    private CancellationTokenSource? _deploymentCts;
     private bool _preflightCancelledByUser;
     private readonly ConcurrentQueue<DeploymentProgressUpdate> _progressQueue = new();
     private int _progressDrainScheduled;
@@ -55,6 +56,10 @@ public partial class DeploymentsViewModel
     [ObservableProperty] private string _deploymentProgressText = string.Empty;
     [ObservableProperty] private bool _followDeploymentOutput = true;
     [ObservableProperty] private string _deploymentLastActivity = string.Empty;
+    [ObservableProperty] private string _activeDeploymentSummary = string.Empty;
+
+    public bool CanAbortDeployment => IsDeploymentRunning && _deploymentCts is { IsCancellationRequested: false };
+    public bool CanRestartDeployment => !IsBusy && HasExecutionActivity;
 
     public string OutputFollowLabel => FollowDeploymentOutput ? "Pausar seguimiento" : "Ir a la última salida";
     public string OutputFollowHint => FollowDeploymentOutput
@@ -69,6 +74,38 @@ public partial class DeploymentsViewModel
 
     [RelayCommand]
     private void ToggleOutputFollow() => FollowDeploymentOutput = !FollowDeploymentOutput;
+
+    private CancellationToken StartDeploymentCancellation()
+    {
+        _deploymentCts?.Dispose();
+        _deploymentCts = new CancellationTokenSource();
+        OnPropertyChanged(nameof(CanAbortDeployment));
+        return _deploymentCts.Token;
+    }
+
+    private bool IsDeploymentCancellationRequested(CancellationToken token)
+        => _deploymentCts?.IsCancellationRequested == true && token.IsCancellationRequested;
+
+    private void FinishDeploymentCancellation()
+    {
+        _deploymentCts?.Dispose();
+        _deploymentCts = null;
+        OnPropertyChanged(nameof(CanAbortDeployment));
+    }
+
+    [RelayCommand]
+    private void AbortDeployment()
+    {
+        if (_deploymentCts is not { IsCancellationRequested: false }) return;
+
+        _deploymentCts.Cancel();
+        DeploymentOutcomeTitle = "Cancelando pase";
+        DeploymentNextAction = "Se solicitó detener el paso remoto actual. VPS Desk confirmará el estado del servidor antes de permitir otro pase.";
+        StatusMessage = "Cancelando el pase en curso…";
+        DeploymentBackgroundExecution.Report?.Invoke("Cancelando pase");
+        OnPropertyChanged(nameof(CanAbortDeployment));
+    }
+
 
     public bool IsNewDeploymentView => !IsHistoryView;
     public bool HasSelectedHistoryEntry => SelectedHistoryEntry is not null;
@@ -93,6 +130,8 @@ public partial class DeploymentsViewModel
     {
         OnPropertyChanged(nameof(ShowProgressJet));
         OnPropertyChanged(nameof(HasExecutionActivity));
+        OnPropertyChanged(nameof(CanAbortDeployment));
+        OnPropertyChanged(nameof(CanRestartDeployment));
         NotifyReportAvailability();
         UpdateElapsedTimer(value);
     }
@@ -101,6 +140,7 @@ public partial class DeploymentsViewModel
     {
         OnPropertyChanged(nameof(HasExecutionActivity));
         OnPropertyChanged(nameof(CanShareRunReport));
+        OnPropertyChanged(nameof(CanRestartDeployment));
     }
 
     partial void OnIsDeploymentConfigurationExpandedChanged(bool value)

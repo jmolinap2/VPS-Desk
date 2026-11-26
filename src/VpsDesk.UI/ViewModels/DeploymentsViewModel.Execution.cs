@@ -575,6 +575,7 @@ public partial class DeploymentsViewModel
         _deployedCommit = recovery.DeployedCommit;
         IsBusy = true;
         CanDeploy = false;
+        ActiveDeploymentSummary = $"{BuildExecutionSummary()} · Rama: {branch} · Compose: {composeFile}";
         Steps.Clear();
         PostChecks.Clear();
         DeploymentOutput = string.Empty;
@@ -586,9 +587,10 @@ public partial class DeploymentsViewModel
         StatusMessage = LocalizationService.T("Deployments_StatusRunning");
         CancelPendingDeploy();
 
+        var deploymentCancellation = StartDeploymentCancellation();
         try
         {
-            var result = await _deployment.ExecuteAsync(request, secret);
+            var result = await _deployment.ExecuteAsync(request, secret, deploymentCancellation);
             if (result.FailedStep is { Code: "verify_revision" } revisionFailure)
             {
                 // The first step is read-only. Nothing in the deployment was applied, so
@@ -706,6 +708,16 @@ public partial class DeploymentsViewModel
             else
                 Toast.Success($"Desplegado en {elapsed:F1}s y la verificación posterior pasó.", "Despliegue completado");
         }
+        catch (OperationCanceledException) when (IsDeploymentCancellationRequested(deploymentCancellation))
+        {
+            if (_serverAccessor()?.Id != server.Id) return;
+            StatusMessage = "Pase cancelado. Se detuvo el trabajo remoto y se guardó el estado para revisión.";
+            DeploymentOutcomeTitle = "Pase cancelado";
+            DeploymentNextAction = "Revisa los servicios y la salida antes de reiniciar. Puedes repetir el pase aunque Git no tenga cambios.";
+            DeploymentOutput += "\n[Cancelación] Se solicitó detener el pase desde VPS Desk.";
+            DeploymentBackgroundExecution.Complete?.Invoke("Pase cancelado", "Revisa el estado del servidor antes de reiniciar.");
+            await CheckFailedDeploymentAsync(server, verificationRequest, secret);
+        }
         catch (Exception ex)
         {
             if (_serverAccessor()?.Id != server.Id) return;
@@ -723,8 +735,20 @@ public partial class DeploymentsViewModel
         }
         finally
         {
+            FinishDeploymentCancellation();
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task RestartDeploymentAsync()
+    {
+        if (IsBusy || IsSnapshotBusy || IsAppBackupBusy) return;
+
+        DeploymentFinale = DeploymentFinaleOutcome.None;
+        DeploymentNextAction = "Reiniciando el flujo completo: actualización Git, prevuelo y confirmación.";
+        StatusMessage = "Reiniciando el pase con la configuración seleccionada…";
+        await StartDeploymentAsync();
     }
 
     [RelayCommand]

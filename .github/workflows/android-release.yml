@@ -19,7 +19,7 @@ on:
         default: ''
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: android-release
@@ -30,6 +30,8 @@ jobs:
     name: Build, sign and publish APK
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 45
     env:
       UPDATE_BASE_URL: https://github.com/jmolinap2/VPS-Desk/releases/download/latest

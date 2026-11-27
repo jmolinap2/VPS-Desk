@@ -105,6 +105,7 @@ public partial class App : Avalonia.Application
         var updates = new UpdatesViewModel(AppUpdatePlatform.Current, new AppUpdateService());
         viewModel.InitializeSettings(appSettingsStore, appSettings, ApplyLanguagePreference, updates);
         // Consulta en segundo plano al abrir; solo avisa si hay una versión más nueva.
+        updates.IsIdle = () => !viewModel.DeploymentsModule.IsDeploymentRunning;
         _ = updates.CheckOnStartupAsync();
         return viewModel;
     }

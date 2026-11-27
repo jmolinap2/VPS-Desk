@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VpsDesk.Application.Runtime;
 using VpsDesk.Application.Updates;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Infrastructure.Updates;
@@ -59,6 +60,72 @@ public sealed partial class UpdatesViewModel : ObservableObject
     [ObservableProperty] private double _downloadPercent;
     [ObservableProperty] private bool _isDownloading;
 
+    /// <summary>La hoja con las novedades que se abre al detectar una versión nueva.</summary>
+    [ObservableProperty] private bool _isPromptOpen;
+
+    /// <summary>
+    /// La hoja solo se abre si la app está en reposo (p. ej. sin un pase corriendo). Si es null o devuelve false,
+    /// queda el aviso breve de siempre y la tarjeta de Ajustes.
+    /// </summary>
+    public Func<bool>? IsIdle { get; set; }
+
+    private static string SkippedVersionPath => Path.Combine(VpsDeskDataPaths.RoamingRoot, "skipped-update.txt");
+
+    private static int ReadSkippedVersion()
+    {
+        try { return int.TryParse(File.ReadAllText(SkippedVersionPath).Trim(), out var code) ? code : 0; }
+        catch (Exception) { return 0; }
+    }
+
+    // Una sola vez por sesión: cerrar la hoja sin elegir no la vuelve a abrir hasta el siguiente inicio.
+    private bool _promptShownThisSession;
+
+    private bool TryOpenPrompt()
+    {
+        if (_available is null || _promptShownThisSession) return false;
+        if (_available.VersionCode <= ReadSkippedVersion() || IsIdle?.Invoke() != true) return false;
+        _promptShownThisSession = true;
+        IsPromptOpen = true;
+        return true;
+    }
+
+    /// <summary>«Atrás» del sistema: cierra la hoja si está abierta.</summary>
+    public bool TryDismissTopLayer()
+    {
+        if (!IsPromptOpen || IsDownloading) return false;
+        IsPromptOpen = false;
+        return true;
+    }
+
+    [RelayCommand]
+    private void DismissPrompt()
+    {
+        if (!IsDownloading) IsPromptOpen = false;
+    }
+
+    [RelayCommand]
+    private void SkipVersion()
+    {
+        if (_available is not null)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(SkippedVersionPath)!);
+                File.WriteAllText(SkippedVersionPath, _available.VersionCode.ToString());
+            }
+            catch (Exception) { /* sin poder recordarlo, la hoja volverá a salir: molesto pero inofensivo */ }
+        }
+        IsPromptOpen = false;
+    }
+
+    [RelayCommand]
+    private async Task InstallFromPromptAsync()
+    {
+        // La hoja sigue abierta durante la descarga para mostrar el avance, y se cierra al terminar.
+        await InstallCommand.ExecuteAsync(null);
+        IsPromptOpen = false;
+    }
+
     [NotifyPropertyChangedFor(nameof(InstallLabel))]
     [ObservableProperty] private bool _isUpdateAvailable;
 
@@ -94,7 +161,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
             }
 
             StatusMessage = $"Hay una versión nueva: {_available.VersionName} (instalada: {_platform.CurrentVersionName}).";
-            if (silent)
+            if (silent && !TryOpenPrompt())
             {
                 Toast.Info($"Versión {_available.VersionName} disponible. Instálala desde Configuración.", "Actualización disponible");
             }

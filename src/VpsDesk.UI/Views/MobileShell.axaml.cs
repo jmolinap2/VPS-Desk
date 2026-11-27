@@ -127,6 +127,9 @@ public partial class MobileShell : UserControl
 
     private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e) => SetDrawerOpen(false);
 
+    private void OnUpdateScrimPressed(object? sender, PointerPressedEventArgs e)
+        => (DataContext as MainWindowViewModel)?.SettingsModule.Updates.DismissPromptCommand.Execute(null);
+
     private void OnNavItemClick(object? sender, RoutedEventArgs e) => SetDrawerOpen(false);
 
     private void SetDrawerOpen(bool isOpen)

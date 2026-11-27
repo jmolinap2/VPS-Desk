@@ -43,6 +43,7 @@ public partial class MainWindowViewModel
     /// <summary>Cierra la capa más alta de la pantalla activa; false si no hay ninguna abierta.</summary>
     public bool TryDismissTopLayer()
     {
+        if (_settingsModule?.Updates.TryDismissTopLayer() == true) return true;
         IBackDismissible? page =
             IsDeploymentsPage || IsBackupsPage ? DeploymentsModule
             : IsFilesPage || IsEnvironmentPage ? FilesModule

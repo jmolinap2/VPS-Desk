@@ -162,6 +162,46 @@
       </Grid>
     </Border>
 
+    <!-- hoja de actualización: novedades de la versión nueva, al abrir la app con la aplicación en reposo -->
+    <Grid Grid.RowSpan="2" DataContext="{Binding SettingsModule.Updates}" x:DataType="vm:UpdatesViewModel">
+      <Border Classes="m-scrim" Classes.open="{Binding IsPromptOpen}" PointerPressed="OnUpdateScrimPressed" />
+      <Border Classes="m-sheet" Classes.open="{Binding IsPromptOpen}" VerticalAlignment="Bottom" MaxHeight="560">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <Border Classes="sheet-handle" Margin="0,10,0,4" />
+          <StackPanel Grid.Row="1" Margin="20,4,20,8" Spacing="2">
+            <TextBlock Classes="t-title" Text="{DynamicResource Updates_PromptTitle}" />
+            <TextBlock Classes="t-body-s" Text="{Binding ReleaseNotesTitle}" TextWrapping="Wrap" />
+          </StackPanel>
+          <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="20,4,20,12" Spacing="8">
+              <ItemsControl ItemsSource="{Binding ReleaseNoteItems}" IsVisible="{Binding HasReleaseNotes}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                      <TextBlock Text="•" Classes="t-body" Margin="0,0,10,0" VerticalAlignment="Top" />
+                      <TextBlock Grid.Column="1" Text="{Binding}" Classes="t-body" TextWrapping="Wrap" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadPercent}" IsVisible="{Binding IsDownloading}" Height="6" />
+              <TextBlock Classes="t-body-s" Text="{Binding StatusMessage}" TextWrapping="Wrap" IsVisible="{Binding IsDownloading}" />
+            </StackPanel>
+          </ScrollViewer>
+          <StackPanel Grid.Row="3" Margin="20,4,20,20" Spacing="8">
+            <Button Classes="btn-primary" MinHeight="48" HorizontalAlignment="Stretch" Content="{Binding InstallLabel}"
+                    Command="{Binding InstallFromPromptCommand}" IsEnabled="{Binding !IsBusy}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Classes="btn-secondary" MinHeight="44" HorizontalAlignment="Stretch" Content="{DynamicResource Updates_NotNow}"
+                      Command="{Binding DismissPromptCommand}" IsEnabled="{Binding !IsDownloading}" />
+              <Button Grid.Column="1" Classes="btn-secondary" MinHeight="44" HorizontalAlignment="Stretch" Content="{DynamicResource Updates_SkipVersion}"
+                      Command="{Binding SkipVersionCommand}" IsEnabled="{Binding !IsDownloading}" />
+            </Grid>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
     <!-- avisos flotantes: ancho completo bajo la barra superior, por encima de todo (incluso del cajón) -->
     <views:ToastHost Grid.Row="1" Margin="12,8,12,0" HorizontalAlignment="Stretch" VerticalAlignment="Top" />
 

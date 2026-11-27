@@ -444,7 +444,7 @@
                         <TextBlock Text="{Binding ActiveDeploymentSummary}" TextWrapping="Wrap" />
                         <WrapPanel Margin="0,5,0,0">
                           <Button Content="Abortar pase" Command="{Binding AbortDeploymentCommand}"
-                                  IsVisible="{Binding CanAbortDeployment}" Classes="btn-danger" Margin="0,0,8,0" />
+                                  IsVisible="{Binding CanAbortDeployment}" Classes="btn-danger prominent" HorizontalAlignment="Left" Margin="0,0,8,0" />
                           <Button Content="Reiniciar pase" Command="{Binding RestartDeploymentCommand}"
                                   IsEnabled="{Binding CanRestartDeployment}" Classes="btn-secondary" />
                         </WrapPanel>

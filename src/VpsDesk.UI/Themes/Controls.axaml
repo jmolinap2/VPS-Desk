@@ -219,6 +219,19 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
   </Style>
 
+  <!-- Acción destructiva que hay que encontrar al instante (p. ej. abortar un pase en curso): relleno sólido en vez del tono suave -->
+  <Style Selector="Button.btn-danger.prominent">
+    <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Danger.Subtle}" />
+    <Setter Property="MinHeight" Value="56" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.btn-danger.prominent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Danger.Subtle}" />
+  </Style>
+
   <!-- Botón de icono: área táctil de 48 aunque el icono mida 20 -->
   <Style Selector="Button.btn-icon">
     <Setter Property="Width" Value="48" />

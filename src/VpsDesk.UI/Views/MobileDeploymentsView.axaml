@@ -268,12 +268,10 @@
             <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding DeploymentOutcomeTitle}" TextWrapping="Wrap" />
             <TextBlock Classes="t-body-s" Text="{Binding DeploymentNextAction}" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
             <TextBlock Classes="t-body-s" Text="{Binding ActiveDeploymentSummary}" TextWrapping="Wrap" />
-            <WrapPanel>
-              <Button Classes="btn-danger" Content="Abortar pase" Command="{Binding AbortDeploymentCommand}"
-                      IsVisible="{Binding CanAbortDeployment}" />
-              <Button Classes="btn-secondary" Content="Reiniciar pase" Command="{Binding RestartDeploymentCommand}"
-                      IsVisible="{Binding CanRestartDeployment}" />
-            </WrapPanel>
+            <Button Classes="btn-danger prominent" Content="Abortar pase" Command="{Binding AbortDeploymentCommand}"
+                    IsVisible="{Binding CanAbortDeployment}" />
+            <Button Classes="btn-secondary" Content="Reiniciar pase" Command="{Binding RestartDeploymentCommand}"
+                    IsVisible="{Binding CanRestartDeployment}" HorizontalAlignment="Left" />
             <StackPanel Spacing="8" IsVisible="{Binding HasDeploymentRecovery}">
                       <TextBlock Classes="t-headline warning" Text="{DynamicResource Recovery_Pending}" />
                       <TextBlock Classes="t-body-s" Text="{Binding DeploymentRecoveryMessage}" TextWrapping="Wrap" />

@@ -260,18 +260,30 @@
           <StackPanel Spacing="12">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Classes="t-headline" Text="{DynamicResource Deployments_Execution}" VerticalAlignment="Center" />
-              <Border Grid.Column="1" Classes="status success" IsVisible="{Binding IsDeploymentRunning}">
-                <TextBlock Text="{DynamicResource Deployments_Live}" />
-              </Border>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border Classes="status success" IsVisible="{Binding IsDeploymentRunning}" VerticalAlignment="Center">
+                  <TextBlock Text="{DynamicResource Deployments_Live}" />
+                </Border>
+                <Button Classes="btn-danger prominent" Content="Abortar" Command="{Binding AbortDeploymentCommand}"
+                        IsVisible="{Binding CanAbortDeployment}" />
+              </StackPanel>
             </Grid>
 
-            <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding DeploymentOutcomeTitle}" TextWrapping="Wrap" />
-            <TextBlock Classes="t-body-s" Text="{Binding DeploymentNextAction}" TextWrapping="Wrap" IsVisible="{Binding !IsDeploymentRunning}" />
-            <TextBlock Classes="t-body-s" Text="{Binding ActiveDeploymentSummary}" TextWrapping="Wrap" />
-            <Button Classes="btn-danger prominent" Content="Abortar pase" Command="{Binding AbortDeploymentCommand}"
-                    IsVisible="{Binding CanAbortDeployment}" />
+            <!-- Los textos vacíos se ocultan: un TextBlock sin texto ocupaba su alto más el espaciado y dejaba un hueco -->
+            <TextBlock Classes="t-body" FontWeight="SemiBold" Text="{Binding DeploymentOutcomeTitle}" TextWrapping="Wrap"
+                       IsVisible="{Binding DeploymentOutcomeTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="t-body-s" Text="{Binding DeploymentNextAction}" TextWrapping="Wrap">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="!IsDeploymentRunning" />
+                  <Binding Path="DeploymentNextAction" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
+            <TextBlock Classes="t-body-s" Text="{Binding ActiveDeploymentSummary}" TextWrapping="Wrap"
+                       IsVisible="{Binding ActiveDeploymentSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <Button Classes="btn-secondary" Content="Reiniciar pase" Command="{Binding RestartDeploymentCommand}"
-                    IsVisible="{Binding CanRestartDeployment}" HorizontalAlignment="Left" />
+                    IsVisible="{Binding CanRestartDeployment}" HorizontalAlignment="Stretch" />
             <StackPanel Spacing="8" IsVisible="{Binding HasDeploymentRecovery}">
                       <TextBlock Classes="t-headline warning" Text="{DynamicResource Recovery_Pending}" />
                       <TextBlock Classes="t-body-s" Text="{Binding DeploymentRecoveryMessage}" TextWrapping="Wrap" />

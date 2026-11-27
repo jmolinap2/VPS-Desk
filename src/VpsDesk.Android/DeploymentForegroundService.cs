@@ -26,6 +26,7 @@ public sealed class DeploymentForegroundService : Service
             Description = "Progreso del pase mientras VPS Desk está en segundo plano"
         });
         StartForeground(NotificationId, BuildNotification());
+        DeploymentBubble.Start(this, _message);
         var power = (PowerManager)GetSystemService(PowerService)!;
         _wakeLock = power.NewWakeLock(WakeLockFlags.Partial, "VpsDesk:Deployment");
         _wakeLock?.Acquire(6 * 60 * 60 * 1000L);
@@ -44,6 +45,7 @@ public sealed class DeploymentForegroundService : Service
         {
             service._message = message;
             ((NotificationManager)service.GetSystemService(NotificationService)!).Notify(NotificationId, service.BuildNotification());
+            DeploymentBubble.Update(service, message);
         }
         catch (Exception) { /* A notification must never interrupt a deployment. */ }
     }
@@ -62,6 +64,7 @@ public sealed class DeploymentForegroundService : Service
                 .SetContentTitle(title).SetContentText(message).SetAutoCancel(true);
             if (pending is not null) builder.SetContentIntent(pending);
             ((NotificationManager)service.GetSystemService(NotificationService)!).Notify(NotificationId + 1, builder.Build());
+            DeploymentBubble.Finish(service, title, message);
         }
         catch (Exception) { /* A notification must never interrupt a deployment. */ }
     }

@@ -36,6 +36,25 @@ public sealed partial class UpdatesViewModel : ObservableObject
 
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _releaseNotes = string.Empty;
+
+    /// <summary>Las novedades, una por línea y sin viñeta, para mostrarlas como lista en la pantalla.</summary>
+    public IReadOnlyList<string> ReleaseNoteItems { get; private set; } = [];
+
+    public bool HasReleaseNotes => ReleaseNoteItems.Count > 0;
+
+    public string ReleaseNotesTitle => _available is null ? string.Empty : $"Novedades de la versión {_available.VersionName}";
+
+    partial void OnReleaseNotesChanged(string value)
+    {
+        ReleaseNoteItems = value
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.TrimStart('•', '-', '*', ' '))
+            .Where(line => line.Length > 0)
+            .ToArray();
+        OnPropertyChanged(nameof(ReleaseNoteItems));
+        OnPropertyChanged(nameof(HasReleaseNotes));
+        OnPropertyChanged(nameof(ReleaseNotesTitle));
+    }
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private double _downloadPercent;
     [ObservableProperty] private bool _isDownloading;
@@ -66,6 +85,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
             IsUpdateAvailable = _available is not null;
             OnPropertyChanged(nameof(InstallLabel));
             ReleaseNotes = _available?.Notes ?? string.Empty;
+            OnPropertyChanged(nameof(ReleaseNotesTitle));
 
             if (_available is null)
             {

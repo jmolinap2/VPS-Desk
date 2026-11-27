@@ -17,7 +17,19 @@
               <TextBlock Text="{DynamicResource Ui_VPSDeskChecksForUpdatesAt}" Classes="t-body-s" />
             </StackPanel>
             <TextBlock Text="{Binding StatusMessage}" Classes="t-body-s" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding ReleaseNotes}" Classes="t-body-s" TextWrapping="Wrap" IsVisible="{Binding IsUpdateAvailable}" />
+            <StackPanel Spacing="8" IsVisible="{Binding HasReleaseNotes}">
+              <TextBlock Classes="t-label" Text="{Binding ReleaseNotesTitle}" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding ReleaseNoteItems}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                      <TextBlock Text="•" Classes="t-body" Margin="0,0,10,0" VerticalAlignment="Top" />
+                      <TextBlock Grid.Column="1" Text="{Binding}" Classes="t-body" TextWrapping="Wrap" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
             <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadPercent}" IsVisible="{Binding IsDownloading}" Height="6" />
             <Button Classes="btn-primary" Content="{Binding InstallLabel}" Command="{Binding InstallCommand}" IsVisible="{Binding IsUpdateAvailable}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
             <Button Classes="btn-secondary" Content="{DynamicResource Ui_CheckForUpdates}" Command="{Binding CheckCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />

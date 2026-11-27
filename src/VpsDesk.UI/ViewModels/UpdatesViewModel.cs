@@ -24,7 +24,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
             : platform.DefaultManifestUrl;
 
         // Si la app acaba de actualizarse, el APK descargado ya no sirve.
-        if (IsAvailableOnPlatform) AppUpdateService.CleanDirectory(platform.DownloadDirectory);
+        if (IsAvailableOnPlatform) AppUpdateService.CleanDirectory(platform.DownloadDirectory, platform.CurrentVersionCode);
         StatusMessage = IsAvailableOnPlatform
             ? $"Versión instalada: {platform.CurrentVersionName} ({platform.CurrentVersionCode})."
             : string.Empty;
@@ -129,7 +129,12 @@ public sealed partial class UpdatesViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(InstallLabel))]
     [ObservableProperty] private bool _isUpdateAvailable;
 
-    public string InstallLabel => _available is null ? "Instalar actualización" : $"Instalar {_available.VersionName}";
+    // La versión ya descargada y verificada solo se instala; si no, primero se descarga.
+    private string? _downloadedApk;
+
+    public string InstallLabel => _available is null ? "Descargar e instalar"
+        : _downloadedApk is not null ? $"Instalar {_available.VersionName}"
+        : $"Descargar e instalar {_available.VersionName}";
 
     /// <summary>Consulta silenciosa al abrir la app: avisa con un toast solo si hay algo nuevo.</summary>
     public async Task CheckOnStartupAsync()
@@ -149,6 +154,8 @@ public sealed partial class UpdatesViewModel : ObservableObject
         {
             if (!silent) StatusMessage = "Buscando actualizaciones…";
             _available = await _service.CheckAsync(_manifestUrl!, _platform.CurrentVersionCode);
+            _downloadedApk = _available is null ? null
+                : await AppUpdateService.FindDownloadedAsync(_available, _platform.DownloadDirectory);
             IsUpdateAvailable = _available is not null;
             OnPropertyChanged(nameof(InstallLabel));
             ReleaseNotes = _available?.Notes ?? string.Empty;
@@ -189,9 +196,15 @@ public sealed partial class UpdatesViewModel : ObservableObject
         DownloadPercent = 0;
         try
         {
-            StatusMessage = $"Descargando {_available.VersionName}…";
-            var progress = new Progress<double>(p => DownloadPercent = Math.Round(p * 100));
-            var apk = await _service.DownloadAsync(_available, _platform.DownloadDirectory, progress);
+            var apk = _downloadedApk;
+            if (apk is null)
+            {
+                StatusMessage = $"Descargando {_available.VersionName}…";
+                var progress = new Progress<double>(p => DownloadPercent = Math.Round(p * 100));
+                apk = await _service.DownloadAsync(_available, _platform.DownloadDirectory, progress);
+                _downloadedApk = apk;
+                OnPropertyChanged(nameof(InstallLabel));
+            }
 
             var problem = _platform.Install(apk);
             StatusMessage = problem ?? "Descarga completa. Confirma la instalación en el diálogo de Android.";

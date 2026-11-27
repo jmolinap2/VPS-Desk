@@ -89,14 +89,40 @@ public sealed class AppUpdateService : IDisposable
         return target;
     }
 
-    /// <summary>Borra APK y descargas parciales anteriores (p. ej. tras instalar la actualización).</summary>
-    public static void CleanDirectory(string directory)
+    /// <summary>
+    /// APK ya descargado de esa versión y con el SHA-256 correcto, o null. Permite ofrecer «Instalar» sin volver
+    /// a descargar 50 MB si la descarga anterior se completó pero no se confirmó la instalación.
+    /// </summary>
+    public static async Task<string?> FindDownloadedAsync(AppUpdateManifest manifest, string directory, CancellationToken ct = default)
+    {
+        try
+        {
+            var target = Path.Combine(directory, $"vpsdesk-{manifest.VersionCode}.apk");
+            if (!File.Exists(target)) return null;
+            if (string.IsNullOrWhiteSpace(manifest.Sha256)) return target;
+            await using var file = File.OpenRead(target);
+            var hash = Convert.ToHexString(await SHA256.HashDataAsync(file, ct).ConfigureAwait(false));
+            return hash.Equals(manifest.Sha256.Trim(), StringComparison.OrdinalIgnoreCase) ? target : null;
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Borra las descargas parciales y los APK de la versión instalada o anteriores (ya no sirven). Conserva los de
+    /// una versión más nueva: son una actualización descargada que aún no se instaló.
+    /// </summary>
+    public static void CleanDirectory(string directory, int installedVersionCode = int.MaxValue)
     {
         try
         {
             if (!Directory.Exists(directory)) return;
             foreach (var file in Directory.EnumerateFiles(directory, "vpsdesk-*.apk*"))
             {
+                var match = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(file), @"^vpsdesk-(\d+)\.apk$");
+                if (match.Success && int.Parse(match.Groups[1].Value) > installedVersionCode) continue;
                 File.Delete(file);
             }
         }

@@ -33,12 +33,12 @@ internal sealed class DeploymentStatusPanel : LinearLayout
 
     public DeploymentStatusPanel(Context context, Action openApp) : base(context)
     {
-        Orientation = Orientation.Vertical;
+        Orientation = global::Android.Widget.Orientation.Vertical;
         var padding = Dp(20);
         SetPadding(padding, Dp(18), padding, padding);
         SetBackgroundColor(Color.ParseColor("#0F1722"));
 
-        var header = new LinearLayout(context) { Orientation = Orientation.Horizontal };
+        var header = new LinearLayout(context) { Orientation = global::Android.Widget.Orientation.Horizontal };
         var title = new TextView(context) { Text = "VPS Desk · Pase" };
         title.SetTextColor(Color.White);
         title.SetTypeface(title.Typeface, TypefaceStyle.Bold);
@@ -57,7 +57,7 @@ internal sealed class DeploymentStatusPanel : LinearLayout
         _step.SetPadding(0, Dp(12), 0, Dp(8));
         AddView(_step);
 
-        var progressRow = new LinearLayout(context) { Orientation = Orientation.Horizontal };
+        var progressRow = new LinearLayout(context) { Orientation = global::Android.Widget.Orientation.Horizontal };
         progressRow.SetGravity(GravityFlags.CenterVertical);
         _progress = new ProgressBar(context, null, global::Android.Resource.Attribute.ProgressBarStyleHorizontal) { Max = 100 };
         _progress.ProgressTintList = ColorStateList.ValueOf(Color.ParseColor("#38BDF8"));
@@ -89,7 +89,7 @@ internal sealed class DeploymentStatusPanel : LinearLayout
         _tail.Background = tailBackground;
         AddView(_tail, new LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent) { TopMargin = Dp(12) });
 
-        var buttons = new LinearLayout(context) { Orientation = Orientation.Horizontal };
+        var buttons = new LinearLayout(context) { Orientation = global::Android.Widget.Orientation.Horizontal };
         _abort = new Button(context) { Text = "Abortar pase" };
         _abort.SetTextColor(Color.White);
         _abort.SetBackgroundColor(Color.ParseColor("#B91C1C"));

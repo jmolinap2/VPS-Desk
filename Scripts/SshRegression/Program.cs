@@ -1,5 +1,6 @@
 using VpsDesk.Application.Abstractions;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Application.Logging;
 using VpsDesk.Domain.Servers;
 using VpsDesk.Application.Snapshots;
 
@@ -73,6 +74,44 @@ Check(!verification.IsStateConfirmed, "SSH failure in HTTP check remains unconfi
 ssh = new FakeSsh((_, _) => new(0, "/api|running|healthy", "", TimeSpan.Zero, false, false));
 verification = await new PostDeployVerificationService(ssh).VerifyAsync(new(server, "/app", "compose.yml", []), null);
 Check(verification.IsStateConfirmed && !verification.HasConfirmedFailure, "Healthy services do not recommend rollback");
+
+// ── Registro de actividad ──
+var activityDir = Path.Combine(Path.GetTempPath(), "vpsdesk-activity-" + Guid.NewGuid().ToString("N"));
+try
+{
+    ActivityLog.Info("test", "antes de iniciar el guardado");
+    ActivityLog.Initialize(activityDir);
+    Check(ActivityLog.Snapshot().Any(e => e.Message.Contains("antes de iniciar")), "Activity log keeps events recorded before startup");
+    Check(File.ReadAllText(Path.Combine(activityDir, "activity.jsonl")).Contains("antes de iniciar"), "Activity log writes pre-startup events to disk");
+
+    ActivityLog.Error("ssh", "fallo con password=secreto123 y token=abc", "srv");
+    var saved = ActivityLog.Snapshot().Last();
+    Check(!saved.Message.Contains("secreto123") && !saved.Message.Contains("abc"), "Activity log sanitizes secrets");
+    Check(!File.ReadAllText(Path.Combine(activityDir, "activity.jsonl")).Contains("secreto123"), "Activity log never stores secrets on disk");
+
+    ActivityLog.Info("test", new string('x', 2000));
+    Check(ActivityLog.Snapshot().Last().Message.Length <= ActivityLog.MaxMessageLength + 1, "Activity log truncates long messages");
+    Check(ActivityLog.Snapshot(onlyProblems: true).All(e => e.Level != ActivityLevel.Info)
+        && ActivityLog.Snapshot(onlyProblems: true).Any(e => e.Level == ActivityLevel.Error), "Activity log filters problems");
+
+    var before = ActivityLog.Snapshot().Count;
+    ActivityLog.Initialize(activityDir);
+    Check(ActivityLog.Snapshot().Count == before, "Activity log reloads from disk without duplicating");
+
+    for (var i = 0; i < ActivityLog.MemoryLimit + 50; i++) ActivityLog.Info("test", "n" + i);
+    Check(ActivityLog.Snapshot().Count == ActivityLog.MemoryLimit, "Activity log keeps a bounded memory window");
+
+    File.AppendAllText(Path.Combine(activityDir, "activity.jsonl"), "esto no es json" + Environment.NewLine);
+    ActivityLog.Initialize(activityDir);
+    Check(ActivityLog.Snapshot().Count > 0, "Activity log ignores a corrupt line");
+
+    ActivityLog.Clear();
+    Check(ActivityLog.Snapshot().Count == 0 && !File.Exists(Path.Combine(activityDir, "activity.jsonl")), "Activity log clears memory and disk");
+}
+finally
+{
+    try { Directory.Delete(activityDir, true); } catch { }
+}
 
 sealed class FakeSsh(Func<string, int, SshCommandResult> respond) : ISshCommandExecutor
 {

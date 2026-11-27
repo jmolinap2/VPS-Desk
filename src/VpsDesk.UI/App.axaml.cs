@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Application.Logging;
 using VpsDesk.Application.Updates;
 using VpsDesk.Desktop.Localization;
 using VpsDesk.Desktop.Services;
@@ -57,6 +58,7 @@ public partial class App : Avalonia.Application
 
         var bootstrap = BootstrapServerProfileLoader.Load();
         var store = new ServerProfileStore();
+        StartActivityLog();
         var deploymentProfileStore = new DeploymentProfileStore();
         var projectWorkspaceStore = new ProjectWorkspaceStore();
         var operationHistoryStore = new SqliteOperationHistoryStore();
@@ -105,6 +107,23 @@ public partial class App : Avalonia.Application
         // Consulta en segundo plano al abrir; solo avisa si hay una versión más nueva.
         _ = updates.CheckOnStartupAsync();
         return viewModel;
+    }
+
+    /// <summary>
+    /// Activa el registro de actividad y anota los errores que nadie capturó, para que un cierre o un fallo
+    /// inesperado deje rastro que se pueda exportar desde Ajustes.
+    /// </summary>
+    private static void StartActivityLog()
+    {
+        ActivityLog.Initialize();
+        ActivityLog.Info("app", $"VPS Desk {typeof(App).Assembly.GetName().Version?.ToString(3)} iniciado");
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            ActivityLog.Error("app", "error no controlado: " + (args.ExceptionObject as Exception)?.Message);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            ActivityLog.Error("app", "error en una tarea sin esperar: " + args.Exception.GetBaseException().Message);
+            args.SetObserved();
+        };
     }
 
     private void ApplyLanguagePreference(string preference)

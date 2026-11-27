@@ -4,6 +4,7 @@ using System.Text;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using VpsDesk.Application.Abstractions;
+using VpsDesk.Application.Logging;
 
 namespace VpsDesk.Infrastructure.Ssh;
 
@@ -19,6 +20,32 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         SshCommandRequest request,
         string? secret,
         CancellationToken cancellationToken = default)
+    {
+        var result = await ExecuteCoreAsync(request, secret, cancellationToken);
+        // Solo los comandos que no terminaron bien: los correctos son demasiados y no explican un fallo.
+        // Nunca se registra el texto del comando ni su salida, solo cómo terminó.
+        if (!result.Succeeded)
+        {
+            var level = result.Cancelled ? ActivityLevel.Warning : ActivityLevel.Error;
+            ActivityLog.Record(level, "ssh", Describe(result), request.Server.Name, result.Duration);
+        }
+
+        return result;
+    }
+
+    private static string Describe(SshCommandResult result)
+    {
+        if (result.Cancelled) return "comando cancelado";
+        if (result.TimedOut) return "plazo agotado";
+        var detail = (result.StandardError ?? string.Empty).Trim().Split('\n')[0];
+        var reason = result.ConnectionLost ? "conexión perdida" : $"salió con código {result.ExitCode}";
+        return detail.Length == 0 ? reason : $"{reason}: {detail}";
+    }
+
+    private async Task<SshCommandResult> ExecuteCoreAsync(
+        SshCommandRequest request,
+        string? secret,
+        CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -219,25 +246,44 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     // Reintentos SOLO de la fase de conexión: todavía no se ha enviado ningún comando, así que
     // repetirla nunca puede aplicar nada dos veces. Un corte transitorio del transporte (cambio de
     // red, "Software caused connection abort", reinicio de la pila de red del teléfono) no debe
-    // tirar un pase. Las credenciales rechazadas, la huella distinta y los plazos agotados NO se
-    // reintentan: repetirlos solo cargaría al servidor o alargaría la espera.
+    // tirar un pase. Una conexión que no contesta también se reintenta, pero cada intento usa solo una
+    // parte del plazo del paso (ConnectAttemptTimeout), así el total no se alarga. Las credenciales
+    // rechazadas y la huella distinta NO se reintentan: repetirlas solo cargaría al servidor.
     private static readonly TimeSpan[] ConnectRetryDelays = [TimeSpan.FromMilliseconds(800), TimeSpan.FromMilliseconds(2500)];
+
+    // Cada intento de conexión espera una parte del plazo del paso, no todo: así un servidor que acepta el TCP y no
+    // contesta (red móvil inestable, sshd saturado) se reintenta en vez de consumir el plazo entero en un único intento.
+    private static readonly TimeSpan MinConnectAttempt = TimeSpan.FromSeconds(8);
+
+    private static TimeSpan ConnectAttemptTimeout(TimeSpan total)
+    {
+        var share = TimeSpan.FromTicks(total.Ticks / (ConnectRetryDelays.Length + 1));
+        var attempt = share > MinConnectAttempt ? share : MinConnectAttempt;
+        return attempt < total ? attempt : total;
+    }
 
     private static SshClient ConnectWithRetry(SshCommandRequest request, string? secret, CancellationToken cancellationToken)
     {
         for (var attempt = 0; ; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, request.Timeout));
+            var client = new SshClient(SshConnectionFactory.Create(request.Server, secret, ConnectAttemptTimeout(request.Timeout)));
+            var connecting = Stopwatch.StartNew();
             try
             {
                 client.KeepAliveInterval = KeepAliveInterval;
                 var policy = SshConnectionFactory.ApplyHostKeyPolicy(client, request.Server);
                 ConnectExplainingHostKey(client, policy);
+                // Una conexión lenta o que costó reintentos es justo lo que hay que poder ver después.
+                if (attempt > 0 || connecting.Elapsed > TimeSpan.FromSeconds(3))
+                    ActivityLog.Record(ActivityLevel.Info, "ssh",
+                        attempt > 0 ? $"conectó en el intento {attempt + 1}" : "conexión lenta", request.Server.Name, connecting.Elapsed);
                 return client;
             }
             catch (Exception ex) when (attempt < ConnectRetryDelays.Length && IsTransientConnectFailure(ex))
             {
+                ActivityLog.Record(ActivityLevel.Warning, "ssh",
+                    $"conexión fallida, reintento {attempt + 1} de {ConnectRetryDelays.Length}: {ex.Message}", request.Server.Name);
                 client.Dispose();
                 // Espera que se corta al cancelar, en vez de un Sleep ciego.
                 if (cancellationToken.WaitHandle.WaitOne(ConnectRetryDelays[attempt]))
@@ -257,7 +303,8 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
         => ex switch
         {
             SshAuthenticationException => false,
-            SshOperationTimeoutException => false,
+            // Solo se evalúa al conectar: si venció la espera, el comando todavía no se había enviado, así que repetir es seguro.
+            SshOperationTimeoutException => true,
             TimeoutException => false,
             OperationCanceledException => false,
             InvalidOperationException => false,   // huella distinta (ConnectExplainingHostKey) u otro error lógico

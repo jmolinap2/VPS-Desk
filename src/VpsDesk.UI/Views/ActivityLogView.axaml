@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VpsDesk.Desktop.ViewModels"
+             x:Class="VpsDesk.Desktop.Views.ActivityLogView"
+             x:DataType="vm:ActivityLogViewModel" Foreground="{DynamicResource Brush.Text.Primary}">
+  <Border Classes="surface">
+    <StackPanel Spacing="12">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="t-headline" Text="{DynamicResource Activity_Title}" TextWrapping="Wrap" />
+        <TextBlock Classes="t-body-s" Text="{DynamicResource Activity_Help}" TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBlock Classes="t-body-s" Text="{Binding Summary}" TextWrapping="Wrap" />
+      <CheckBox IsChecked="{Binding OnlyProblems}" Content="{DynamicResource Activity_OnlyProblems}" />
+      <Expander Header="{DynamicResource Activity_ShowLog}">
+        <TextBox Text="{Binding Text}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                 FontFamily="{DynamicResource Font.Mono}" FontSize="{DynamicResource Font.Size.12}"
+                 MinHeight="120" MaxHeight="320" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+      </Expander>
+      <WrapPanel>
+        <Button Classes="btn-primary" Content="{DynamicResource Report_Copy}" Click="OnCopyClick"
+                IsEnabled="{Binding HasEntries}" Margin="0,0,8,6" />
+        <Button Classes="btn-secondary" Content="{DynamicResource Report_Save}" Click="OnSaveClick"
+                IsEnabled="{Binding HasEntries}" Margin="0,0,8,6" />
+        <Button Classes="btn-secondary" Content="{DynamicResource Activity_Refresh}" Command="{Binding RefreshCommand}" Margin="0,0,8,6" />
+        <Button Classes="btn-danger" Content="{DynamicResource Activity_Clear}" Command="{Binding ClearCommand}"
+                IsEnabled="{Binding HasEntries}" Margin="0,0,8,6" />
+      </WrapPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

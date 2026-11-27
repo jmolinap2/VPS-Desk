@@ -38,6 +38,7 @@
       </Border>
 
       <views:LocalBackupsView />
+      <views:ActivityLogView DataContext="{Binding Activity}" />
       <CheckBox x:CompileBindings="False"
                 IsChecked="{Binding SoundEnabled, Source={x:Static services:NotificationCenter.Shared}, Mode=TwoWay}"
                 Content="{DynamicResource Notifications_Sound}" />

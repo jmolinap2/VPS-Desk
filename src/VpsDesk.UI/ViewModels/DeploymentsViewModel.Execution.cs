@@ -1,6 +1,7 @@
 using System.Text;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Application.Logging;
 using VpsDesk.Desktop.Localization;
 using VpsDesk.Desktop.Services;
 using VpsDesk.Domain.Servers;
@@ -549,6 +550,11 @@ public partial class DeploymentsViewModel
             Toast.Warning($"No se pudo mantener activo el pase en segundo plano: {UserFacingErrors.Describe(ex)}. Mantén la app abierta.", "Protección en segundo plano no disponible");
         }
         using var backgroundScope = backgroundExecution;
+        ActivityLog.Info("pase", $"iniciado · rama {branch} · {composeFile}", server.Name);
+        DeploymentBackgroundExecution.RequestAbort = () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (CanAbortDeployment) AbortDeploymentCommand.Execute(null);
+        });
         DeploymentBackgroundExecution.Report?.Invoke("Preparando respaldos y recuperación");
         if (!await TakeAppBackupBeforeDeployAsync(server)) return;
         if (_serverAccessor()?.Id != server.Id || !HasSameDeploymentContext(projectPath, composeFile, branch)) return;
@@ -660,6 +666,7 @@ public partial class DeploymentsViewModel
                     DeploymentFinale = DeploymentFinaleOutcome.Failed;
                 DeploymentNextAction = "Revisa el paso fallido y los servicios. Puede haber cambios aplicados. Ejecuta un nuevo prevuelo antes de repetir.";
                 Toast.Error(StatusMessage, "El despliegue se detuvo");
+                ActivityLog.Error("pase", $"detenido en «{result.FailedStep?.Label ?? "paso desconocido"}»", server.Name);
                 DeploymentBackgroundExecution.Complete?.Invoke("Pase detenido", "Revisa el paso fallido y el estado del servidor.");
                 await CheckFailedDeploymentAsync(server, verificationRequest, secret);
                 return;
@@ -692,6 +699,8 @@ public partial class DeploymentsViewModel
             DeploymentFinale = verification.IsHealthy && !result.HasWarnings
                 ? DeploymentFinaleOutcome.Success
                 : verification.HasConfirmedFailure ? DeploymentFinaleOutcome.Failed : DeploymentFinaleOutcome.None;
+            ActivityLog.Record(!verification.Passed ? ActivityLevel.Error : hasWarnings ? ActivityLevel.Warning : ActivityLevel.Info,
+                "pase", $"{DeploymentOutcomeTitle} en {elapsed:F1} s", server.Name);
             DeploymentBackgroundExecution.Complete?.Invoke(DeploymentOutcomeTitle,
                 verification.Passed ? "Abre VPS Desk para consultar el resultado." : "Revisa las comprobaciones del servidor.");
             DeploymentProgressPercent = 100;
@@ -724,6 +733,7 @@ public partial class DeploymentsViewModel
             recovery = recovery with { Status = "Cancelación solicitada", ExecutionNeedsReview = true };
             _profileStore.SaveRecovery(server.Id, recovery);
             ShowSavedRecovery(server, recovery);
+            ActivityLog.Warning("pase", "cancelado por el usuario; el estado remoto requiere revisión", server.Name);
             DeploymentBackgroundExecution.Complete?.Invoke("Cancelación solicitada", "Revisa el estado del servidor antes de reiniciar.");
             await CheckFailedDeploymentAsync(server, verificationRequest, secret);
         }
@@ -739,11 +749,13 @@ public partial class DeploymentsViewModel
             DeploymentNextAction = "Recupera la conexión y revisa contenedores, logs y migraciones antes de repetir. El servidor puede haber aplicado cambios.";
             DeploymentOutput += $"\n[Interrupción] {friendly}";
             Toast.Error(friendly, "El despliegue falló");
+            ActivityLog.Error("pase", $"interrumpido, estado sin confirmar: {friendly}", server.Name);
             DeploymentBackgroundExecution.Complete?.Invoke("Pase interrumpido", "El estado no está confirmado. Revisa el servidor antes de repetir.");
             await CheckFailedDeploymentAsync(server, verificationRequest, secret);
         }
         finally
         {
+            DeploymentBackgroundExecution.RequestAbort = null;
             FinishDeploymentCancellation();
             IsBusy = false;
         }
@@ -753,6 +765,7 @@ public partial class DeploymentsViewModel
     private async Task RestartDeploymentAsync()
     {
         if (!CanRestartDeployment || IsSnapshotBusy || IsAppBackupBusy) return;
+        ActivityLog.Info("pase", "reiniciar solicitado por el usuario", _serverAccessor()?.Name);
 
         InvalidatePreflight();
         DeploymentFinale = DeploymentFinaleOutcome.None;

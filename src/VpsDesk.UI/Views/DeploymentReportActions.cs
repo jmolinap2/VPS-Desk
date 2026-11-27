@@ -19,7 +19,20 @@ internal static class DeploymentReportActions
     {
         if (sender is not Control owner) return;
         var text = BuildText(owner, out _);
-        if (text is null || TopLevel.GetTopLevel(owner)?.Clipboard is not { } clipboard) return;
+        if (text is not null) await CopyTextAsync(owner, text);
+    }
+
+    public static async void OnSaveClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control owner) return;
+        var text = BuildText(owner, out var fileName);
+        if (text is not null) await SaveTextAsync(owner, text, fileName);
+    }
+
+    /// <summary>Copia un informe al portapapeles y avisa con un aviso breve; la usan también otros informes de texto.</summary>
+    public static async Task CopyTextAsync(Control owner, string text)
+    {
+        if (TopLevel.GetTopLevel(owner)?.Clipboard is not { } clipboard) return;
         try
         {
             await clipboard.SetTextAsync(text);
@@ -31,11 +44,10 @@ internal static class DeploymentReportActions
         }
     }
 
-    public static async void OnSaveClick(object? sender, RoutedEventArgs e)
+    /// <summary>Guarda un informe como archivo de texto con el selector del sistema (también en Android).</summary>
+    public static async Task SaveTextAsync(Control owner, string text, string fileName)
     {
-        if (sender is not Control owner) return;
-        var text = BuildText(owner, out var fileName);
-        if (text is null || TopLevel.GetTopLevel(owner) is not { } topLevel) return;
+        if (TopLevel.GetTopLevel(owner) is not { } topLevel) return;
         try
         {
             var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions

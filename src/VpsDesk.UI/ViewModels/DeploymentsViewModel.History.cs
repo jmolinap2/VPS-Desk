@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using VpsDesk.Application.Activity;
 using VpsDesk.Application.Deployments;
+using VpsDesk.Application.Logging;
 using VpsDesk.Desktop.Localization;
 using VpsDesk.Domain.Activity;
 
@@ -99,6 +100,7 @@ public partial class DeploymentsViewModel
         if (_deploymentCts is not { IsCancellationRequested: false }) return;
 
         _deploymentCts.Cancel();
+        ActivityLog.Warning("pase", "abortar solicitado por el usuario", _serverAccessor()?.Name);
         DeploymentOutcomeTitle = "Cancelando pase";
         DeploymentNextAction = "Se solicitó detener el paso remoto actual. VPS Desk confirmará el estado del servidor antes de permitir otro pase.";
         StatusMessage = "Cancelando el pase en curso…";

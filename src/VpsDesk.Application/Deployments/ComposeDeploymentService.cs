@@ -302,7 +302,7 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
                 result.Duration,
                 step.IsBlocking);
             steps.Add(stepResult);
-            LogStepForDiagnostics(stepResult);
+            LogStepForDiagnostics(stepResult, request.Server.Name);
 
             ProgressChanged?.Invoke(new DeploymentProgressUpdate(
                 step.Code,
@@ -337,10 +337,11 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
     /// en el teléfono no deja rastro que se pueda leer por ADB. La salida ya está sanitizada y, en
     /// los pasos correctos, no se incluye: solo resultado, código de salida y duración.
     /// </summary>
-    private static void LogStepForDiagnostics(DeploymentStepResult step)
+    private static void LogStepForDiagnostics(DeploymentStepResult step, string serverName)
     {
         try
         {
+            RecordStepActivity(step, serverName);
             var line = $"[VPSDESK] deploy step={step.Code} ok={step.Succeeded} exit={step.ExitCode} t={step.Duration.TotalSeconds:F1}s";
             if (!step.Succeeded)
             {
@@ -355,6 +356,22 @@ public sealed class ComposeDeploymentService(ISshCommandExecutor ssh) : ICompose
         {
             // El diagnóstico nunca debe romper un pase.
         }
+    }
+
+    private static void RecordStepActivity(DeploymentStepResult step, string serverName)
+    {
+        if (step.Succeeded)
+        {
+            ActivityLog.Info("pase", $"{step.Label}: correcto", serverName, step.Duration);
+            return;
+        }
+
+        // Última línea no vacía de la salida: suele ser la causa. ActivityLog la sanea y la recorta.
+        var cause = (step.Output ?? string.Empty).Split('\n')
+            .Select(line => line.Trim()).LastOrDefault(line => line.Length > 0) ?? string.Empty;
+        var level = step.IsBlocking ? ActivityLevel.Error : ActivityLevel.Warning;
+        ActivityLog.Record(level, "pase",
+            $"{step.Label}: falló (código {step.ExitCode}){(cause.Length == 0 ? string.Empty : " · " + cause)}", serverName, step.Duration);
     }
 
     private static readonly HashSet<string> IdempotentStepCodes = new(StringComparer.Ordinal)

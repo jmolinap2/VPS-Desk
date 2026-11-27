@@ -60,3 +60,30 @@ contraste, el mismo corte **sin** desacoplar, que hace fallar el despliegue y ma
 Las pruebas de regresión con simulacros (`Scripts/SshRegression`) pasan todas. Estaban rotas **antes** de este cambio (sus peticiones no
 traían el commit y la huella verificados que el servicio exige); se corrigieron. El modo desacoplado es opcional en la petición, así que
 sus escenarios no cambian.
+
+## Conexiones que no contestan
+
+Un servidor que acepta el TCP y no contesta (red móvil inestable, sshd saturado, límite de conexiones nuevas) dejaba la conexión
+esperando todo el plazo del paso y el paso fallaba con «Connection failed to establish within N milliseconds». Ahora cada intento de
+conexión espera **una parte del plazo** (un tercio, mínimo 8 s) y se reintenta hasta 3 veces, así el total no se alarga. Es seguro
+repetir porque la conexión vence antes de enviar el comando: nunca se repite un comando ya enviado. Las credenciales rechazadas y la
+huella distinta siguen sin reintentarse. El escenario 8 del E2E lo comprueba con un proxy que deja sin respuesta las primeras
+conexiones (`ToxicProxy.HangNext`); con el código anterior fallaba tras el plazo completo.
+
+## Registro de actividad
+
+`ActivityLog` (capa de aplicación) guarda qué pasó en la app: reintentos y fallos de conexión SSH, conexiones lentas, cada paso de un pase,
+inicio, aborto, reinicio y desenlace del pase, y errores no controlados. Es un archivo JSON por línea en la carpeta de datos
+locales (`activity.jsonl`, rota a 1 MB, se conservan 7 días) más 2000 eventos en memoria. Los textos se sanean con `LogSanitizer`,
+no se registra el texto de ningún comando ni la salida completa, y los comandos SSH correctos no se registran (solo los que fallan).
+En **Ajustes → Registro de actividad** se puede ver, filtrar «solo errores y avisos», copiar o guardar el informe (`ActivityReport`) y
+borrarlo. Si falla algo, ese informe se pega tal cual en un ticket.
+
+## Burbuja flotante del pase (Android 11+)
+
+Mientras corre un pase, el servicio en primer plano publica una notificación de conversación con metadatos de burbuja
+(`DeploymentBubble`). Si el usuario permite las burbujas de VPS Desk (Ajustes de Android → Apps → VPS Desk → Notificaciones →
+Burbujas), el pase flota sobre otras apps con su estado y los botones «Abortar pase» y «Abrir VPS Desk» (`BubbleActivity`, una pantalla
+nativa mínima, no la interfaz de Avalonia). El aborto pasa por `DeploymentBackgroundExecution.RequestAbort`, que solo existe mientras
+hay un pase. Sin permiso o en Android anterior no ocurre nada: queda la notificación normal. **No se probó en un teléfono.**
+

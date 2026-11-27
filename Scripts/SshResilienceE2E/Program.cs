@@ -169,6 +169,22 @@ try
     Console.WriteLine("INFO  Sin desacoplar, «up» siguió ejecutándose en el servidor tras el corte: " +
         (InContainer("pgrep -f '[d]ocker compose' | wc -l") == "0" ? "no (murió con la sesión)" : "sí"));
     }
+    if (On("8")) {
+    // ── 8. Una conexión nueva que no contesta se reintenta ──
+    // El servidor acepta el TCP pero no responde (red móvil inestable, sshd saturado). Antes, un solo intento
+    // consumía todo el plazo del paso y el paso fallaba con «Connection failed to establish within N milliseconds».
+    proxy.HangNext(1);
+    var hung = await ssh.ExecuteAsync(new SshCommandRequest(server, "echo reintento", TimeSpan.FromSeconds(30)), Secret);
+    Check(hung.Succeeded && hung.StandardOutput.Contains("reintento"),
+        "8. Una conexión que no contesta se reintenta y el comando termina bien", $"exit {hung.ExitCode} · {hung.StandardError} · {hung.Duration.TotalSeconds:F1}s");
+    Check(hung.Duration < TimeSpan.FromSeconds(25), "8. El reintento llega antes de agotar el plazo del paso", $"{hung.Duration.TotalSeconds:F1}s");
+
+    // Si el servidor nunca contesta, el paso falla dentro de su plazo (más un margen), no queda colgado.
+    proxy.HangNext(10);
+    var dead = await ssh.ExecuteAsync(new SshCommandRequest(server, "echo nunca", TimeSpan.FromSeconds(12)), Secret);
+    Check(!dead.Succeeded && dead.Duration < TimeSpan.FromSeconds(30), "8. Sin respuesta alguna, el paso falla sin colgarse", $"exit {dead.ExitCode} · {dead.Duration.TotalSeconds:F1}s");
+    proxy.HangNext(0);
+    }
 }
 finally
 {
@@ -191,6 +207,7 @@ sealed class ToxicProxy(int listenPort, int targetPort) : IDisposable
     private readonly object _gate = new();
     private CancellationTokenSource _cts = new();
     private volatile bool _blackhole;
+    private int _hangNext;
 
     public void Start()
     {
@@ -213,6 +230,15 @@ sealed class ToxicProxy(int listenPort, int targetPort) : IDisposable
     private async Task Pipe(TcpClient client, CancellationToken token)
     {
         TcpClient target;
+        bool hang;
+        lock (_gate) { hang = _hangNext > 0; if (hang) _hangNext--; }
+        if (hang)
+        {
+            // Acepta la conexión y no contesta nunca: el cliente se queda esperando el saludo del servidor.
+            try { await Task.Delay(Timeout.Infinite, token); } catch { }
+            client.Dispose();
+            return;
+        }
         try
         {
             while (_blackhole && !token.IsCancellationRequested) await Task.Delay(100, token); // la conexión nueva se queda colgada
@@ -247,6 +273,9 @@ sealed class ToxicProxy(int listenPort, int targetPort) : IDisposable
         lock (_gate) { foreach (var c in _live) try { c.Dispose(); } catch { } _live.Clear(); }
         Console.WriteLine("      [red cortada: conexiones cerradas]");
     }
+
+    /// <summary>Las próximas <paramref name="count"/> conexiones se aceptan y se dejan sin respuesta.</summary>
+    public void HangNext(int count) { lock (_gate) _hangNext = count; }
 
     public void Blackhole()
     {

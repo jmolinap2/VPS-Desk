@@ -38,6 +38,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # El historial completo permite listar los commits desde la versión anterior para las notas.
+          fetch-depth: 0
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
@@ -53,7 +56,7 @@ jobs:
       - name: Validate interface resources
         run: |
           python3 Scripts/Validate-UiTokens.py
-          python3 -m unittest discover -s Scripts/tests -p test_android_release_version.py
+          python3 -m unittest discover -s Scripts/tests -p test_android_release_*.py
 
       - name: Initialize GitHub update channel
         env:
@@ -80,6 +83,14 @@ jobs:
           python3 Scripts/android_release_version.py prepare \
             --manifest "${UPDATE_BASE_URL%/}/version.json?cache=$(date +%s%N)" \
             --project src/VpsDesk.Android/VpsDesk.Android.csproj --output "$GITHUB_OUTPUT"
+
+      - name: Build release notes
+        env:
+          MANUAL_NOTES: ${{ inputs.notes }}
+        run: |
+          python3 Scripts/android_release_notes.py \
+            --manifest "${UPDATE_BASE_URL%/}/version.json?cache=$(date +%s%N)" \
+            --head "$GITHUB_SHA" --manual "$MANUAL_NOTES" --output "$RUNNER_TEMP/release-notes.txt"
 
       - name: Install Android workload
         run: dotnet workload install android
@@ -114,7 +125,6 @@ jobs:
       - name: Prepare release assets
         shell: pwsh
         env:
-          NOTES: ${{ inputs.notes }}
           RELEASE_CODE: ${{ steps.release_version.outputs.code }}
           RELEASE_NAME: ${{ steps.release_version.outputs.name }}
         run: |
@@ -135,7 +145,8 @@ jobs:
             versionName = $versionName
             apkUrl      = $apkName
             sha256      = $sha
-            notes       = $env:NOTES
+            notes       = (Get-Content (Join-Path $env:RUNNER_TEMP 'release-notes.txt') -Raw -Encoding utf8).Trim()
+            commit      = $env:GITHUB_SHA
           } | ConvertTo-Json | Set-Content site/version.json -Encoding utf8
 
           "versionCode=$versionCode versionName=$versionName apk=$([math]::Round($apk.Length/1MB,1)) MB sha256=$sha"

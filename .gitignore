@@ -47,3 +47,7 @@ dist/android-update/
 
 # Validacion local de backups en telefono: contiene claves, bases de datos, APK y capturas
 .backup-validation/
+
+# Python
+__pycache__/
+*.pyc

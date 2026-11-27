@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Content.PM;
 using Android.Graphics.Drawables;
 using Java.Lang;
+using VpsDesk.Application.Logging;
 
 namespace VpsDesk.Android;
 
@@ -46,15 +47,32 @@ internal static class DeploymentBubble
 
         try { Changed?.Invoke(message, finished); } catch (System.Exception) { /* un suscriptor no debe afectar al pase */ }
 
-        if (!OperatingSystem.IsAndroidVersionAtLeast(30)) return;
+        if (!OperatingSystem.IsAndroidVersionAtLeast(30))
+        {
+            LogOnce("burbuja no disponible: requiere Android 11 o superior");
+            return;
+        }
+
         try
         {
             Notify(context, message, finished);
+            LogOnce("burbuja publicada; si no flota, actívala en Ajustes → Apps → VPS Desk → Notificaciones → Pase en burbuja", ActivityLevel.Info);
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
-            // Una burbuja es un extra: nunca debe interrumpir un pase.
+            // Una burbuja es un extra: nunca debe interrumpir un pase. Pero el motivo queda en el registro de actividad.
+            LogOnce($"burbuja no publicada: {ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    private static string? _lastLogged;
+
+    // Una línea por motivo distinto: el estado del pase cambia muchas veces y no debe llenar el registro.
+    private static void LogOnce(string message, ActivityLevel level = ActivityLevel.Warning)
+    {
+        if (message == _lastLogged) return;
+        _lastLogged = message;
+        ActivityLog.Record(level, "burbuja", message);
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("android30.0")]

@@ -255,10 +255,13 @@ public sealed class SshNetCommandExecutor : ISshCommandExecutor
     // contesta (red móvil inestable, sshd saturado) se reintenta en vez de consumir el plazo entero en un único intento.
     private static readonly TimeSpan MinConnectAttempt = TimeSpan.FromSeconds(8);
 
+    // Conectar y autenticar nunca debería tardar tanto: sin tope, un paso largo (un build de 10 min) daba 200 s por intento.
+    private static readonly TimeSpan MaxConnectAttempt = TimeSpan.FromSeconds(15);
+
     private static TimeSpan ConnectAttemptTimeout(TimeSpan total)
     {
         var share = TimeSpan.FromTicks(total.Ticks / (ConnectRetryDelays.Length + 1));
-        var attempt = share > MinConnectAttempt ? share : MinConnectAttempt;
+        var attempt = share < MinConnectAttempt ? MinConnectAttempt : share > MaxConnectAttempt ? MaxConnectAttempt : share;
         return attempt < total ? attempt : total;
     }
 

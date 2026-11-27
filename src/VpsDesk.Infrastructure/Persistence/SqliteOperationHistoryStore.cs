@@ -67,6 +67,8 @@ public sealed class SqliteOperationHistoryStore : IOperationHistoryStore
     public Task<IReadOnlyList<OperationHistoryEntry>> GetDeploymentsAsync(Guid? serverId = null, int limit = 100, CancellationToken cancellationToken = default)
         => QueryAsync(OperationKind.Deployment, serverId, limit, cancellationToken);
 
+    // Las listas (historial de pases, actividad reciente) traen como mucho las últimas 60 000 letras de la salida
+    // de cada registro: cargar las salidas completas de 100 pases a la vez agotaba la memoria del teléfono.
     private async Task<IReadOnlyList<OperationHistoryEntry>> QueryAsync(
         OperationKind? kind,
         Guid? serverId,
@@ -93,7 +95,11 @@ public sealed class SqliteOperationHistoryStore : IOperationHistoryStore
         command.CommandText = $"""
             SELECT id, server_id, server_name, environment, kind, action, summary, outcome,
                    started_at, finished_at, remote_repository_path, branch, previous_commit,
-                   deployed_commit, compose_file, failed_step, output, details
+                   deployed_commit, compose_file, failed_step,
+                   CASE WHEN length(output) > 60000
+                        THEN '… (se muestran las últimas líneas)' || char(10) || substr(output, -60000)
+                        ELSE output END,
+                   CASE WHEN length(details) > 60000 THEN substr(details, -60000) ELSE details END
             FROM operation_history
             {(where.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", where))}
             ORDER BY started_at DESC

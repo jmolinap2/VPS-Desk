@@ -50,6 +50,7 @@ public partial class MobileDeploymentsView : UserControl
 
         OutputPanel.IsVisible = !showSteps;
         StepsPanel.IsVisible = showSteps;
+        FollowButton.IsVisible = !showSteps;
         SetActive(OutputTabButton, !showSteps);
         SetActive(StepsTabButton, showSteps);
     }

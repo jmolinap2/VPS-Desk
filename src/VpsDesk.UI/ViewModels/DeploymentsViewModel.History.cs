@@ -31,7 +31,7 @@ public partial class DeploymentsViewModel
     private int _progressDrainScheduled;
     private bool _stepStreamedOutput;
     private int _stepOutputStart;
-    private const int LiveOutputFlushMilliseconds = 100;
+    private const int LiveOutputFlushMilliseconds = 250;
 
     // Plazo máximo del prevuelo: pasado ese tiempo se abandona y el modal muestra el motivo.
     private static readonly TimeSpan PreflightTimeout = TimeSpan.FromSeconds(45);
@@ -68,6 +68,7 @@ public partial class DeploymentsViewModel
     [RelayCommand]
     private void MinimizeDeployment() => DeploymentBackgroundExecution.Minimize?.Invoke();
 
+    public string OutputFollowShortLabel => FollowDeploymentOutput ? "● Siguiendo" : "Ir al final";
     public string OutputFollowLabel => FollowDeploymentOutput ? "Pausar seguimiento" : "Ir a la última salida";
     public string OutputFollowHint => FollowDeploymentOutput
         ? "Siguiendo la salida · pausa para revisar o copiar líneas anteriores"
@@ -76,6 +77,7 @@ public partial class DeploymentsViewModel
     partial void OnFollowDeploymentOutputChanged(bool value)
     {
         OnPropertyChanged(nameof(OutputFollowLabel));
+        OnPropertyChanged(nameof(OutputFollowShortLabel));
         OnPropertyChanged(nameof(OutputFollowHint));
     }
 
@@ -145,8 +147,24 @@ public partial class DeploymentsViewModel
         UpdateElapsedTimer(value);
     }
 
+    // La consola solo dibuja las últimas líneas: medir y pintar cientos de KB en cada cambio era lo que más pesaba.
+    private const int OutputViewChars = 60_000;
+
+    /// <summary>Las últimas líneas de la salida, lo que muestra la consola de la pantalla.</summary>
+    public string DeploymentOutputView { get; private set; } = string.Empty;
+
+    private static string TailOf(string value)
+    {
+        if (value.Length <= OutputViewChars) return value;
+        var start = value.Length - OutputViewChars;
+        var newline = value.IndexOf('\n', start);
+        return "… (se muestran las últimas líneas; el informe incluye todo)\n" + (newline < 0 ? value[start..] : value[(newline + 1)..]);
+    }
+
     partial void OnDeploymentOutputChanged(string value)
     {
+        DeploymentOutputView = TailOf(value);
+        OnPropertyChanged(nameof(DeploymentOutputView));
         OnPropertyChanged(nameof(HasExecutionActivity));
         OnPropertyChanged(nameof(CanShareRunReport));
         OnPropertyChanged(nameof(CanRestartDeployment));
@@ -395,6 +413,47 @@ public partial class DeploymentsViewModel
         Dispatcher.UIThread.Post(async () => await DrainProgressAsync());
     }
 
+    // Un build de Docker puede emitir megabytes. Reasignar todo ese texto a un TextBox en cada actualización
+    // volvía la app lenta hasta cerrarla: la salida en memoria tiene tope (se descarta lo más antiguo).
+    private const int MaxLiveOutputChars = 400_000;
+    private const int KeptLiveOutputChars = 300_000;
+    private const string TrimmedOutputMarker = "[… salida anterior omitida para mantener la app fluida; el paso sigue ejecutándose …]\n";
+
+    private void TrimLiveOutput()
+    {
+        if (_liveDeploymentOutput.Length <= MaxLiveOutputChars) return;
+        var remove = _liveDeploymentOutput.Length - KeptLiveOutputChars;
+        for (var i = remove; i < _liveDeploymentOutput.Length && i < remove + 4000; i++)
+        {
+            if (_liveDeploymentOutput[i] != '\n') continue;
+            remove = i + 1;
+            break;
+        }
+        _liveDeploymentOutput.Remove(0, remove);
+        _liveDeploymentOutput.Insert(0, TrimmedOutputMarker);
+        _stepOutputStart = Math.Max(TrimmedOutputMarker.Length, _stepOutputStart - remove + TrimmedOutputMarker.Length);
+    }
+
+    /// <summary>Últimas líneas con contenido de la salida en vivo, recortadas, sin copiar todo el búfer.</summary>
+    private string LastOutputLines(int count)
+    {
+        var lines = new List<string>(count);
+        var end = _liveDeploymentOutput.Length;
+        for (var i = end - 1; i >= -1 && lines.Count < count; i--)
+        {
+            if (i >= 0 && _liveDeploymentOutput[i] != '\n') continue;
+            var length = end - (i + 1);
+            if (length > 0)
+            {
+                var line = _liveDeploymentOutput.ToString(i + 1, Math.Min(length, 400)).Trim();
+                if (line.Length > 0) lines.Add(line.Length > 140 ? line[..139] + "…" : line);
+            }
+            end = i;
+        }
+        lines.Reverse();
+        return string.Join('\n', lines);
+    }
+
     private async Task DrainProgressAsync()
     {
         if (_progressQueue.TryPeek(out var head) && head.State is DeploymentProgressState.Output or DeploymentProgressState.OutputSnapshot)
@@ -412,6 +471,8 @@ public partial class DeploymentsViewModel
         // Si el despliegue ya terminó, la salida final completa reemplaza a la parcial.
         if (applied && IsDeploymentRunning)
         {
+            TrimLiveOutput();
+            if (DeploymentBackgroundExecution.OutputTail is { } publishTail) publishTail(LastOutputLines(6));
             DeploymentOutput = _liveDeploymentOutput.ToString().TrimEnd();
         }
 
@@ -472,6 +533,7 @@ public partial class DeploymentsViewModel
             _ => update.Label
         };
         DeploymentProgressText = $"Paso {Math.Max(1, update.StepIndex)} de {total} · {label}";
+        DeploymentBackgroundExecution.Progress?.Invoke(DeploymentProgressPercent, DeploymentProgressText);
 
         if (update.State == DeploymentProgressState.Started)
         {

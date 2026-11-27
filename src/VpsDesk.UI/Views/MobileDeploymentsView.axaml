@@ -321,48 +321,54 @@
               <Button Grid.Column="1" Classes="btn-secondary" Tag="run" Content="{DynamicResource Report_Save}" Click="OnReportSaveClick" HorizontalAlignment="Stretch" />
             </Grid>
 
-            <Expander Header="{DynamicResource Deployments_ExecutionDetails}" IsExpanded="{Binding IsExecutionDetailsExpanded}">
-            <StackPanel Spacing="12">
-            <Button Classes="btn-secondary" Content="{Binding OutputFollowLabel}" Command="{Binding ToggleOutputFollowCommand}"
-                    HorizontalAlignment="Stretch" />
-            <TextBlock Classes="t-label" Text="{Binding OutputFollowHint}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
 
-            <Border Classes="seg-track">
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="2">
-                <Button x:Name="OutputTabButton" Classes="seg active" Content="{DynamicResource Deployments_TabOutput}" Click="OnExecutionTabClick" Tag="output" />
-                <Button x:Name="StepsTabButton" Grid.Column="1" Classes="seg" Content="{DynamicResource Deployments_TabSteps}" Click="OnExecutionTabClick" Tag="steps" />
-              </Grid>
-            </Border>
-
-            <ProgressBar IsVisible="{Binding IsDeploymentRunning}" IsIndeterminate="True" Height="3" />
-            <Border x:Name="OutputPanel" Background="{DynamicResource Brush.Surface.Code}" BorderBrush="{DynamicResource Brush.Border.Subtle}"
-                    BorderThickness="1" CornerRadius="{DynamicResource Radius.M}" Height="320">
-              <TextBox Text="{Binding DeploymentOutput}" views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput, Mode=TwoWay}"
+        <!-- consola del pase: un solo contenedor a todo el ancho de la pantalla; las pestañas Salida | Pasos y el
+             seguimiento van en su cabecera, y la salida ocupa el resto (sin acordeón ni paneles dentro de paneles) -->
+        <Border IsVisible="{Binding HasExecutionActivity}" ClipToBounds="True" BorderThickness="1"
+                Background="{DynamicResource Brush.Surface.Code}" BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                CornerRadius="{DynamicResource Radius.L}">
+          <Grid RowDefinitions="Auto,Auto,*" Height="460">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="8,8,8,6">
+              <Border Classes="seg-track">
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="2">
+                  <Button x:Name="OutputTabButton" Classes="seg active" Content="{DynamicResource Deployments_TabOutput}" Click="OnExecutionTabClick" Tag="output" />
+                  <Button x:Name="StepsTabButton" Grid.Column="1" Classes="seg" Content="{DynamicResource Deployments_TabSteps}" Click="OnExecutionTabClick" Tag="steps" />
+                </Grid>
+              </Border>
+              <Button x:Name="FollowButton" Grid.Column="1" Classes="btn-secondary" MinHeight="40" VerticalAlignment="Stretch"
+                      Content="{Binding OutputFollowShortLabel}" Command="{Binding ToggleOutputFollowCommand}"
+                      AutomationProperties.Name="{Binding OutputFollowLabel}" />
+            </Grid>
+            <Border Grid.Row="1" Height="1" Background="{DynamicResource Brush.Border.Subtle}" />
+            <Grid Grid.Row="2">
+              <TextBox x:Name="OutputPanel" Text="{Binding DeploymentOutputView, Mode=OneWay}"
+                       views:TextBoxAutoScroll.IsEnabled="{Binding FollowDeploymentOutput, Mode=TwoWay}"
                        IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
                        FontFamily="{DynamicResource Font.Mono}" FontSize="12.5" Foreground="{DynamicResource Brush.Code.Text}"
-                       Background="Transparent" BorderThickness="0" Padding="12"
+                       Background="Transparent" BorderThickness="0" Padding="12,10"
                        ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
-            </Border>
-
-            <ItemsControl x:Name="StepsPanel" ItemsSource="{Binding Steps}" IsVisible="False">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="deploy:DeploymentStepResult">
-                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="0,0,0,12">
-                    <Border Classes="check-icon" Classes.passed="{Binding Succeeded}" Classes.failed="{Binding !Succeeded}">
-                      <Panel>
-                        <Path Classes="icon success ok" Data="{StaticResource Icon.Check}" />
-                        <Path Classes="icon danger bad" Data="{StaticResource Icon.Close}" />
-                      </Panel>
-                    </Border>
-                    <TextBlock Grid.Column="1" Classes="t-body" Text="{Binding Label}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="2" Classes="t-mono" Text="{Binding ExitCode, StringFormat=exit {0}}" VerticalAlignment="Center" />
-                  </Grid>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            </StackPanel>
-            </Expander>
-          </StackPanel>
+              <ScrollViewer x:Name="StepsPanel" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Steps}" Margin="14,12,14,4">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="deploy:DeploymentStepResult">
+                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="0,0,0,12">
+                        <Border Classes="check-icon" Classes.passed="{Binding Succeeded}" Classes.failed="{Binding !Succeeded}">
+                          <Panel>
+                            <Path Classes="icon success ok" Data="{StaticResource Icon.Check}" />
+                            <Path Classes="icon danger bad" Data="{StaticResource Icon.Close}" />
+                          </Panel>
+                        </Border>
+                        <TextBlock Grid.Column="1" Classes="t-body" Text="{Binding Label}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Classes="t-mono" Text="{Binding ExitCode, StringFormat=exit {0}}" VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </Grid>
         </Border>
       </StackPanel>
     </ScrollViewer>

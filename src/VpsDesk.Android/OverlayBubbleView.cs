@@ -16,6 +16,8 @@ internal sealed class OverlayBubbleView : View
     private readonly Paint _fill = new(PaintFlags.AntiAlias);
     private readonly Paint _ring = new(PaintFlags.AntiAlias);
     private readonly Paint _glyph = new(PaintFlags.AntiAlias);
+    private readonly Paint _track = new(PaintFlags.AntiAlias);
+    private float _percent;
     private readonly RectF _arc = new();
     private readonly Handler _handler = new(Looper.MainLooper!);
     private readonly Action _tick;
@@ -28,6 +30,8 @@ internal sealed class OverlayBubbleView : View
         _fill.Color = Color.ParseColor("#E60F1722");
         _ring.SetStyle(Paint.Style.Stroke);
         _ring.StrokeCap = Paint.Cap.Round;
+        _track.SetStyle(Paint.Style.Stroke);
+        _track.Color = Color.ParseColor("#334155");
         _glyph.Color = Color.White;
         _glyph.TextAlign = Paint.Align.Center;
         _glyph.SetTypeface(Typeface.DefaultBold);
@@ -38,15 +42,28 @@ internal sealed class OverlayBubbleView : View
     public void SetState(BubbleState state)
     {
         _state = state;
-        if (state == BubbleState.Running) StartSpinning();
-        else _spinning = false;
+        UpdateSpinning();
         Invalidate();
+    }
+
+    /// <summary>Avance real del pase (0-100). Con 0 el anillo gira; con avance se llena como un arco.</summary>
+    public void SetProgress(double percent)
+    {
+        _percent = (float)System.Math.Clamp(percent, 0, 100);
+        UpdateSpinning();
+        Invalidate();
+    }
+
+    private void UpdateSpinning()
+    {
+        if (_state == BubbleState.Running && _percent <= 0f) StartSpinning();
+        else _spinning = false;
     }
 
     protected override void OnAttachedToWindow()
     {
         base.OnAttachedToWindow();
-        if (_state == BubbleState.Running) StartSpinning();
+        UpdateSpinning();
     }
 
     protected override void OnDetachedFromWindow()
@@ -91,14 +108,21 @@ internal sealed class OverlayBubbleView : View
             BubbleState.Failure => "#EF4444",
             _ => "#38BDF8"
         });
-        if (_state == BubbleState.Running) canvas.DrawArc(_arc, _angle, 110f, false, _ring);
+        if (_state == BubbleState.Running && _percent <= 0f) canvas.DrawArc(_arc, _angle, 110f, false, _ring);
+        else if (_state == BubbleState.Running)
+        {
+            _track.StrokeWidth = stroke;
+            canvas.DrawOval(_arc, _track);
+            canvas.DrawArc(_arc, -90f, _percent * 3.6f, false, _ring);
+        }
         else canvas.DrawOval(_arc, _ring);
 
-        _glyph.TextSize = size * 0.34f;
+        var showPercent = _state == BubbleState.Running && _percent > 0f;
+        _glyph.TextSize = size * (showPercent ? 0.27f : 0.34f);
         var text = _state switch
         {
             BubbleState.Success => "✓",
-            BubbleState.Running => "VD",
+            BubbleState.Running => showPercent ? $"{(int)_percent}%" : "VD",
             _ => "!"
         };
         canvas.DrawText(text, cx, cy - (_glyph.Descent() + _glyph.Ascent()) / 2f, _glyph);

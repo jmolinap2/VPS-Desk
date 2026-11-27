@@ -28,14 +28,55 @@ internal static class DeploymentBubble
     /// <summary>true cuando el pase terminó (con éxito o no): la burbuja deja de ofrecer «Abortar».</summary>
     public static bool Finished { get; private set; }
 
+    /// <summary>Porcentaje de avance (0-100); 0 si aún no hay un paso en curso.</summary>
+    public static double Percent { get; private set; }
+
+    /// <summary>Paso actual, p. ej. «Paso 3 de 6 · Actualizando el código».</summary>
+    public static string Step { get; private set; } = string.Empty;
+
+    /// <summary>Últimas líneas de la salida del pase.</summary>
+    public static string Tail { get; private set; } = string.Empty;
+
+    /// <summary>Inicio y fin del pase en milisegundos Unix (0 = sin fin todavía), para el tiempo transcurrido.</summary>
+    public static long StartedAtMs { get; private set; }
+    public static long FinishedAtMs { get; private set; }
+
+    /// <summary>Cambió el avance, el paso o la salida. Puede llegar desde cualquier hilo.</summary>
+    public static event Action? ProgressChanged;
+
+    public static void SetProgress(double percent, string step)
+    {
+        Percent = System.Math.Clamp(percent, 0, 100);
+        Step = step ?? string.Empty;
+        try { ProgressChanged?.Invoke(); } catch (System.Exception) { /* un suscriptor no debe afectar al pase */ }
+    }
+
+    public static void SetTail(string tail)
+    {
+        Tail = tail ?? string.Empty;
+        try { ProgressChanged?.Invoke(); } catch (System.Exception) { /* un suscriptor no debe afectar al pase */ }
+    }
+
     /// <summary>Cambió el estado: (mensaje, terminado). Puede llegar desde cualquier hilo.</summary>
     public static event Action<string, bool>? Changed;
 
-    public static void Start(Context context, string message) => Post(context, message, finished: false);
+    public static void Start(Context context, string message)
+    {
+        StartedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        FinishedAtMs = 0;
+        Percent = 0;
+        Step = string.Empty;
+        Tail = string.Empty;
+        Post(context, message, finished: false);
+    }
 
     public static void Update(Context context, string message) => Post(context, message, finished: false);
 
-    public static void Finish(Context context, string title, string message) => Post(context, $"{title}: {message}", finished: true);
+    public static void Finish(Context context, string title, string message)
+    {
+        FinishedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Post(context, $"{title}: {message}", finished: true);
+    }
 
     private static void Post(Context context, string message, bool finished)
     {

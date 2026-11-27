@@ -18,4 +18,10 @@ public static class DeploymentBackgroundExecution
     /// no lo ofrece, y entonces la interfaz no muestra el botón «Minimizar».
     /// </summary>
     public static Action? Minimize { get; set; }
+
+    /// <summary>Avance del pase: porcentaje (0-100) y paso actual. La burbuja flotante lo muestra como progreso real.</summary>
+    public static Action<double, string>? Progress { get; set; }
+
+    /// <summary>Las últimas líneas de la salida del pase, para la vista en vivo de la burbuja flotante.</summary>
+    public static Action<string>? OutputTail { get; set; }
 }

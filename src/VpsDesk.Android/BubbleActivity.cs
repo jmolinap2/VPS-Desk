@@ -34,14 +34,18 @@ public sealed class BubbleActivity : Activity
     {
         base.OnResume();
         DeploymentBubble.Changed += OnChanged;
+        DeploymentBubble.ProgressChanged += OnProgress;
         _panel?.Apply(DeploymentBubble.Message, DeploymentBubble.Finished);
     }
 
     protected override void OnPause()
     {
         DeploymentBubble.Changed -= OnChanged;
+        DeploymentBubble.ProgressChanged -= OnProgress;
         base.OnPause();
     }
+
+    private void OnProgress() => RunOnUiThread(() => _panel?.Apply(DeploymentBubble.Message, DeploymentBubble.Finished));
 
     private void OnChanged(string message, bool finished) => RunOnUiThread(() => _panel?.Apply(message, finished));
 }

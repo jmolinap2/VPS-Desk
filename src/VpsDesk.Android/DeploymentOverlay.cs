@@ -41,6 +41,9 @@ internal static class DeploymentOverlay
     private static float _downRawX, _downRawY;
     private static int _downX, _downY;
     private static bool _dragging;
+    private static bool _alerted;
+    private static bool _longPressed;
+    private static int _pressId;
 
     private static Context AppContext => global::Android.App.Application.Context;
 
@@ -56,7 +59,11 @@ internal static class DeploymentOverlay
     public static void Hide() => Main.Post(HideCore);
 
     /// <summary>Empezó un pase nuevo: una burbuja descartada antes vuelve a estar permitida.</summary>
-    public static void OnServiceStarted() => Main.Post(() => _dismissed = false);
+    public static void OnServiceStarted() => Main.Post(() =>
+    {
+        _dismissed = false;
+        _alerted = false;
+    });
 
     /// <summary>El pase terminó: la burbuja se queda con el resultado si lo hubo; si no, desaparece.</summary>
     public static void OnServiceStopped() => Main.Post(() =>
@@ -89,10 +96,12 @@ internal static class DeploymentOverlay
             layout.Y = _y;
             bubble.Touch += OnBubbleTouch;
             bubble.SetState(Classify(DeploymentBubble.Message, DeploymentBubble.Finished));
+            bubble.SetProgress(DeploymentBubble.Percent);
             _windows!.AddView(bubble, layout);
             _bubble = bubble;
             _bubbleParams = layout;
             DeploymentBubble.Changed += OnChanged;
+            DeploymentBubble.ProgressChanged += OnProgress;
         }
         catch (System.Exception ex)
         {
@@ -105,6 +114,7 @@ internal static class DeploymentOverlay
     private static void HideCore()
     {
         DeploymentBubble.Changed -= OnChanged;
+        DeploymentBubble.ProgressChanged -= OnProgress;
         ClosePanel();
         HideCloseTarget();
         if (_bubble is null) return;
@@ -115,8 +125,42 @@ internal static class DeploymentOverlay
 
     private static void OnChanged(string message, bool finished) => Main.Post(() =>
     {
+        // Con la app en segundo plano (la burbuja visible), avisa una vez cuando el pase termina.
+        if (finished && _bubble is not null && !_alerted)
+        {
+            _alerted = true;
+            Alert(Classify(message, finished));
+        }
         _bubble?.SetState(Classify(message, finished));
         _panel?.Apply(message, finished);
+    });
+
+    /// <summary>Vibración (y sonido si el teléfono no está en silencio) al terminar el pase: una pulsación si salió bien, tres si no.</summary>
+    private static void Alert(BubbleState state)
+    {
+        try
+        {
+            var context = AppContext;
+            var audio = context.GetSystemService(Context.AudioService) as global::Android.Media.AudioManager;
+            var mode = audio?.RingerMode ?? global::Android.Media.RingerMode.Normal;
+            if (mode == global::Android.Media.RingerMode.Silent) return;
+
+            var pattern = state == BubbleState.Success ? new long[] { 0, 180 } : new long[] { 0, 160, 120, 160, 120, 320 };
+            (context.GetSystemService(Context.VibratorService) as Vibrator)?.Vibrate(VibrationEffect.CreateWaveform(pattern, -1));
+
+            if (mode == global::Android.Media.RingerMode.Normal)
+            {
+                global::Android.Media.RingtoneManager.GetRingtone(context,
+                    global::Android.Media.RingtoneManager.GetDefaultUri(global::Android.Media.RingtoneType.Notification))?.Play();
+            }
+        }
+        catch (System.Exception) { /* un aviso nunca debe afectar al pase */ }
+    }
+
+    private static void OnProgress() => Main.Post(() =>
+    {
+        _bubble?.SetProgress(DeploymentBubble.Percent);
+        _panel?.Apply(DeploymentBubble.Message, DeploymentBubble.Finished);
     });
 
     private static BubbleState Classify(string message, bool finished)
@@ -142,6 +186,9 @@ internal static class DeploymentOverlay
                 _downX = _bubbleParams.X;
                 _downY = _bubbleParams.Y;
                 _dragging = false;
+                _longPressed = false;
+                var press = ++_pressId;
+                Main.PostDelayed(() => OnLongPress(press), 500);
                 break;
 
             case MotionEventActions.Move:
@@ -151,6 +198,8 @@ internal static class DeploymentOverlay
                 if (!_dragging && Math.Abs(dx) + Math.Abs(dy) > Dp(8))
                 {
                     _dragging = true;
+                    _pressId++;
+                    _bubble.PerformHapticFeedback(FeedbackConstants.LongPress);
                     ClosePanel();
                     ShowCloseTarget();
                 }
@@ -163,9 +212,10 @@ internal static class DeploymentOverlay
             }
 
             case MotionEventActions.Up:
+                _pressId++;
                 if (!_dragging)
                 {
-                    TogglePanel();
+                    if (!_longPressed) TogglePanel();
                     break;
                 }
                 var dismiss = IsOverCloseTarget();
@@ -180,11 +230,23 @@ internal static class DeploymentOverlay
                 break;
 
             case MotionEventActions.Cancel:
+                _pressId++;
                 HideCloseTarget();
                 if (_dragging) SnapToEdge();
                 _dragging = false;
                 break;
         }
+    }
+
+    /// <summary>Pulsación larga: abre el panel con «Abortar» ya a un toque de confirmarse.</summary>
+    private static void OnLongPress(int press)
+    {
+        if (press != _pressId || _dragging || _bubble is null) return;
+        _longPressed = true;
+        _bubble.PerformHapticFeedback(FeedbackConstants.LongPress);
+        if (_panel is null) OpenPanel();
+        if (DeploymentBubble.Finished) return;
+        _panel?.ArmAbort();
     }
 
     private static void MoveBubble(int x, int y)
@@ -342,6 +404,7 @@ internal static class DeploymentOverlay
         var over = IsOverCloseTarget();
         if (over == _overClose) return;
         _overClose = over;
+        _bubble?.PerformHapticFeedback(FeedbackConstants.ClockTick);
         _closeTarget.ScaleX = _closeTarget.ScaleY = over ? 1.25f : 1f;
     }
 

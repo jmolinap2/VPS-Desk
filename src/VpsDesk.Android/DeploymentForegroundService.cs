@@ -15,6 +15,7 @@ public sealed class DeploymentForegroundService : Service
     private static DeploymentForegroundService? _instance;
     private PowerManager.WakeLock? _wakeLock;
     private string _message = "Preparando el pase";
+    private double _percent;
 
     /// <summary>true mientras el servicio, y por tanto el pase, está corriendo.</summary>
     internal static bool IsRunning => _instance is not null;
@@ -54,6 +55,26 @@ public sealed class DeploymentForegroundService : Service
         catch (Exception) { /* A notification must never interrupt a deployment. */ }
     }
 
+    public static void ReportProgress(double percent, string step)
+    {
+        var service = _instance;
+        if (service is null) return;
+        try
+        {
+            service._percent = percent;
+            DeploymentBubble.SetProgress(percent, step);
+            ((NotificationManager)service.GetSystemService(NotificationService)!).Notify(NotificationId, service.BuildNotification());
+        }
+        catch (Exception) { /* A notification must never interrupt a deployment. */ }
+    }
+
+    public static void ReportOutputTail(string tail)
+    {
+        if (_instance is null) return;
+        try { DeploymentBubble.SetTail(tail); }
+        catch (Exception) { /* A notification must never interrupt a deployment. */ }
+    }
+
     public static void Complete(string title, string message)
     {
         var service = _instance;
@@ -84,7 +105,7 @@ public sealed class DeploymentForegroundService : Service
             .SetContentText(_message)
             .SetOngoing(true)
             .SetOnlyAlertOnce(true)
-            .SetProgress(0, 0, true);
+            .SetProgress(100, (int)_percent, _percent <= 0);
         if (pending is not null) builder.SetContentIntent(pending);
         return builder.Build();
     }

@@ -62,6 +62,12 @@ public partial class DeploymentsViewModel
     public bool CanAbortDeployment => IsDeploymentRunning && _deploymentCts is { IsCancellationRequested: false };
     public bool CanRestartDeployment => !IsBusy && HasExecutionActivity;
 
+    /// <summary>Solo con un pase corriendo y en plataformas que pueden dejarlo como burbuja flotante.</summary>
+    public bool CanMinimizeDeployment => IsDeploymentRunning && DeploymentBackgroundExecution.Minimize is not null;
+
+    [RelayCommand]
+    private void MinimizeDeployment() => DeploymentBackgroundExecution.Minimize?.Invoke();
+
     public string OutputFollowLabel => FollowDeploymentOutput ? "Pausar seguimiento" : "Ir a la última salida";
     public string OutputFollowHint => FollowDeploymentOutput
         ? "Siguiendo la salida · pausa para revisar o copiar líneas anteriores"
@@ -133,6 +139,7 @@ public partial class DeploymentsViewModel
         OnPropertyChanged(nameof(ShowProgressJet));
         OnPropertyChanged(nameof(HasExecutionActivity));
         OnPropertyChanged(nameof(CanAbortDeployment));
+        OnPropertyChanged(nameof(CanMinimizeDeployment));
         OnPropertyChanged(nameof(CanRestartDeployment));
         NotifyReportAvailability();
         UpdateElapsedTimer(value);

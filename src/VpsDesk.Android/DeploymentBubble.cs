@@ -47,6 +47,10 @@ internal static class DeploymentBubble
 
         try { Changed?.Invoke(message, finished); } catch (System.Exception) { /* un suscriptor no debe afectar al pase */ }
 
+        // Con el permiso «Mostrar sobre otras apps» la burbuja flotante propia ya muestra el pase; la de
+        // notificación queda como respaldo para quien no lo concede (así no aparecen dos burbujas).
+        if (DeploymentOverlay.CanDraw(context)) return;
+
         if (!OperatingSystem.IsAndroidVersionAtLeast(30))
         {
             LogOnce("burbuja no disponible: requiere Android 11 o superior");

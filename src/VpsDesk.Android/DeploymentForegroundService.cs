@@ -16,6 +16,9 @@ public sealed class DeploymentForegroundService : Service
     private PowerManager.WakeLock? _wakeLock;
     private string _message = "Preparando el pase";
 
+    /// <summary>true mientras el servicio, y por tanto el pase, está corriendo.</summary>
+    internal static bool IsRunning => _instance is not null;
+
     public override void OnCreate()
     {
         base.OnCreate();
@@ -27,6 +30,7 @@ public sealed class DeploymentForegroundService : Service
         });
         StartForeground(NotificationId, BuildNotification());
         DeploymentBubble.Start(this, _message);
+        DeploymentOverlay.OnServiceStarted();
         var power = (PowerManager)GetSystemService(PowerService)!;
         _wakeLock = power.NewWakeLock(WakeLockFlags.Partial, "VpsDesk:Deployment");
         _wakeLock?.Acquire(6 * 60 * 60 * 1000L);
@@ -93,6 +97,7 @@ public sealed class DeploymentForegroundService : Service
     public override void OnDestroy()
     {
         if (ReferenceEquals(_instance, this)) _instance = null;
+        DeploymentOverlay.OnServiceStopped();
         if (_wakeLock?.IsHeld == true) _wakeLock.Release();
         _wakeLock?.Dispose();
         _wakeLock = null;

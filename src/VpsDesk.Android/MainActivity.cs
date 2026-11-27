@@ -1,5 +1,7 @@
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
+using Android.Provider;
 using Android.Views;
 using Avalonia.Android;
 
@@ -23,6 +25,43 @@ public class MainActivity : AvaloniaMainActivity
     {
         base.OnCreate(savedInstanceState);
         _current = new WeakReference<MainActivity>(this);
+    }
+
+    // La burbuja flotante del pase solo se muestra con la app fuera de primer plano.
+    protected override void OnStart()
+    {
+        base.OnStart();
+        DeploymentOverlay.Hide();
+    }
+
+    protected override void OnStop()
+    {
+        DeploymentOverlay.ShowIfRunning();
+        base.OnStop();
+    }
+
+    /// <summary>
+    /// Botón «Minimizar» del pase: manda la app a segundo plano y deja el pase como burbuja flotante.
+    /// La primera vez lleva al usuario a conceder «Mostrar sobre otras apps»; al volver, basta pulsar de nuevo.
+    /// </summary>
+    internal static void MinimizeToBubble()
+    {
+        MainActivity? activity = null;
+        if (_current is null || !_current.TryGetTarget(out activity) || activity is null) return;
+        activity.RunOnUiThread(() =>
+        {
+            if (!DeploymentOverlay.CanDraw(activity))
+            {
+                global::Android.Widget.Toast.MakeText(activity,
+                    "Permite a VPS Desk mostrarse sobre otras apps y vuelve a pulsar Minimizar.",
+                    global::Android.Widget.ToastLength.Long)?.Show();
+                activity.StartActivity(new Intent(Settings.ActionManageOverlayPermission,
+                    global::Android.Net.Uri.Parse($"package:{activity.PackageName}")));
+                return;
+            }
+            DeploymentOverlay.Show();
+            activity.MoveTaskToBack(true);
+        });
     }
 
     internal static void RequestDeploymentNotifications()

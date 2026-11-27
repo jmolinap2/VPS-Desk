@@ -12,4 +12,10 @@ public static class DeploymentBackgroundExecution
     /// Solo tiene valor mientras hay un pase corriendo; puede llamarse desde cualquier hilo.
     /// </summary>
     public static Action? RequestAbort { get; set; }
+
+    /// <summary>
+    /// Minimiza la aplicación y deja el pase en curso como burbuja flotante (Android). Es null donde la plataforma
+    /// no lo ofrece, y entonces la interfaz no muestra el botón «Minimizar».
+    /// </summary>
+    public static Action? Minimize { get; set; }
 }

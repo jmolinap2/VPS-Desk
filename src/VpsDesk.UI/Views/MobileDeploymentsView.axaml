@@ -264,6 +264,8 @@
                 <Border Classes="status success" IsVisible="{Binding IsDeploymentRunning}" VerticalAlignment="Center">
                   <TextBlock Text="{DynamicResource Deployments_Live}" />
                 </Border>
+                <Button Classes="btn-secondary" Content="{DynamicResource Deployments_Minimize}"
+                        Command="{Binding MinimizeDeploymentCommand}" IsVisible="{Binding CanMinimizeDeployment}" />
                 <Button Classes="btn-danger prominent" Content="Abortar" Command="{Binding AbortDeploymentCommand}"
                         IsVisible="{Binding CanAbortDeployment}" />
               </StackPanel>

@@ -53,6 +53,7 @@ public class MainApplication : AvaloniaAndroidApplication<App>
         };
         VpsDesk.Desktop.Services.DeploymentBackgroundExecution.Report = DeploymentForegroundService.Report;
         VpsDesk.Desktop.Services.DeploymentBackgroundExecution.Complete = DeploymentForegroundService.Complete;
+        VpsDesk.Desktop.Services.DeploymentBackgroundExecution.Minimize = MainActivity.MinimizeToBubble;
 
         VpsDesk.Desktop.Services.NotificationAudio.PlaySound = _ =>
         {

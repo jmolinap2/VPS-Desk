@@ -373,6 +373,7 @@
   "Deployments_ExecutionDetails": "View output and steps",
   "Deployments_Execution": "Execution",
   "Deployments_Live": "Live",
+  "Deployments_Minimize": "Minimize",
   "Deployments_TabOutput": "Output",
   "Deployments_TabSteps": "Steps",
   "Deployments_DataSaver": "Data saver",

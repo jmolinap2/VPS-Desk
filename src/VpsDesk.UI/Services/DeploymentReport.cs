@@ -124,7 +124,8 @@ public static class DeploymentReport
         Add(@"not possible to fast-forward|have diverged|diverging branches", "Report_Hint_Diverged", repo, rama);
         Add(@"would be overwritten by (merge|checkout)|your local changes", "Report_Hint_LocalChanges", repo);
         Add(@"could not read from remote repository|could not resolve host|connection timed out|repository not found", "Report_Hint_Remote");
-        Add(@"permission denied|publickey", "Report_Hint_Permission");
+        // \bpublickey\b: sin el límite de palabra coincidía con "PublicKeyToken" de los avisos de compilación de .NET.
+        Add(@"permission denied|\bpublickey\b", "Report_Hint_Permission");
         Add(@"port is already allocated|address already in use", "Report_Hint_Port");
         Add(@"no space left on device", "Report_Hint_Disk");
         return hints;
